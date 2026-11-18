@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tank Arena: tarayıcıda ve Android'de tank oyunu</title>
+<meta name="description" content="Dalga dalga gelen düşman tanklarına karşı ayakta kal, her dalgadan sonra tankını atölyede yükselt. Tarayıcıda hemen oyna ya da Android APK'sını indir.">
+<meta name="theme-color" content="#262a1d">
+<link rel="icon" type="image/png" sizes="32x32" href="/img/favicon-32.png">
+<link rel="icon" type="image/png" sizes="48x48" href="/img/favicon-48.png">
+<link rel="apple-touch-icon" href="/img/apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="tr_TR">
+<meta property="og:title" content="Tank Arena">
+<meta property="og:description" content="Dalga dalga gelen düşman tanklarına karşı ayakta kal. Tarayıcıda hemen oyna ya da Android'e indir.">
+<meta property="og:image" content="/img/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preload" href="/fonts/stencil-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/fonts/fonts.css">
+<style>
+:root{
+  color-scheme:dark;
+  /* the game's own field kit: olive drab, bone stencil markings, signal yellow only for the action that matters */
+  --olive:#262a1d;--olive-2:#323827;--olive-3:#1d2015;
+  --bone:#efe7d2;--bone-2:rgba(239,231,210,.74);--line:rgba(239,231,210,.16);
+  --signal:#f2c14e;--on-signal:#1f2216;--ally:#5fb4dd;--hostile:#e0533a;
+  --sand:#d6c294;--sand-ink:#2a2c1f;--sand-ink-2:rgba(42,44,31,.78);
+  --display:"Big Shoulders Stencil",Impact,"Arial Narrow",sans-serif;
+  --ui:"Barlow Condensed","Roboto Condensed","Arial Narrow",sans-serif;
+  --wrap:min(1080px,100% - 40px);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{background:var(--olive);-webkit-text-size-adjust:100%}
+body{color:var(--bone);font-family:var(--ui);font-weight:500;font-size:20px;line-height:1.42;-webkit-font-smoothing:antialiased}
+img{display:block;max-width:100%;height:auto}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--bone);outline-offset:3px;border-radius:2px}
+.wrap{width:var(--wrap);margin-inline:auto}
+.steel{height:40px;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' fill='%23585c56'/%3E%3Crect x='1.5' y='1.5' width='37' height='36' rx='1.5' fill='%23a4a7a0'/%3E%3Crect x='1.5' y='34.5' width='37' height='3' fill='%237b7f78'/%3E%3Crect x='6' y='6' width='28' height='24' fill='none' stroke='%238a8e87' stroke-width='1.6'/%3E%3Cpath d='M6 6l28 24M34 6L6 30' stroke='%238a8e87' stroke-width='1.6'/%3E%3Cg fill='%23707470'%3E%3Ccircle cx='4.2' cy='4.2' r='1.1'/%3E%3Ccircle cx='35.8' cy='4.2' r='1.1'/%3E%3Ccircle cx='4.2' cy='32' r='1.1'/%3E%3Ccircle cx='35.8' cy='32' r='1.1'/%3E%3C/g%3E%3C/svg%3E") 0 0/40px 40px repeat-x}
+h2{font-family:var(--display);font-weight:800;font-size:clamp(40px,8.4vw,64px);line-height:.95;letter-spacing:.005em;text-wrap:balance}
+.lead{max-width:58ch;color:var(--bone-2);margin-top:14px;text-wrap:pretty}
+section{padding:72px 0}
+
+/* buttons: one yellow action per place, the download beside it */
+.acts{display:flex;flex-wrap:wrap;gap:12px;margin-top:26px;max-width:640px}
+.acts .btn{flex:1 1 auto}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:58px;padding:0 26px;border-radius:4px;
+  font-weight:700;font-size:23px;line-height:1;text-decoration:none;white-space:nowrap;transition:filter .15s,background-color .15s}
+.btn small{font-weight:600;font-size:17px;opacity:.75}
+.btn-play{background:var(--signal);color:var(--on-signal)}
+.btn-apk{border:2px solid rgba(239,231,210,.55);color:var(--bone)}
+.btn svg{width:22px;height:22px;flex:none}
+@media (hover:hover){.btn-play:hover{filter:brightness(1.08)}.btn-apk:hover{background:rgba(239,231,210,.08)}}
+.note{margin-top:14px;font-size:17px;color:var(--bone-2)}
+
+/* hero: the live arena behind a bottom sheet, the same way the game lays out its own menu */
+.hero{position:relative;min-height:min(92svh,980px);display:flex;flex-direction:column;justify-content:flex-end;overflow:hidden;isolation:isolate}
+.hero picture,.hero picture img{position:absolute;inset:0;width:100%;height:100%}
+.hero picture{z-index:-2}
+.hero picture img{object-fit:cover;object-position:50% 18%}
+.hero::before{content:"";position:absolute;inset:0;z-index:-1;
+  background:linear-gradient(to top,var(--olive) 40%,rgba(38,42,29,.9) 57%,rgba(38,42,29,.42) 79%,rgba(38,42,29,.12))}
+.hero .wrap{padding:0 0 46px}
+h1{font-family:var(--display);font-weight:900;font-size:clamp(92px,27vw,196px);line-height:.8;letter-spacing:-.005em}
+h1 span{display:block}
+.hero p.pitch{max-width:30ch;margin-top:18px;font-size:23px;line-height:1.3;font-weight:600;text-wrap:balance}
+@media (min-aspect-ratio:1/1) and (min-width:760px){
+  .hero{justify-content:center;min-height:min(88vh,860px)}
+  .hero picture img{object-position:70% 50%}
+  .hero::before{background:linear-gradient(to right,var(--olive) 26%,rgba(38,42,29,.82) 44%,rgba(38,42,29,.2) 72%,rgba(38,42,29,.05))}
+  .hero .wrap{padding:60px 0}
+}
+
+/* workshop */
+.split{display:grid;gap:40px}
+.ws-tanks{display:flex;gap:14px;margin-top:28px}
+.ws-tanks figure{flex:1;max-width:190px;padding:14px 10px 12px;border-radius:6px;background:var(--sand);color:var(--sand-ink);text-align:center}
+.ws-tanks img{width:112px;margin:0 auto;filter:drop-shadow(3px 4px 0 rgba(70,45,15,.38))}
+.ws-tanks figcaption{margin-top:6px;font-size:17px;font-weight:700;line-height:1.15}
+.ws-tanks figcaption span{display:block;font-weight:500;color:var(--sand-ink-2)}
+.phone{justify-self:center;width:min(330px,82vw);border:9px solid #12140d;border-radius:30px;overflow:hidden;background:#12140d}
+.phone img{border-radius:21px}
+.grid3{list-style:none;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:22px 10px;margin-top:34px}
+.grid3 li{display:flex;flex-direction:column;align-items:center;gap:5px;text-align:center;line-height:1.15}
+.grid3 b{font-weight:700;font-size:19px}
+.grid3 span{font-size:16px;color:var(--bone-2)}
+.ups .ico{width:48px;height:48px;display:grid;place-items:center;border-radius:4px;background:rgba(0,0,0,.28);color:var(--bone);margin-bottom:3px}
+.ups .ico svg{width:28px;height:28px}
+.ups li.rare .ico{color:var(--signal)}
+.ups .lv{font-size:15px;opacity:.85}
+.ico-svg{fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.pus{max-width:760px}
+.pus svg{width:50px;height:50px;margin-bottom:3px}
+@media (min-width:860px){
+  .split{grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);align-items:start;gap:56px}
+  .phone{position:sticky;top:30px}
+  .grid3.ups{grid-template-columns:repeat(4,minmax(0,1fr))}
+}
+
+/* the arena floor: enemies stand on sand, as they do in the first waves */
+.ground{background:var(--sand);color:var(--sand-ink);
+  background-image:radial-gradient(circle at 18% 30%,rgba(120,92,50,.16) 0 3px,transparent 4px),radial-gradient(circle at 72% 64%,rgba(120,92,50,.14) 0 2.5px,transparent 3.5px),radial-gradient(circle at 46% 82%,rgba(120,92,50,.12) 0 2px,transparent 3px);
+  background-size:170px 170px,230px 230px,130px 130px}
+.ground .lead{color:var(--sand-ink-2)}
+.foes{list-style:none;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:30px 18px;margin-top:36px}
+.foes li{display:flex;flex-direction:column;align-items:flex-start;gap:4px}
+.foes img{width:104px;filter:drop-shadow(4px 5px 0 rgba(70,45,15,.34))}
+.foes .foe-boss img{width:130px}
+.foes b{font-weight:700;font-size:22px;line-height:1.1}
+.foes span{font-size:18px;line-height:1.3;color:var(--sand-ink-2)}
+@media (min-width:860px){.foes{grid-template-columns:repeat(5,minmax(0,1fr))}}
+
+/* difficulty: rank chevrons, one per step up */
+.diffs{list-style:none;display:grid;gap:14px;margin-top:30px}
+.diffs li{display:flex;gap:18px;align-items:flex-start;padding:18px 20px;border:1px solid var(--line);border-radius:4px}
+.diffs b{display:block;font-family:var(--display);font-weight:800;font-size:38px;line-height:1}
+.diffs span{display:block;margin-top:6px;color:var(--bone-2)}
+.rank{display:flex;flex-direction:column;gap:3px;width:30px;flex:none;padding-top:6px}
+.rank i{display:block;height:12px;background:var(--signal);clip-path:polygon(0 100%,50% 30%,100% 100%,100% 66%,50% 0,0 66%)}
+.diffs li:last-child .rank i{background:var(--hostile)}
+@media (min-width:860px){.diffs{grid-template-columns:repeat(3,minmax(0,1fr))}}
+
+/* controls */
+.ctl{display:grid;gap:30px;margin-top:30px}
+.ctl h3{font-weight:700;font-size:24px;line-height:1.1;margin-bottom:10px}
+.ctl dl{display:grid;grid-template-columns:auto 1fr;gap:8px 18px}
+.ctl dt{font-weight:700;color:var(--signal)}
+.ctl dd{color:var(--bone-2)}
+.wide{margin-top:38px;border-radius:10px;overflow:hidden;border:1px solid var(--line)}
+.cap{margin-top:10px;font-size:17px;color:var(--bone-2)}
+@media (min-width:860px){.ctl{grid-template-columns:1fr 1fr;gap:48px}}
+
+/* install */
+.steps{list-style:none;counter-reset:s;display:grid;gap:18px;margin-top:30px;max-width:62ch}
+.steps li{counter-increment:s;display:grid;grid-template-columns:44px 1fr;gap:14px;align-items:start}
+.steps li::before{content:counter(s);display:grid;place-items:center;width:44px;height:44px;border-radius:50%;border:2px solid var(--signal);color:var(--signal);font-weight:700;font-size:22px;line-height:1}
+.steps p{padding-top:7px}
+.ios{margin-top:30px;max-width:62ch;padding:18px 20px;border-left:3px solid var(--ally);background:rgba(95,180,221,.08);border-radius:0 4px 4px 0}
+.ios b{font-weight:700}
+
+footer{padding:0 0 40px;color:var(--bone-2);font-size:17px}
+footer .wrap{display:flex;flex-wrap:wrap;gap:8px 24px;justify-content:space-between;padding-top:26px}
+footer a{text-underline-offset:3px}
+@media (prefers-reduced-motion:reduce){.btn{transition:none}}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <picture>
+    <source media="(min-aspect-ratio: 1/1) and (min-width: 760px)" srcset="/img/play-wide.jpg">
+    <img src="/img/play-phone.jpg" width="720" height="1558" alt="Tank Arena oyunundan bir an: mavi oyuncu tankı, kırmızı düşman tankları, tuğla ve çelik duvarlar">
+  </picture>
+  <div class="wrap">
+    <h1><span>TANK</span><span>ARENA</span></h1>
+    <p class="pitch">Dalga dalga gelen düşman tanklarına karşı ayakta kal. Her dalgadan sonra atölyede tankını yükselt.</p>
+    <div class="acts">
+      <a class="btn btn-play" href="/oyna/">Hemen oyna</a>
+      <a class="btn btn-apk" href="/TankArena-1.2.apk" download><svg viewBox="0 0 24 24" class="ico-svg" aria-hidden="true"><path d="M12 4v11M7 10.5l5 5 5-5M5 20h14"/></svg>Android için indir <small>APK, 0,4 MB</small></a>
+    </div>
+    <p class="note">Tarayıcıda kurulum gerekmez. Telefonda da bilgisayarda da oynanır.</p>
+  </div>
+</header>
+<div class="steel" aria-hidden="true"></div>
+
+<section id="atolye">
+  <div class="wrap split">
+    <div>
+      <h2>Her dalgadan sonra atölye</h2>
+      <p class="lead">Dalga bitince üç kart gelir, birini seçersin. Seçtiğin parça tankına takılır ve oyun sonuna kadar kalır. Aynı kartı yeniden seçtikçe seviyesi artar. Komutanı yendiğin dalganın sonunda nadir bir kart mutlaka çıkar.</p>
+      <div class="ws-tanks">
+        <figure><img src="/img/tank-player.png" width="128" height="128" alt="Yükseltmesiz oyuncu tankı"><figcaption>İlk dalga<span>Çıplak tank</span></figcaption></figure>
+        <figure><img src="/img/tank-player-upgraded.png" width="128" height="128" alt="Zırh plakaları, çift namlu, egzoz ve anten takılmış oyuncu tankı"><figcaption>Yükseltilmiş<span>Parçalar görünür</span></figcaption></figure>
+      </div>
+      <ul class="grid3 ups" aria-label="Yükseltmeler">
+<li><span class="ico"><svg class="ico-svg" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="1.5"/><circle cx="7" cy="9" r="1.15" fill="currentColor" stroke="none"/><circle cx="17" cy="9" r="1.15" fill="currentColor" stroke="none"/><circle cx="7" cy="15" r="1.15" fill="currentColor" stroke="none"/><circle cx="17" cy="15" r="1.15" fill="currentColor" stroke="none"/></svg></span><b>Zırh plakası</b><span>+20 azami zırh</span><span class="lv">5 seviye</span></li>
+<li><span class="ico"><svg class="ico-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5l7 7-7 7M13 5l7 7-7 7"/></svg></span><b>Turbo motor</b><span>+%10 hız</span><span class="lv">4 seviye</span></li>
+<li><span class="ico"><svg class="ico-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20v-9a2 2 0 0 1 4 0v9zM10 20v-9a2 2 0 0 1 4 0v9zM16 20v-9a2 2 0 0 1 4 0v9zM4 16h4M10 16h4M16 16h4"/></svg></span><b>Otomatik yükleyici</b><span>Daha sık atış</span><span class="lv">5 seviye</span></li>
+<li><span class="ico"><svg class="ico-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 21V10a5 5 0 0 1 10 0v11zM7 16h10"/></svg></span><b>Büyük kalibre</b><span>+%25 hasar</span><span class="lv">4 seviye</span></li>
+<li><span class="ico"><svg class="ico-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 9h15M17 6.5h4v5h-4zM3 17h18M6 14.5L3 17l3 2.5M18 14.5l3 2.5-3 2.5"/></svg></span><b>Uzun namlu</b><span>Hızlı mermi, uzun menzil</span><span class="lv">3 seviye</span></li>
+<li><span class="ico"><svg class="ico-svg" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="8" width="14" height="11" rx="2"/><path d="M12 8V5M9 19v2.5M15 19v2.5"/><circle cx="12" cy="4" r="1.3"/><circle cx="9.5" cy="13" r="1.15" fill="currentColor" stroke="none"/><circle cx="14.5" cy="13" r="1.15" fill="currentColor" stroke="none"/></svg></span><b>Onarım robotu</b><span>Zırhı kendisi onarır</span><span class="lv">3 seviye</span></li>
+<li class=rare><span class="ico"><svg class="ico-svg" viewBox="0 0 24 24" aria-hidden="true"><circle cx="7" cy="12" r="4"/><path d="M11 9.5h10M11 14.5h10"/></svg></span><b>Çift namlu</b><span>İki paralel mermi, nadir</span><span class="lv">Tek parça</span></li>
+<li class=rare><span class="ico"><svg class="ico-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 3v18M3 18l16.5-6L3 6M5.6 9.1L3 6l3.9-.7"/></svg></span><b>Sekme</b><span>Çelikten seker, nadir</span><span class="lv">2 seviye</span></li>
+<li class=rare><span class="ico"><svg class="ico-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2L14 7.5 19 5 16.5 10 22 12 16.5 14 19 19 14 16.5 12 22 10 16.5 5 19 7.5 14 2 12 7.5 10 5 5 10 7.5Z"/></svg></span><b>Patlayıcı mermi</b><span>Alan hasarı, nadir</span><span class="lv">2 seviye</span></li>
+<li><span class="ico"><svg class="ico-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 3h5v9a3 3 0 0 0 6 0V3h5v9a8 8 0 0 1-16 0zM4 7h5M15 7h5"/></svg></span><b>Mıknatıs</b><span>Güçlendirmeleri çeker</span><span class="lv">2 seviye</span></li>
+<li class=rare><span class="ico"><svg class="ico-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></span><b>Termal kamera</b><span>Çalıdakileri görür, nadir</span><span class="lv">Tek parça</span></li>
+<li><span class="ico"><svg class="ico-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12M6 21h12M7.5 3c0 4.5 3.5 6 3.5 9s-3.5 4.5-3.5 9M16.5 3c0 4.5-3.5 6-3.5 9s3.5 4.5 3.5 9"/></svg></span><b>Uzun etki</b><span>Güçlendirmeler uzar</span><span class="lv">3 seviye</span></li>
+      </ul>
+    </div>
+    <div class="phone"><img src="/img/workshop-phone.jpg" width="720" height="1558" alt="Atölye ekranı: Çift namlu, Otomatik yükleyici ve Uzun namlu kartları" loading="lazy"></div>
+  </div>
+</section>
+
+<section class="ground" id="dusmanlar">
+  <div class="wrap">
+    <h2>Karşına çıkacaklar</h2>
+    <p class="lead">Her dalga biraz daha kalabalık ve keskin gelir. Avcı mermilerden kaçar, Komutan her beşinci dalgada sahaya iner.</p>
+    <ul class="foes">
+<li class="foe-basic"><img src="/img/tank-basic.png" width="128" height="128" alt="" loading="lazy"><b>Standart tank</b><span>2 isabet. Mesafesini koruyup ateş eder.</span></li>
+<li class="foe-fast"><img src="/img/tank-fast.png" width="128" height="128" alt="" loading="lazy"><b>Keşif tankı</b><span>1 isabet. Çok hızlıdır, üzerine doğru gelir.</span></li>
+<li class="foe-heavy"><img src="/img/tank-heavy.png" width="128" height="128" alt="" loading="lazy"><b>Ağır tank</b><span>5 isabet. İri mermisi çok can yakar.</span></li>
+<li class="foe-hunter"><img src="/img/tank-hunter.png" width="128" height="128" alt="" loading="lazy"><b>Avcı</b><span>3 isabet. Mermilerden kaçar, siper alır, seni kaybettiği yere ateş açar.</span></li>
+<li class="foe-boss"><img src="/img/tank-boss.png" width="128" height="128" alt="" loading="lazy"><b>Komutan</b><span>Her 5. dalgada gelir, üç namludan ateş eder.</span></li>
+    </ul>
+  </div>
+</section>
+
+<section id="guclendirmeler">
+  <div class="wrap">
+    <h2>Dokuz güçlendirme</h2>
+    <p class="lead">Vurduğun tanklardan güçlendirme düşer, üzerinden geçince etkisi başlar. Yeni olanlar ilk dalgalarda sırayla açılır.</p>
+    <ul class="grid3 pus" aria-label="Güçlendirmeler">
+<li><svg viewBox="-16 -16 32 32" aria-hidden="true"><circle r="13.5" fill="#1d2015" stroke="#6fd46b" stroke-width="2.5"/><path d="M-2.3-7.5h4.6v5.2h5.2v4.6h-5.2v5.2h-4.6V2.3h-5.2v-4.6h5.2z" fill="#6fd46b"/></svg><b>Tamir</b><span>+35 zırh</span></li>
+<li><svg viewBox="-16 -16 32 32" aria-hidden="true"><circle r="13.5" fill="#1d2015" stroke="#5fb4dd" stroke-width="2.5"/><path d="M0-8.5L7-5.6 6.2 1.5Q4.6 6.6 0 8.8-4.6 6.6-6.2 1.5L-7-5.6z" fill="#5fb4dd"/></svg><b>Kalkan</b><span>7 sn hasarsız</span></li>
+<li><svg viewBox="-16 -16 32 32" aria-hidden="true"><circle r="13.5" fill="#1d2015" stroke="#f2913f" stroke-width="2.5"/><path d="M0 7L-6.5-6M0 7V-8M0 7L6.5-6" fill="none" stroke="#f2913f" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg><b>Üçlü atış</b><span>10 sn</span></li>
+<li><svg viewBox="-16 -16 32 32" aria-hidden="true"><circle r="13.5" fill="#1d2015" stroke="#f2c14e" stroke-width="2.5"/><path d="M2.2-9.5L-5.5 1.2h4.6L-2.4 9.5 5.5-1.4H.9z" fill="#f2c14e"/></svg><b>Seri atış</b><span>10 sn, iki kat atış</span></li>
+<li><svg viewBox="-16 -16 32 32" aria-hidden="true"><circle r="13.5" fill="#1d2015" stroke="#3fe0c5" stroke-width="2.5"/><path d="M-7-6L-1 0-7 6M1-6L7 0 1 6" fill="none" stroke="#3fe0c5" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg><b>Turbo</b><span>8 sn, %45 hız</span></li>
+<li><svg viewBox="-16 -16 32 32" aria-hidden="true"><circle r="13.5" fill="#1d2015" stroke="#ff6fae" stroke-width="2.5"/><path d="M-8 0H7M3-4L7 0 3 4M-3-8V-3M-3 3V8" fill="none" stroke="#ff6fae" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg><b>Delici mermi</b><span>10 sn, tuğla ve tank deler</span></li>
+<li><svg viewBox="-16 -16 32 32" aria-hidden="true"><circle r="13.5" fill="#1d2015" stroke="#a8e4ff" stroke-width="2.5"/><path d="M0-8V8M-6.9-4L6.9 4M-6.9 4L6.9-4M-2.2-6.3L0-4.2 2.2-6.3M-2.2 6.3L0 4.2 2.2 6.3" fill="none" stroke="#a8e4ff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg><b>Dondurucu</b><span>4 sn, düşmanlar donar</span></li>
+<li><svg viewBox="-16 -16 32 32" aria-hidden="true"><circle r="13.5" fill="#1d2015" stroke="#c9ccbd" stroke-width="2.5"/><path d="M-8.5 0Q0-8.5 8.5 0Q0 8.5-8.5 0ZM-6.5 6.5L6.5-6.5" fill="none" stroke="#c9ccbd" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg><b>Kamuflaj</b><span>7 sn, seni göremezler</span></li>
+<li><svg viewBox="-16 -16 32 32" aria-hidden="true"><circle r="13.5" fill="#1d2015" stroke="#ff5a4a" stroke-width="2.5"/><path d="M0-9.5c.9 0 1.4.9 1.4 2.1V-3l7.1 4.1v2L1.4.7v4.1l2.4 1.9v1.6L0 7.3l-3.8 1V6.7l2.4-1.9V.7l-7.1 2.4v-2L-1.4-3v-4.4c0-1.2.5-2.1 1.4-2.1z" fill="#ff5a4a"/></svg><b>Hava saldırısı</b><span>En yakın 8 düşmana bomba</span></li>
+    </ul>
+  </div>
+</section>
+
+<section id="zorluk">
+  <div class="wrap">
+    <h2>Üç zorluk</h2>
+    <p class="lead">Rekorlar her zorlukta ayrı tutulur.</p>
+    <ol class="diffs">
+<li><span class="rank" aria-hidden="true"><i></i></span><div><b>Talim</b><span>Isınma turu: daha az düşman, daha az hasar. Puanlar %25 düşük.</span></div></li>
+<li><span class="rank" aria-hidden="true"><i></i><i></i></span><div><b>Cephe</b><span>Asıl savaş burada. İlk kez oynuyorsan buradan başla.</span></div></li>
+<li><span class="rank" aria-hidden="true"><i></i><i></i><i></i></span><div><b>Kıyamet</b><span>Kalabalık ve keskin nişancı düşmanlar, Avcı erken gelir. Puanlar %50 fazla.</span></div></li>
+    </ol>
+  </div>
+</section>
+
+<section id="kontroller">
+  <div class="wrap">
+    <h2>Nasıl oynanır</h2>
+    <div class="ctl">
+      <div>
+        <h3>Telefonda</h3>
+        <dl>
+          <dt>Sol başparmak</dt><dd>Tankı sür.</dd>
+          <dt>Sağ başparmak</dt><dd>Sürükleyip nişan al ve ateş et. Kısa dokunuş en yakın düşmana ateş eder.</dd>
+          <dt>Telefonu çevir</dt><dd>Oyun dikeyde de yatayda da oynanır.</dd>
+        </dl>
+      </div>
+      <div>
+        <h3>Bilgisayarda</h3>
+        <dl>
+          <dt>WASD, oklar</dt><dd>Tankı sür.</dd>
+          <dt>Fare</dt><dd>Nişan al, tıklayarak ya da boşlukla ateş et.</dd>
+          <dt>1, 2, 3</dt><dd>Atölyede kart seç.</dd>
+          <dt>P, Esc</dt><dd>Duraklat. M sesi kapatır.</dd>
+        </dl>
+      </div>
+    </div>
+    <figure class="wide"><img src="/img/play-wide.jpg" width="1400" height="647" alt="Telefon yan çevrilmişken oyun: solda zırh ve dalga bilgisi, iki başparmak çubuğu" loading="lazy"></figure>
+    <p class="cap">Telefon yan çevrildiğinde oyun ekranı yataya geçer.</p>
+  </div>
+</section>
+
+<section id="kurulum">
+  <div class="wrap">
+    <h2>Android'e kurulum</h2>
+    <ol class="steps">
+      <li><p><b>Android için indir</b> düğmesine dokun.</p></li>
+      <li><p>İnen TankArena dosyasını aç. Telefon izin isterse tarayıcın için <b>bu kaynaktan yüklemeye izin ver</b> seçeneğini aç.</p></li>
+      <li><p><b>Yükle</b>'ye dokun. Yeni sürümler eskisinin üzerine kurulur, rekorların silinmez.</p></li>
+    </ol>
+    <p class="ios"><b>iPhone'da:</b> APK yalnızca Android'de çalışır. Oyunu Safari'de aç, Paylaş menüsünden <b>Ana Ekrana Ekle</b>'yi seç. Tank Arena ana ekrandan uygulama gibi tam ekran açılır.</p>
+    <div class="acts">
+      <a class="btn btn-play" href="/oyna/">Hemen oyna</a>
+      <a class="btn btn-apk" href="/TankArena-1.2.apk" download><svg viewBox="0 0 24 24" class="ico-svg" aria-hidden="true"><path d="M12 4v11M7 10.5l5 5 5-5M5 20h14"/></svg>Android için indir <small>APK, 0,4 MB</small></a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="steel" aria-hidden="true"></div>
+  <div class="wrap">
+    <span>Tank Arena 1.2</span>
+    <a href="https://github.com/Yusufozkal/tank-arena">Kaynak kodu GitHub'da</a>
+  </div>
+</footer>
+
+</body>
+</html>

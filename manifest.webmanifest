@@ -1,0 +1,30 @@
+{
+ "name": "Tank Arena",
+ "short_name": "Tank Arena",
+ "lang": "tr",
+ "description": "Dalga dalga gelen düşman tanklarına karşı ayakta kal.",
+ "start_url": "/oyna/",
+ "scope": "/oyna/",
+ "display": "fullscreen",
+ "orientation": "any",
+ "background_color": "#262a1d",
+ "theme_color": "#262a1d",
+ "icons": [
+  {
+   "src": "/img/icon-192.png",
+   "sizes": "192x192",
+   "type": "image/png"
+  },
+  {
+   "src": "/img/icon-512.png",
+   "sizes": "512x512",
+   "type": "image/png"
+  },
+  {
+   "src": "/img/icon-maskable-512.png",
+   "sizes": "512x512",
+   "type": "image/png",
+   "purpose": "maskable"
+  }
+ ]
+}
