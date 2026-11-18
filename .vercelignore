@@ -1,0 +1,3 @@
+# kept in the repo for GitHub downloads, not deployed to Vercel
+*.apk
+README.md

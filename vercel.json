@@ -1,0 +1,113 @@
+{
+ "$schema": "https://openapi.vercel.sh/vercel.json",
+ "headers": [
+  {
+   "source": "/(.*)",
+   "headers": [
+    {
+     "key": "X-Content-Type-Options",
+     "value": "nosniff"
+    },
+    {
+     "key": "X-Frame-Options",
+     "value": "DENY"
+    },
+    {
+     "key": "Referrer-Policy",
+     "value": "strict-origin-when-cross-origin"
+    },
+    {
+     "key": "Permissions-Policy",
+     "value": "accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()"
+    },
+    {
+     "key": "Cross-Origin-Opener-Policy",
+     "value": "same-origin"
+    },
+    {
+     "key": "Cross-Origin-Resource-Policy",
+     "value": "same-origin"
+    }
+   ]
+  },
+  {
+   "source": "/",
+   "headers": [
+    {
+     "key": "Content-Security-Policy",
+     "value": "default-src 'none'; style-src 'self' 'sha256-SW7XLTCJX8H4NnHeUDYG4xid5BWrKgrxkoiY9ZAfIpU='; font-src 'self'; img-src 'self' data:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; object-src 'none'; upgrade-insecure-requests"
+    }
+   ]
+  },
+  {
+   "source": "/index.html",
+   "headers": [
+    {
+     "key": "Content-Security-Policy",
+     "value": "default-src 'none'; style-src 'self' 'sha256-SW7XLTCJX8H4NnHeUDYG4xid5BWrKgrxkoiY9ZAfIpU='; font-src 'self'; img-src 'self' data:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; object-src 'none'; upgrade-insecure-requests"
+    }
+   ]
+  },
+  {
+   "source": "/oyna",
+   "headers": [
+    {
+     "key": "Content-Security-Policy",
+     "value": "default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; manifest-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; object-src 'none'; upgrade-insecure-requests"
+    }
+   ]
+  },
+  {
+   "source": "/oyna/(.*)",
+   "headers": [
+    {
+     "key": "Content-Security-Policy",
+     "value": "default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; manifest-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; object-src 'none'; upgrade-insecure-requests"
+    }
+   ]
+  },
+  {
+   "source": "/fonts/(.*)",
+   "headers": [
+    {
+     "key": "Cache-Control",
+     "value": "public, max-age=31536000, immutable"
+    }
+   ]
+  },
+  {
+   "source": "/oyna/game.(.*).js",
+   "headers": [
+    {
+     "key": "Cache-Control",
+     "value": "public, max-age=31536000, immutable"
+    }
+   ]
+  },
+  {
+   "source": "/img/(.*)",
+   "headers": [
+    {
+     "key": "Cache-Control",
+     "value": "public, max-age=604800, stale-while-revalidate=86400"
+    }
+   ]
+  },
+  {
+   "source": "/manifest.webmanifest",
+   "headers": [
+    {
+     "key": "Cache-Control",
+     "value": "public, max-age=86400"
+    }
+   ]
+  }
+ ],
+ "redirects": [
+  {
+   "source": "/TankArena-1.2.apk",
+   "destination": "https://github.com/Yusufozkal/tank-arena/raw/main/TankArena-1.2.apk",
+   "permanent": false
+  }
+ ]
+}
