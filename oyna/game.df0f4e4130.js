@@ -1368,7 +1368,6 @@ canvas.addEventListener('pointerdown', e => {
   if (e.pointerType === 'mouse') {
     input.touch = false; input.mouseAim = true; mouse.x = e.clientX; mouse.y = e.clientY; mouse.lastMove = mouse.lastDown = performance.now();
     if (e.button === 0) mouse.down = true;
-    canvas.classList.toggle('aim', G.state === 'play');
     return;
   }
   e.preventDefault();
@@ -1512,7 +1511,6 @@ function startGame(resume) {
   }
   G.resume = null;
   releaseInput(); resetUI();
-  canvas.classList.toggle('aim', !input.touch && input.mouseAim);
   nextWave();
   sizeMini(); measureHud();
   if (G.wave === 1) showHint(input.touch ? 'Sol başparmakla sür, sağ başparmakla nişan al ve ateş et' : 'WASD ile sür, fareyle nişan al, tıklayarak ateş et', 5);
@@ -1949,6 +1947,7 @@ function render() {
   drawTexts();
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   if ((G.state === 'play' || G.state === 'paused') && !dbg.clean) { drawIndicators(); drawCrosshair(); drawSticks(); drawVignette(); }
+  syncAimCursor();
   if (G.state === 'menu') drawMenuHint();
   if (G.fade > 0.001) { ctx.fillStyle = `rgba(14,16,10,${G.fade.toFixed(3)})`; ctx.fillRect(0, 0, view.w, view.h); }
 }
@@ -2265,16 +2264,34 @@ function drawIndicators() {
   }
   ctx.globalAlpha = 1;
 }
-function drawCrosshair() {
+function crosshairShown() {
   const p = G.player;
-  if (input.touch || !input.mouseAim || G.state !== 'play' || G.phase === 'upgrade' || !p || !p.alive || mouse.x < 0) return;
-  const x = mouse.x, y = mouse.y;
-  ctx.strokeStyle = 'rgba(239,231,210,.92)'; ctx.lineWidth = 1.6; ctx.lineCap = 'butt';
+  return !input.touch && input.mouseAim && G.state === 'play' && G.phase !== 'upgrade' && !!p && p.alive && mouse.x >= 0 && !dbg.clean;
+}
+// The system cursor is hidden only while the crosshair stands in for it, so the mouse never disappears
+// (pause, game over, menu, or keyboard-only driving after the mouse goes idle).
+function syncAimCursor() {
+  const on = crosshairShown();
+  if (canvas.classList.contains('aim') !== on) canvas.classList.toggle('aim', on);
+}
+const XH_HALO = 'rgba(14,16,10,.66)', XH_LIGHT = 'rgba(239,231,210,.96)';
+function drawCrosshair() {
+  if (!crosshairShown()) return;
+  const p = G.player, x = mouse.x, y = mouse.y;
+  // a dark halo under the light lines keeps the crosshair readable on snow and sand as well as grass and asphalt
   ctx.beginPath(); ctx.arc(x, y, 9, 0, TAU);
   ctx.moveTo(x - 16, y); ctx.lineTo(x - 5, y); ctx.moveTo(x + 5, y); ctx.lineTo(x + 16, y);
-  ctx.moveTo(x, y - 16); ctx.lineTo(x, y - 5); ctx.moveTo(x, y + 5); ctx.lineTo(x, y + 16); ctx.stroke();
+  ctx.moveTo(x, y - 16); ctx.lineTo(x, y - 5); ctx.moveTo(x, y + 5); ctx.lineTo(x, y + 16);
+  ctx.lineCap = 'round'; ctx.strokeStyle = XH_HALO; ctx.lineWidth = 4.4; ctx.stroke();
+  ctx.lineCap = 'butt'; ctx.strokeStyle = XH_LIGHT; ctx.lineWidth = 1.6; ctx.stroke();
+  ctx.beginPath(); ctx.arc(x, y, 2.5, 0, TAU); ctx.fillStyle = XH_HALO; ctx.fill();
+  ctx.beginPath(); ctx.arc(x, y, 1.3, 0, TAU); ctx.fillStyle = XH_LIGHT; ctx.fill();
   const cd = p.spec.cool * (G.buffs.rapid > 0 ? 0.5 : 1), k = clamp(1 - p.cool / cd, 0, 1);
-  if (k < 1) { ctx.strokeStyle = 'rgba(242,193,78,.95)'; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.arc(x, y, 13, -Math.PI / 2, -Math.PI / 2 + TAU * k); ctx.stroke(); }
+  if (k < 1) {
+    ctx.beginPath(); ctx.arc(x, y, 13, -Math.PI / 2, -Math.PI / 2 + TAU * k);
+    ctx.lineCap = 'round'; ctx.strokeStyle = XH_HALO; ctx.lineWidth = 5.2; ctx.stroke();
+    ctx.lineCap = 'butt'; ctx.strokeStyle = 'rgba(242,193,78,.98)'; ctx.lineWidth = 2.5; ctx.stroke();
+  }
 }
 function stickVis(st, gx, gy, isAim, label) {
   const R = STICK_R, active = st.id !== null, ox = active ? st.ox : gx, oy = active ? st.oy : gy;
