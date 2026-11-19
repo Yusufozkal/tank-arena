@@ -40,7 +40,7 @@ Toplam 10 tank (diep.io'da 54 normal tank var; bilerek az). Tanklar parayla değ
 Her tankın tek imza özelliği var; hepsi kendiliğinden çalışır, yeni düğme yok:
 
 - **İkiz, çift darbe:** iki mermisi aynı tanka birlikte isabet ederse tank yarım saniye sersemler.
-- **Keskin Nişancı, uzak görüş:** kamera geri çekilir, daha geniş alan görünür; uzun menzil, güçlü, yavaş.
+- **Keskin Nişancı, uzak görüş:** kamera geri çekilir, daha geniş alan görünür; hızlı ve güçlü mermi, yavaş tank.
 - **Makineli, ısınma:** sürekli ateşte ateş hızı artar; çok ısınırsa namlu kızarır ve 1,5 sn soğur (ısı namlunun renginden görünür).
 - **Üçlü, delici orta mermi:** yelpazenin ortadaki mermisi bir tankı delip arkasındakine gider.
 - **Çift Yön, itici arka namlu:** arkaya da ateş eder; ateş ederken tank ileri hızlanır.

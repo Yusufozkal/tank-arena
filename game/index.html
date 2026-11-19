@@ -242,7 +242,7 @@ button:focus-visible{outline:2px solid var(--bone);outline-offset:2px}
 @media (pointer:fine){.only-coarse{display:none!important}}
 @media (prefers-reduced-motion:reduce){#banner,#hint,.bar i{transition:none}.up-card{animation:none}}
 /*tank-ui*/
-/* tank evolution cards: the workshop panel with a small tank sprite, trait line and a Hasar / Hız / Menzil line */
+/* tank evolution cards: the workshop panel with a small tank sprite, trait line and an Ateş gücü / Hız / Mermi hızı line */
 .up-card.tank{grid-template-columns:64px 1fr}
 .up-card .ico.evo{width:64px;height:64px;background:rgba(0,0,0,.28)}
 .ico.evo canvas{display:block;width:64px;height:64px}
@@ -606,7 +606,7 @@ const TANKS = {
     hpMul: 1, speedMul: 1, turnMul: 1, dmg: 0.58, cool: 0.3, bSpeed: 660, bR: 3.6, bW: 4.4, life: 2.4, barrel: 26, shape: 'twin', zoom: 1, mode: 'shell',
     muzzles: [{ off: -5, ang: 0 }, { off: 5, ang: 0 }], tr: { stun: 0.5, win: 0.12 }, botRange: 330,
     col: { body: '#2f9e8f', dk: '#1a6258', hi: '#7fd6c8', acc: '#ffe27a' } },
-  nisanci: { name: 'Keskin Nişancı', tier: 1, parent: 'std', kids: ['rayli', 'obus'], traitName: 'Uzak görüş', blurb: 'Kamera geri çekilir, geniş alan görünür; uzun menzilli, güçlü ama yavaş.',
+  nisanci: { name: 'Keskin Nişancı', tier: 1, parent: 'std', kids: ['rayli', 'obus'], traitName: 'Uzak görüş', blurb: 'Kamera geri çekilir, geniş alan görünür; mermisi hızlı ve güçlü, tankı yavaş.',
     hpMul: 0.9, speedMul: 0.85, turnMul: 0.9, dmg: 3, cool: 0.9, bSpeed: 900, bR: 4.5, bW: 5, life: 1.8, barrel: 34, shape: 'long', zoom: 0.82, mode: 'shell',
     muzzles: [{ off: 0, ang: 0 }], botRange: 560,
     col: { body: '#4a5bb0', dk: '#2b3670', hi: '#8f9de4', acc: '#ff9f43' } },
@@ -2209,13 +2209,13 @@ function cardHTML(k, i) {
 }
 // Tank evolution: debt rule. The player should own a tank of tier needTier(wave); a missed evolution comes back at the next workshop
 const evoDue = () => !G.noEvo && TANKS[G.tank].tier < needTier(G.wave) && TANKS[G.tank].kids.length > 0;
-const evoRel = id => { const a = TANKS[id], b = TANKS.std; return { dmg: a.dmg * tankShells(a) / a.cool / (b.dmg * tankShells(b) / b.cool), spd: a.speedMul, rng: tankRange(a) / tankRange(b) }; };
+const evoRel = id => { const a = TANKS[id], b = TANKS.std; const fp = a.dmg * tankShells(a) / a.cool / (b.dmg * tankShells(b) / b.cool); return { fp, fpHot: a.tr && a.tr.rateGain ? fp * (1 + a.tr.rateGain) : 0, spd: a.speedMul, bs: a.bSpeed / b.bSpeed }; }; // fp: firepower (dps) vs Standart; fpHot: at full heat
 function tankCardHTML(id, i) {
   const tk = TANKS[id], r = evoRel(id);
   return `<button type="button" class="up-card tank" data-k="${id}">`
     + `<span class="ico evo"><canvas data-evo="${id}" width="64" height="64" aria-hidden="true"></canvas></span>`
     + `<span class="up-name">${tk.name}</span>`
-    + `<span class="evo-stats"><span>Hasar <b>×${dec2(r.dmg)}</b></span><span>Hız <b>×${dec2(r.spd)}</b></span><span>Menzil <b>×${dec2(r.rng)}</b></span></span>`
+    + `<span class="evo-stats"><span>Ateş gücü <b>×${dec2(r.fp)}${r.fpHot ? '–' + dec2(r.fpHot) : ''}</b></span><span>Hız <b>×${dec2(r.spd)}</b></span><span>Mermi hızı <b>×${dec2(r.bs)}</b></span></span>`
     + `<span class="up-desc"><b>${tk.traitName}.</b> ${tk.blurb}</span>`
     + `<span class="up-key only-fine" aria-hidden="true">${i + 1}</span></button>`;
 }
