@@ -14,11 +14,11 @@ RAW = str(P.RAW)
 CSS = P.FONTS_CSS.read_text(encoding='utf-8')
 
 # The game's debug API gets one extra call, sprite(), in a scratch copy: it draws a tank alone on a transparent canvas.
-SPRITE_HOOK = '''    sprite(type, px, up) {
+SPRITE_HOOK = '''    sprite(type, px, up, tank) { // tank: a TANKS id, draws that player tank (bare, or with the cards in up)
       const cv = document.createElement('canvas'); cv.width = cv.height = px; const k = px / 64, g = cv.getContext('2d');
       g.setTransform(k, 0, 0, k, px / 2, px / 2 + 3 * k);
-      const spec = type === 'player' && up ? (G.up = up, playerSpec()) : SPECS[type];
-      drawTank({ id: 0, type, spec, x: 0, y: 0, angle: -Math.PI / 2, turret: -Math.PI / 2, treadL: 0, treadR: 0, recoil: 0, flash: 0 }, 1, g);
+      const spec = type === 'player' ? (G.up = up || {}, playerSpec(tank || 'std', !up)) : SPECS[type];
+      drawTank({ id: 0, type, spec, x: 0, y: 0, angle: -Math.PI / 2, turret: -Math.PI / 2, treadL: 0, treadR: 0, recoil: 0, flash: 0, heat: 0, overheatT: 0, evoT: 0 }, 1, g);
       G.up = {}; return cv.toDataURL('image/png');
     },
 '''
@@ -55,7 +55,9 @@ with sync_playwright() as p:
     page.goto('http://127.0.0.1:8769/index.html#debug'); page.wait_for_timeout(800)
     for t in ['basic', 'fast', 'heavy', 'hunter', 'boss', 'player']:
         save(page.evaluate(f"__tank.sprite('{t}', 256)"), f'{SITE}/img/tank-{t}.png')
-    save(page.evaluate("__tank.sprite('player', 256, { armor: 4, engine: 3, loader: 3, caliber: 2, barrel: 2, repair: 1, twin: 1, magnet: 1, thermal: 1 })"), f'{SITE}/img/tank-player-upgraded.png')
+    for tid in page.evaluate('__tank.tanks()'):  # all player tanks (Tank ağacı section): tank-<id>.png
+        save(page.evaluate(f"__tank.sprite('player', 256, null, '{tid}')"), f'{SITE}/img/tank-{tid}.png')
+    save(page.evaluate("__tank.sprite('player', 256, { armor: 4, engine: 3, loader: 3, caliber: 2, barrel: 2, repair: 1, magnet: 1, thermal: 1 })"), f'{SITE}/img/tank-player-upgraded.png')
     page.close()
     # icons from the launcher artwork
     page = b.new_page(); page.set_content(PAGE)

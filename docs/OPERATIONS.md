@@ -51,3 +51,4 @@ Notlar: kalıcı engelleme (persistent actions) Hobby'de yok, engel pencere bite
 | 1.2 | 3 | Oyun içinde yön değiştirme, yeni zorluk adları, dalga sonu atölye kartları, yeni güçlendirmeler |
 | 1.2.1 | 4 | Karda ve çölde görünen nişangâh, telefonda küçülen üst gösterge |
 | 1.3 | 5 | Tek mod, Komutan her gelişte güçlenir ve ateşten önce namlusu parlar, kartlar toplanır (en fazla ~4 kat), zayıf kartlara ikinci etki, yeni denge |
+| 1.4 | 6 | Tank evrimi (10 tank, 5. ve 10. dalgada seçim, her birinin imza özelliği), 6 kart birleşimi, nükleer bomba, Çift namlu kartı kalktı, yeni denge |

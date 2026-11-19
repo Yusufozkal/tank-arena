@@ -14,7 +14,7 @@ import paths as P  # noqa: E402
 SITE = str(P.SITE)
 D = json.load(open(P.TOOLS / 'gamedata.json', encoding='utf-8'))
 VERSION = P.app_version()  # android/AndroidManifest.xml versionName
-OLD_APKS = ['TankArena-1.2.apk', 'TankArena-1.2.1.apk']  # earlier file names; their links on this site now lead to the newest APK
+OLD_APKS = ['TankArena-1.2.apk', 'TankArena-1.2.1.apk', 'TankArena-1.3.apk']  # earlier file names; their links on this site now lead to the newest APK
 APK = f'TankArena-{VERSION}.apk'
 BASE = os.environ.get('SITE_URL', '').rstrip('/')  # absolute origin for link previews, filled in once the address is known
 REPO = 'https://github.com/Yusufozkal/tank-arena'
@@ -90,6 +90,16 @@ FOES = [
     ('boss', 'Komutan', 'Her 5. dalgada gelir, her gelişinde güçlenir. Ateş etmeden önce namluları parlar.'),
 ]
 foes = '\n'.join(f'<li class="foe-{k}"><img src="/img/tank-{k}.png" width="128" height="128" alt="" loading="lazy"><b>{n}</b><span>{t}</span></li>' for k, n, t in FOES)
+
+TK = D['TANKS']
+def tank_card(i):
+    t = TK[i]
+    return (f'<li class="tk tier{t["tier"]}"><img src="/img/tank-{i}.png" width="128" height="128" alt="" loading="lazy">'
+            f'<b>{t["name"]}</b><span>{t["traitName"]}: {t["blurb"]}</span></li>')
+tree = '<ul class="tk-root">' + tank_card('std').replace('<li class="tk tier0">', '<li class="tk tier0">') + '</ul>\n<div class="tk-branches">\n' + '\n'.join(
+    '<div class="tk-branch"><ul class="tk-one">' + tank_card(i) + '</ul><ul class="tk-two">' + ''.join(tank_card(k) for k in [c for c in TK if TK[c]['parent'] == i]) + '</ul></div>'
+    for i in TK if TK[i]['parent'] == 'std') + '\n</div>'
+syns = '\n'.join(f'<li><b>{x["aName"]} + {x["bName"]} = {x["name"]}</b><span>{x["desc"]}</span></li>' for x in D['SYN'])
 
 STEEL = ("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'%3E"
          "%3Crect width='40' height='40' fill='%23585c56'/%3E%3Crect x='1.5' y='1.5' width='37' height='36' rx='1.5' fill='%23a4a7a0'/%3E"
@@ -200,6 +210,32 @@ h1 span{{display:block}}
   .grid3.ups{{grid-template-columns:repeat(4,minmax(0,1fr))}}
 }}
 
+/* tank tree: Standart, then the three tier-1 tanks, then each one's two children, on sand cards like the workshop figures */
+.tk-root,.tk-one,.tk-two{{list-style:none}}
+.tk{{display:grid;grid-template-columns:72px 1fr;grid-template-rows:auto auto;column-gap:12px;align-items:center;padding:10px 12px;border-radius:6px;background:var(--sand);color:var(--sand-ink);line-height:1.2}}
+.tk img{{grid-row:1/3;width:72px;filter:drop-shadow(2px 3px 0 rgba(70,45,15,.38))}}
+.tk b{{font-weight:700;font-size:21px;align-self:end}}
+.tk span{{font-size:17px;line-height:1.25;color:var(--sand-ink-2);align-self:start}}
+.tk-root{{max-width:420px;margin:34px auto 0;position:relative}}
+.tk-branches{{display:grid;gap:26px;margin-top:26px}}
+.tk-branch{{display:grid;gap:8px;position:relative}}
+.tk-one .tk{{outline:2px solid var(--signal);outline-offset:-2px}}
+.tk-two{{display:grid;grid-template-columns:1fr;gap:8px;margin-left:26px;padding-left:14px;border-left:3px solid var(--line)}}
+.tk-two .tk{{background:#c3b07f}}
+.syn{{list-style:none;display:grid;gap:14px;margin-top:20px;max-width:760px}}
+.syn li{{display:flex;flex-direction:column;gap:2px;padding-left:14px;border-left:3px solid var(--signal)}}
+.syn b{{font-weight:700;font-size:21px;line-height:1.15}}
+.syn span{{color:var(--bone-2);font-size:18px;line-height:1.3}}
+.tk-h3{{font-family:var(--display);font-weight:800;font-size:clamp(28px,6vw,38px);line-height:1;margin-top:56px}}
+.nuke{{margin-top:20px;max-width:62ch;padding:16px 18px;border-left:3px solid var(--hostile);background:rgba(224,83,58,.09);border-radius:0 4px 4px 0}}
+.nuke b{{font-weight:700}}
+@media (min-width:860px){{
+  .tk-branches{{grid-template-columns:repeat(3,minmax(0,1fr));gap:22px;align-items:start}}
+  .tk{{grid-template-columns:64px 1fr}}
+  .tk img{{width:64px}}
+  .syn{{grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 30px;max-width:none}}
+}}
+
 /* the arena floor: enemies stand on sand, as they do in the first waves */
 .ground{{background:var(--sand);color:var(--sand-ink);
   background-image:radial-gradient(circle at 18% 30%,rgba(120,92,50,.16) 0 3px,transparent 4px),radial-gradient(circle at 72% 64%,rgba(120,92,50,.14) 0 2.5px,transparent 3.5px),radial-gradient(circle at 46% 82%,rgba(120,92,50,.12) 0 2px,transparent 3px);
@@ -263,13 +299,28 @@ footer a{{text-underline-offset:3px}}
       <p class="lead">Dalga bitince üç kart gelir, birini seçersin. Seçtiğin parça tankına takılır ve oyun sonuna kadar kalır. Aynı kartı yeniden seçtikçe seviyesi artar. Komutanı yendiğin dalganın sonunda nadir bir kart mutlaka çıkar.</p>
       <div class="ws-tanks">
         <figure><img src="/img/tank-player.png" width="128" height="128" alt="Yükseltmesiz oyuncu tankı"><figcaption>İlk dalga<span>Çıplak tank</span></figcaption></figure>
-        <figure><img src="/img/tank-player-upgraded.png" width="128" height="128" alt="Zırh plakaları, çift namlu, egzoz ve anten takılmış oyuncu tankı"><figcaption>Yükseltilmiş<span>Parçalar görünür</span></figcaption></figure>
+        <figure><img src="/img/tank-player-upgraded.png" width="128" height="128" alt="Zırh plakaları, egzoz ve anten takılmış oyuncu tankı"><figcaption>Yükseltilmiş<span>Parçalar görünür</span></figcaption></figure>
       </div>
       <ul class="grid3 ups" aria-label="Yükseltmeler">
 {ups}
       </ul>
     </div>
-    <div class="phone"><img src="/img/workshop-phone.jpg" width="720" height="1558" alt="Atölye ekranı: Çift namlu, Otomatik yükleyici ve Uzun namlu kartları" loading="lazy"></div>
+    <div class="phone"><img src="/img/workshop-phone.jpg" width="720" height="1558" alt="Atölye ekranı: üç yükseltme kartı" loading="lazy"></div>
+  </div>
+</section>
+
+<section id="tank-agaci">
+  <div class="wrap">
+    <h2>Tank ağacı</h2>
+    <p class="lead">Standart tankla başlarsın. 5. dalgadaki Komutan'ı yenince bir dal seçersin, 10. dalgadaki Komutan'dan sonra dal ikiye ayrılır. Toplam on tank, her birinin tek bir imza özelliği var ve hepsi kendiliğinden çalışır.</p>
+{tree}
+    <h3 class="tk-h3">Birleşimler</h3>
+    <p class="lead">İki kart birlikte takılınca yeni bir etki açılır. Atölye, kartın elindeki hangi parçayla birleşebileceğini gösterir.</p>
+    <ul class="syn" aria-label="Birleşimler">
+{syns}
+    </ul>
+    <h3 class="tk-h3">Nükleer bomba</h3>
+    <p class="nuke"><b>Nükleer bomba:</b> düşman öldürdükçe sayaç dolar, dolunca düğme yanar. Kısa bir uyarıdan sonra ekrandaki bütün düşmanlar yok olur, Komutan canının dörtte birini kaybeder.</p>
   </div>
 </section>
 

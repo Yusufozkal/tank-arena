@@ -52,7 +52,12 @@ python3 tests/check_gameplay.py                    # geniş kontrol, JSON raporu
 python3 tests/check_hud_mobile.py <etiket>         # telefonda üst gösterge ne kadar yer kaplıyor
 python3 tests/check_hud_buttons.py
 python3 tests/check_crosshair.py                   # fare nişangâhı her harita temasında görünür mü
-python3 tests/stress.py
+python3 tests/stress.py                            # tüm tanklarla yük
+python3 tests/check_tanks.py                       # tank tablosu, evrim akışı, birinci kademe özellikleri
+python3 tests/check_tier2_d1.py                    # Üçlü, Çift Yön, Alev Topu, Şarapnel
+python3 tests/check_tier2_d2.py                    # Raylı Top, Obüs
+python3 tests/check_syn.py                         # altı kart birleşimi
+python3 tests/check_nuke.py                        # nükleer bomba: dolma, uyarı, Komutan -%25
 python3 tests/balance_probe.py survive random 40 20 && python3 tests/balance_report.py
 
 android/build.sh                                   # APK; ANDROID_HOME ve imza anahtarı gerekir
@@ -63,7 +68,7 @@ Ekran görüntüleri ve ölçüm sonuçları `.tmp/` altına yazılır (git'e gi
 ## Değişiklik akışı
 
 1. `game/index.html` dosyasını düzenle.
-2. Testleri çalıştır: en az `check_gameplay.py`; telefon arayüzüne dokunduysan `check_hud_mobile.py` ve `check_hud_buttons.py`; dengeye dokunduysan `balance_probe.py` + `balance_report.py`.
+2. Testleri çalıştır: en az `check_gameplay.py`; tanklara dokunduysan `check_tanks.py` + ilgili `check_tier2_*.py`, birleşimlere `check_syn.py`, bombaya `check_nuke.py`; telefon arayüzüne dokunduysan `check_hud_mobile.py` ve `check_hud_buttons.py`; dengeye dokunduysan `balance_probe.py` + `balance_report.py`.
 3. Siteyi derle (`tools/build_site.py`). Oyun JS'i `site/oyna/game.<hash>.js` olarak yeniden adlanır.
 4. `game/` ve `site/` değişikliklerini aynı commit'te gönder. `main` dalına her push'ta Vercel yaklaşık bir dakikada yayınlar.
 5. Telefondaki uygulamayı etkileyen değişikliklerde yeni APK çıkar (aşağıda).
@@ -87,12 +92,13 @@ Ekran görüntüleri ve ölçüm sonuçları `.tmp/` altına yazılır (git'e gi
 
 ## Oyun kodunda yön bulma (`game/index.html`)
 
-- Veriler: `SPECS` (tank tipleri ve canları), `PU` (güçlendirmeler), `UPS` (atölye kartları), `RULES` (tek kural seti), `THEMES` (haritalar).
+- Veriler: `SPECS` (düşman tipleri ve canları), `PU` (güçlendirmeler), `UPS` (atölye kartları), `RULES` (tek kural seti), `THEMES` (haritalar).
+- 1.4 bölgeleri (`/* ===== ... ===== */` başlıklarıyla aranır): `TANKS` (10 oyuncu tankı: Standart, 3 birinci kademe, 6 ikinci kademe; silah sayıları, namlu dizilimi, renk), `TANK TRAITS` / `TT` (tankların imza özellikleri: sersemletme, ısınma, lazer, mesafe ayarı, alev, geri itme…), `SYN` / `SYN_K` (6 kart birleşimi ve sayıları), `NUKE` (nükleer bomba sayacı, uyarı, patlama). Evrim: 5. ve 10. dalgada Komutan sonrası tank kartı (`chooseTank`).
 - Akış: `startGame` → `nextWave` → `buildRoster(w)` + `waveMods(w)` (dalga zorluğu) → `waveCleared` → `rollUpgrades` / `chooseUpgrade` (atölye).
 - Oyuncu gücü: `firepower()` (kartlar toplanır, en fazla ~×4), `playerSpec()`, `fireTank()`; hasar `hurtEnemy`, `damagePlayer`. Komutan canı `bossHp(w)`, ateş uyarısı `chargeT`.
 - Döngü: `update(dt)` sabit 1/60 adım, `render()`; arayüz `updateHUD()`; fare `drawCrosshair()` + `syncAimCursor()`.
 - Telefon HUD'u CSS'te `@media (max-width:520px),(max-height:520px)` bloğu.
-- Dosyanın sonunda otomatik pilot (bot) ve `window.__tank` (sim, step, wave, give, spawn, killAll, choices, choose…).
+- Dosyanın sonunda otomatik pilot (bot) ve `window.__tank` (sim, step, wave, give, spawn, killAll, choices, choose…). 1.4 grupları: tank (`tanks`, `setTank`, `botTank`, `noEvo`, `heat`), D2 (`rayLaser`, `lobArea`, `lobTarget`), birleşim (`syn`, `SYN`, `SYN_K`, `synFlags`, `synDmg`…), nükleer (`nuke`, `nukeCharge`, `nukeFire`, `botNuke`).
 
 ## Diğer
 

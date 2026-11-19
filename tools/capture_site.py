@@ -1,4 +1,4 @@
-"""Fresh 1.2 screenshots for the Tank Arena website (phone portrait, workshop, landscape)."""
+"""Fresh screenshots (Alev Topu on the phone, Raylı Top sideways) for the Tank Arena website (phone portrait, workshop, landscape)."""
 import http.server, json, os, socketserver, sys, threading
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import paths as P  # noqa: E402
@@ -30,7 +30,7 @@ FIND_JS = """(q) => {
   const on = (x, y, m) => x > v.x0 + m && x < v.x1 - m && y > v.y0 + m && y < v.y1 - m;
   let last = null;
   for (let i = 0; i < q.steps; i++) {
-    if (G.wave !== q.wave || G.state !== 'play') { if (G.state !== 'play') return { dead: true }; t.wave(q.wave); t.setUp(q.up); }
+    if (G.wave !== q.wave || G.state !== 'play') { if (G.state !== 'play') return { dead: true }; t.wave(q.wave); t.setUp(q.up); if (q.tank) t.setTank(q.tank); }
     t.sim(1 / 60, true);
     if (G.phase !== 'fight' || !G.player.alive || !on(G.player.x, G.player.y, 110)) continue;
     const a = { i, enemiesOn: G.enemies.filter(e => !e.hidden && on(e.x, e.y, 60)).length,
@@ -73,9 +73,9 @@ with sync_playwright() as p:
     # 1. phone, portrait, mid-fight
     vp = {'width': 390, 'height': 844}
     ctx, page = page_for(b, vp, 2, True)
-    up = {'armor': 2, 'twin': 1, 'caliber': 1, 'engine': 1}
-    page.evaluate("(u) => { __tank.wave(4); __tank.setUp(u); __tank.sim(1.8, true); }", up)
-    res['play_phone'] = page.evaluate(FIND_JS, dict(steps=9000, wave=4, e=2, f=7, b=2, k=1, up=up))
+    up = {'armor': 2, 'caliber': 1, 'engine': 1}
+    page.evaluate("(u) => { __tank.wave(4); __tank.setUp(u); __tank.setTank('alev'); __tank.sim(1.8, true); }", up)
+    res['play_phone'] = page.evaluate(FIND_JS, dict(steps=9000, wave=4, e=2, f=7, b=2, k=1, up=up, tank='alev'))
     sticks(ctx, page, vp)
     shoot(page, f'{OUT}/play-phone.jpg', {'speed': 6.5})
     ctx.close()
@@ -83,7 +83,7 @@ with sync_playwright() as p:
     ctx, page = page_for(b, vp, 2, True)
     res['workshop'] = page.evaluate("""() => { const t = __tank, G = t.G; t.wave(3); t.setUp({ armor: 1, loader: 2 }); t.killAll();
       for (let i = 0; i < 400 && G.phase !== 'upgrade'; i++) t.sim(1 / 60, true);
-      const rare = ['twin', 'ricochet', 'blast', 'thermal'];
+      const rare = ['ricochet', 'blast', 'thermal'];
       for (let i = 0; i < 300; i++) { const c = t.choices(); if (c.filter(k => rare.includes(k)).length === 1 && c.some(k => k === 'loader' || k === 'armor') && !c.includes('fix')) break; t.showUpgrades(); }
       return t.choices(); }""")
     page.wait_for_timeout(900)
@@ -93,9 +93,9 @@ with sync_playwright() as p:
     # 3. phone turned sideways
     vp = {'width': 844, 'height': 390}
     ctx, page = page_for(b, vp, 2, True)
-    up = {'armor': 3, 'engine': 2, 'loader': 2, 'twin': 1, 'magnet': 1}
-    page.evaluate("(u) => { __tank.wave(6); __tank.setUp(u); __tank.sim(1.8, true); }", up)
-    res['play_wide'] = page.evaluate(FIND_JS, dict(steps=9000, wave=6, e=3, f=7, b=2, k=0, up=up))
+    up = {'armor': 3, 'engine': 2, 'loader': 2, 'magnet': 1}
+    page.evaluate("(u) => { __tank.wave(6); __tank.setUp(u); __tank.setTank('rayli'); __tank.sim(1.8, true); }", up)
+    res['play_wide'] = page.evaluate(FIND_JS, dict(steps=9000, wave=6, e=3, f=7, b=2, k=0, up=up, tank='rayli'))
     sticks(ctx, page, vp)
     shoot(page, f'{OUT}/play-wide.jpg', {'pierce': 7, 'shield': 4})
     ctx.close()
