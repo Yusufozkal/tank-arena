@@ -502,6 +502,9 @@ const SPECS = {
     col: { body: '#6c4fa3', dk: '#432f6b', hi: '#9d84d1', acc: '#7ef0d0' } }
 };
 
+const BOSS_HP0 = 22, BOSS_HP_STEP = 12; // Komutan: weaker on its first visit (wave 5), tougher on every later visit
+const bossHp = w => BOSS_HP0 + BOSS_HP_STEP * (Math.max(1, Math.floor(w / 5)) - 1);
+
 const PU = {
   repair: { col: '#6fd46b', rgb: '111,212,107', name: 'Tamir', dur: 0, w: 3, from: 1, note: '+35 zırh' },
   shield: { col: '#5fb4dd', rgb: '95,180,221', name: 'Kalkan', dur: 7, w: 2, from: 1, note: '7 sn hasarsız' },
@@ -1119,7 +1122,7 @@ function makeTank(type, x, y) {
     wp: null, wpBest: 1e9, stuckT: 0, senseT: 0, canSee: false, distP: 1e9, hidden: false, blast: null, aimErr: 0,
     speedMul: 1, coolMul: 1, enraged: false, smokeT: 0,
     mode: 'hunt', modeT: 0, path: null, pathI: 0, pathT: 0, dodge: null, dodgeCd: 0, seenT: -99, seenX: 0, seenY: 0, reconDone: true, fled: false, lock: false,
-    hurtT: -99, fxT: 0 };
+    hurtT: -99, fxT: 0, chargeT: 0 };
 }
 function collideWalls(t) {
   const m = G.map, r = t.r;
@@ -1530,6 +1533,7 @@ function spawnEnemy(type, x, y) {
   e.angle = Math.round(a / (Math.PI / 2)) * (Math.PI / 2); e.turret = a;
   e.cool = rand(0.9, 1.7); e.speedMul = G.mods.speed; e.coolMul = G.mods.cool; e.aimErr = rand(-G.mods.err, G.mods.err);
   if (G.mods.hp > 1) e.hp = e.maxHp = Math.max(1, Math.round(e.spec.hp * G.mods.hp)); // later waves bring tougher tanks
+  if (type === 'boss') e.hp = e.maxHp = bossHp(G.wave); // Komutan ignores mods.hp: its HP grows per visit instead
   G.enemies.push(e);
   if (type === 'hunter' && !store.get('tankArena.seenHunter', false)) {
     store.set('tankArena.seenHunter', true);
@@ -1537,7 +1541,7 @@ function spawnEnemy(type, x, y) {
   }
   for (let k = 0; k < 10; k++) { const an = rand(0, TAU), sp = rand(30, 90); addPart('dust', x, y, Math.cos(an) * sp, Math.sin(an) * sp, rand(0.5, 0.9), rand(16, 26), 26, 3); }
   addPart('ring', x, y, 0, 0, 0.4, 10, 120, 0, '224,83,58');
-  if (type === 'boss') { G.boss = e; showBanner('KOMUTAN GELDİ', 'Üç namlulu ağır tank', 1.9); shake(6); }
+  if (type === 'boss') { G.boss = e; showBanner('KOMUTAN GELDİ', G.wave <= 5 ? 'Namluları parlayınca yana kaç' : 'Her gelişinde daha güçlü', 1.9); shake(6); }
 }
 function updateSpawns(dt) {
   G.spawnTimer -= dt;
@@ -1605,10 +1609,12 @@ function updateEnemy(e, dt) {
     aim = Math.atan2(p.y + p.avy * tt - e.y, p.x + p.avx * tt - e.x) + e.aimErr;
     may = onScreen(e.x, e.y, T * 0.3);
   } else if (e.blast) { aim = Math.atan2(e.blast.y - e.y, e.blast.x - e.x); may = true; }
+  if (e.type === 'boss') e.chargeT = e.canSee && p.alive && e.cool < 0.55 ? e.chargeT + dt : 0; // Komutan's barrels glow while charging
   if (aim !== null) {
     e.turret = turnTo(e.turret, aim, s.tTurn * dt);
-    if (may && e.cool <= 0 && Math.abs(angDiff(e.turret, aim)) < 0.07) {
+    if (may && e.cool <= 0 && Math.abs(angDiff(e.turret, aim)) < 0.07 && (e.type !== 'boss' || e.chargeT >= 0.45)) {
       fireTank(e); e.cool = s.cool * e.coolMul * rand(0.85, 1.25); e.aimErr = rand(-G.mods.err, G.mods.err);
+      if (e.type === 'boss') e.chargeT = 0;
     }
   } else e.turret = turnTo(e.turret, e.angle, s.tTurn * 0.6 * dt);
   damageSmoke(e, dt);
@@ -2466,6 +2472,22 @@ function drawTank(t, alpha, g) {
   if (s.triple) { for (const a of [-0.2, 0.2, 0]) { g.save(); g.rotate(a); barrel(s, rec, c, g); g.restore(); } }
   else if (s.twin) { const off = s.twinOff || s.bW * 0.62; for (const yo of [-1, 1]) { g.save(); g.translate(0, yo * off); barrel(s, rec, c, g); g.restore(); } }
   else barrel(s, rec, c, g);
+  if (t.type === 'boss' && t.chargeT > 0) { // Komutan telegraph: the three muzzles heat up over 0.45 s before the triple shot
+    const k = clamp(t.chargeT / 0.45, 0, 1), tipX = s.barrel - rec;
+    for (const a of [-0.2, 0, 0.2]) {
+      const x = Math.cos(a) * tipX, y = Math.sin(a) * tipX;
+      g.globalAlpha = alpha;
+      if (fxScale === 1) {
+        g.fillStyle = `rgba(40,12,6,${(0.6 * k).toFixed(2)})`; g.beginPath(); g.arc(x, y, 5.4, 0, TAU); g.fill(); // darker rim keeps the glow readable on bright sand and snow
+        g.globalCompositeOperation = 'lighter'; const gs = 12 + 18 * k; g.globalAlpha = alpha * (0.35 + 0.65 * k);
+        g.drawImage(SPR.fire, x - gs / 2, y - gs / 2, gs, gs);
+        g.globalCompositeOperation = 'source-over';
+      }
+      g.globalAlpha = alpha * (0.5 + 0.5 * k);
+      g.fillStyle = k < 1 ? '#e2661f' : '#fff4d0'; g.beginPath(); g.arc(x, y, 2.6 + 1.4 * k, 0, TAU); g.fill(); // low effects: solid hot dot only
+    }
+    g.globalAlpha = alpha;
+  }
   if (U.loader) { // Otomatik yükleyici: ammo drum behind the turret, one brass round per level
     g.fillStyle = '#2b2823'; rrect(g, -tr * 1.05 - 5, -tr * 0.62, 7, tr * 1.24, 2); g.fill();
     g.fillStyle = '#d8a94a'; for (let k = 0; k < Math.min(5, U.loader); k++) g.fillRect(-tr * 1.05 - 4.2, -tr * 0.5 + k * tr * 0.22, 3.2, tr * 0.12);
@@ -2823,7 +2845,7 @@ if (DEBUG) {
     },
     killAll() { for (const e of G.enemies) killEnemy(e); G.queue.length = 0; G.portals.length = 0; },
     dbg, sticks, wave(w) { G.wave = w - 1; nextWave(); },
-    choices: () => upChoices.slice(), choose: chooseUpgrade, showUpgrades, waveCleared, playerSpec,
+    choices: () => upChoices.slice(), choose: chooseUpgrade, showUpgrades, waveCleared, playerSpec, bossHp,
     setUp(o) { G.up = Object.assign({}, o); refreshPlayer(); },
     give(kind) { const p = G.player; applyPickup({ kind, x: p.x, y: p.y }); },
     fire() { fireTank(G.player); },
