@@ -2,6 +2,20 @@
 rotation, a long autopilot run. Prints a JSON report to read through; screenshots go to .tmp/shots."""
 from common import *  # noqa: F401,F403
 
+# ---- package A changes this block (twin becomes a tank in 1.4) ----
+# Every `twin` card reference of this check lives here. The JS snippets below use @@TOKENS@@ that A() expands,
+# so package A edits only these constants. Today they reproduce the 1.3 text exactly.
+TWIN_RARES = "'twin','ricochet','blast','thermal'"   # rare-card list in the boss-wave check
+TWIN_KEYS = "'armor','engine','loader','caliber','barrel','repair','twin','ricochet','blast','magnet','thermal','boost'"  # maxed pool
+TWIN_SPEC = ", barrel: s.barrel, twin: s.twin"                          # extra field in maxed_spec
+TWIN_SHOOT = "t.setUp({ twin: 1 }); out.twin = shoot();"  # shell-type sample
+TWIN_FULL = "twin: 1, "                               # twin level in the visual-set upgrade mix
+def A(js):
+    for k, v in (('TWIN_RARES', TWIN_RARES), ('TWIN_KEYS', TWIN_KEYS), ('TWIN_SPEC', TWIN_SPEC), ('TWIN_SHOOT', TWIN_SHOOT), ('TWIN_FULL', TWIN_FULL)):
+        js = js.replace('@@' + k + '@@', v)
+    return js
+# ---- end of package A block ----
+
 with sync_playwright() as p:
     b = p.chromium.launch()
 
@@ -54,28 +68,28 @@ with sync_playwright() as p:
     R['key2_choice'] = [second, page.evaluate("JSON.stringify(__tank.G.up)")]
 
     # ---- boss wave gives a rare, low armour gives a repair card ----
-    rare = page.evaluate("""() => { const t = __tank, G = t.G; let rares = 0, fixes = 0;
-      for (let i = 0; i < 40; i++) { t.setUp({}); G.wave = 5; G.player.hp = 100; t.showUpgrades(); const c = t.choices(); if (c.some(k => ['twin','ricochet','blast','thermal'].includes(k))) rares++; }
+    rare = page.evaluate(A("""() => { const t = __tank, G = t.G; let rares = 0, fixes = 0;
+      for (let i = 0; i < 40; i++) { t.setUp({}); G.wave = 5; G.player.hp = 100; t.showUpgrades(); const c = t.choices(); if (c.some(k => [@@TWIN_RARES@@].includes(k))) rares++; }
       for (let i = 0; i < 20; i++) { G.wave = 3; G.player.hp = 20; t.showUpgrades(); if (t.choices().includes('fix')) fixes++; }
-      G.player.hp = 100; t.showUpgrades(); return { rares, fixes, title5: (G.wave = 5, t.showUpgrades(), document.getElementById('upTitle').textContent) }; }""")
+      G.player.hp = 100; t.showUpgrades(); return { rares, fixes, title5: (G.wave = 5, t.showUpgrades(), document.getElementById('upTitle').textContent) }; }"""))
     R['boss_rare_40of40_and_fix_20of20'] = rare
-    full = page.evaluate("""() => { const t = __tank, G = t.G; const o = {}; for (const k of ['armor','engine','loader','caliber','barrel','repair','twin','ricochet','blast','magnet','thermal','boost']) o[k] = 9; t.setUp(o);
-      G.player.hp = G.player.maxHp; G.wave = 7; t.showUpgrades(); return { up: G.up, choices: t.choices(), maxHp: G.player.maxHp }; }""")
+    full = page.evaluate(A("""() => { const t = __tank, G = t.G; const o = {}; for (const k of [@@TWIN_KEYS@@]) o[k] = 9; t.setUp(o);
+      G.player.hp = G.player.maxHp; G.wave = 7; t.showUpgrades(); return { up: G.up, choices: t.choices(), maxHp: G.player.maxHp }; }"""))
     R['maxed_pool'] = full
     page.wait_for_timeout(600)
     page.screenshot(path=f'{OUT}/d_workshop_extras.png')
     page.evaluate("__tank.choose(__tank.choices()[0])")
 
     # ---- the upgraded tank spec ----
-    R['maxed_spec'] = page.evaluate("""() => { const s = __tank.playerSpec(); return { speed: s.speed, cool: +s.cool.toFixed(3), dmg: s.dmg, bW: +s.bW.toFixed(1), bR: s.bR, big: s.big, bSpeed: +s.bSpeed.toFixed(0), barrel: s.barrel, twin: s.twin }; }""")
+    R['maxed_spec'] = page.evaluate(A("""() => { const s = __tank.playerSpec(); return { speed: s.speed, cool: +s.cool.toFixed(3), dmg: s.dmg, bW: +s.bW.toFixed(1), bR: s.bR, big: s.big, bSpeed: +s.bSpeed.toFixed(0)@@TWIN_SPEC@@ }; }"""))
 
     # ---- shells: twin, ricochet, blast, pierce (empty arena, steel border only) ----
-    R['shells'] = page.evaluate("""() => {
+    R['shells'] = page.evaluate(A("""() => {
       const t = __tank, G = t.G, p = G.player, T = 48, out = {};
       t.wave(3); G.queue = ['basic']; G.maxAlive = 0; G.portals.length = 0; G.enemies.length = 0; G.phase = 'fight'; t.hold(true);
       t.clearArena(); p.x = 10.5 * T; p.y = 10.5 * T; p.turret = 0; p.angle = 0;
       const shoot = () => { G.bullets.length = 0; p.cool = 0; t.fire(); return G.bullets.map(b => ({ y: Math.round(b.y), vx: Math.round(b.vx), look: b.look, dmg: b.dmg, r: b.r })); };
-      t.setUp({ twin: 1 }); out.twin = shoot();
+      @@TWIN_SHOOT@@
       t.setUp({ ricochet: 1 }); out.ricochet_start = shoot();
       for (let i = 0; i < 70; i++) t.stepBullets(1 / 60);
       out.ricochet_after = G.bullets.map(b => ({ vx: Math.round(b.vx), bounce: b.bounce, x: Math.round(b.x) }));
@@ -89,7 +103,7 @@ with sync_playwright() as p:
       out.pierce_hp = [a1.hp, a2.hp]; G.buffs.pierce = 0; G.enemies.length = 0;
       t.setUp({ caliber: 2 }); out.caliber2 = shoot(); t.setUp({});
       return out;
-    }""")
+    }"""))
 
     # ---- power-ups and support upgrades ----
     R['powerups'] = page.evaluate("""() => {
@@ -124,17 +138,17 @@ with sync_playwright() as p:
     }""")
 
     # ---- visual set: every power-up on the ground, an upgraded tank, frozen and hidden enemies, a strike mark ----
-    page.evaluate("""() => { const t = __tank, G = t.G, p = G.player, T = 48;
+    page.evaluate(A("""() => { const t = __tank, G = t.G, p = G.player, T = 48;
       t.wave(4); G.queue = ['basic']; G.maxAlive = 0; G.portals.length = 0; G.enemies.length = 0; G.phase = 'fight'; G.fade = 0;
       t.clearArena([[13, 7], [14, 7], [13, 8], [6, 12], [7, 12]]);
       p.x = 10.5 * T; p.y = 10.5 * T; p.angle = -Math.PI / 2; p.turret = -0.6;
-      t.setUp({ armor: 4, engine: 3, loader: 3, caliber: 2, barrel: 2, repair: 1, twin: 1, magnet: 1, thermal: 1 }); p.hp = 150;
+      t.setUp({ armor: 4, engine: 3, loader: 3, caliber: 2, barrel: 2, repair: 1, @@TWIN_FULL@@magnet: 1, thermal: 1 }); p.hp = 150;
       ['repair','shield','triple','rapid','speed','pierce','freeze','stealth','air'].forEach((k, i) => t.drop(k, (i % 5 - 2) * 62, 120 + Math.floor(i / 5) * 62));
       t.spawn('heavy', p.x + 4 * T, p.y - 1.5 * T); t.spawn('basic', p.x - 4 * T, p.y - 2.5 * T);
       const h = t.spawn('hunter', 13.5 * T, 7.5 * T); h.hidden = true;
       G.buffs.freeze = 3; G.buffs.speed = 5; G.buffs.pierce = 6; G.buffMax.speed = 8; G.buffMax.pierce = 10; G.buffMax.freeze = 4;
       G.strikes.push({ e: null, x: p.x - 1.5 * T, y: p.y - 4 * T, t: 0.3, dur: 0.8, done: false });
-      t.cam.x = p.x; t.cam.y = p.y - 20; t.dbg.freeze = true; }""")
+      t.cam.x = p.x; t.cam.y = p.y - 20; t.dbg.freeze = true; }"""))
     page.wait_for_timeout(300)
     page.screenshot(path=f'{OUT}/d_powerups_parts.png')
     page.evaluate("() => { __tank.view.scale *= 3; __tank.cam.x = __tank.G.player.x; __tank.cam.y = __tank.G.player.y; }")

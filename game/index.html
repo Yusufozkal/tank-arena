@@ -241,6 +241,9 @@ button:focus-visible{outline:2px solid var(--bone);outline-offset:2px}
 @media (pointer:coarse){.only-fine{display:none!important}}
 @media (pointer:fine){.only-coarse{display:none!important}}
 @media (prefers-reduced-motion:reduce){#banner,#hint,.bar i{transition:none}.up-card{animation:none}}
+/*tank-ui*/
+/*syn-ui*/
+/*nuke-ui*/
 </style>
 </head>
 <body>
@@ -579,8 +582,21 @@ const UPS = {
     desc: () => `Sonraki dalgaya ${dec(10 * (1 + 0.25 * upL('boost')))} sn kalkan ve seri atışla başlarsın` }
 };
 const UP_KEYS = Object.keys(UPS).filter(k => !UPS[k].extra);
+
+/* ===== TANKS (data) ===== */
+// Owner: package A (tank framework). D1/D2 only append entries.
+
 const ICON_ON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z"/><path d="M15.5 9a4.2 4.2 0 0 1 0 6"/><path d="M18.3 6.3a8 8 0 0 1 0 11.4"/></svg>';
 const ICON_OFF = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z"/><path d="M16 9.5l5 5M21 9.5l-5 5"/></svg>';
+
+/* ===== SYNERGY ===== */
+// Owner: package B (synergies).
+// Neutral stubs called from shared code: synFlags (fireTank), synDmg (damageEnemy), synTaken (damagePlayer), synRegen (regen), synPickup (applyPickup).
+function synFlags(b) { /* B: set b.far / b.ambush / b.bb from active synergies */ }
+function synDmg(b, e) { return 1; } // B: damage multiplier for a shell hitting enemy e
+function synTaken(b) { return 1; } // B: damage multiplier for a shell hitting the player
+function synRegen(p) { return 1; } // B: multiplier on the Onarım robotu rate
+function synPickup(kind) { /* B: Zincir etc., called after a pickup is applied */ }
 
 /* ================= rules, settings, records ================= */
 const RULES = { dmg: 1, cool: 1, err: 1, count: 1, alive: 0, hunterFrom: 4, dodge: 0.65, score: 1, heal: 25, hpGrow: 0.04 };
@@ -1171,6 +1187,7 @@ function refreshPlayer() {
 }
 function fireTank(t) {
   const s = t.spec, isP = t === G.player, m = G.map;
+  if (TT.fire(t, { s, isP, m })) return; // hook (A): a tank trait may take over firing; false = normal path
   let angles;
   if (isP && G.buffs.triple > 0) angles = [t.turret - 0.16, t.turret, t.turret + 0.16];
   else if (s.triple) angles = [t.turret - 0.2, t.turret, t.turret + 0.2];
@@ -1187,7 +1204,9 @@ function fireTank(t) {
       for (let d = 6; d <= s.barrel; d += 6) { bx = ox + ca * d; by = oy + sa * d; if (isWall(m.at(bx, by))) { blocked = true; break; } }
       const b = { x: bx, y: by, vx: ca * s.bSpeed, vy: sa * s.bSpeed, r: s.bR, owner: isP ? 0 : 1,
         dmg: isP ? s.dmg : Math.max(1, Math.round(s.dmg * (G.mods ? G.mods.dmg : 1))), life: 2.4, big, dead: false,
-        pierce, bounce, splash, look, hits: null, bricks: null };
+        pierce, bounce, splash, look, hits: null, bricks: null,
+        sx: bx, sy: by, dist: 0, bounced: false }; // origin, path length so far, has ricocheted (read by packages A/B)
+      synFlags(b); // hook (B): synergy flags on the new shell
       if (blocked) { hitTile(b, bx, by); if (splash) blastAt(b, bx, by, null); } else G.bullets.push(b);
       if (isP) G.shots++;
     }
@@ -1203,6 +1222,14 @@ function fireTank(t) {
   t.lastShot = G.time;
   Sound.shoot(isP, big, isP ? 1 : volAt(t.x, t.y));
 }
+/* ===== TANK TRAITS ===== */
+// Owner: package A (tank traits); D1/D2 append. Neutral stubs called from fireTank and updateBullets.
+const TT = {
+  fire(t, ctx) { return false; }, // A: true = this trait handled the shot (lob / flame), false = continue the normal fire path
+  bulletStep(b, dt) { },          // A: per-frame bullet hook (before its movement steps)
+  bulletHit(b, e) { }             // A: a player shell hit enemy tank e (before the shell is marked dead)
+};
+
 function damageSmoke(t, dt) {
   if (t.hp / t.maxHp >= 0.35) return;
   t.smokeT -= dt;
@@ -1303,7 +1330,7 @@ function hurtEnemy(e, dmg, x, y, dir) {
     addText(e.x, e.y - 36, 'Komutan öfkelendi', '#ff7a5c', 16);
   }
 }
-const damageEnemy = (e, b) => hurtEnemy(e, b.dmg, b.x, b.y, Math.atan2(-b.vy, -b.vx));
+const damageEnemy = (e, b) => hurtEnemy(e, b.dmg * synDmg(b, e), b.x, b.y, Math.atan2(-b.vy, -b.vx));
 // Explosive shells (Patlayıcı mermi): a small blast that hurts every other enemy tank in reach
 function blastAt(b, x, y, skip) {
   const sp = b.splash;
@@ -1324,6 +1351,7 @@ function killEnemy(e) {
   addDecals(G.map, [{ k: 'scorch', x: e.x, y: e.y, r: 34 * pw }, wreckOf(e)]);
   const pts = Math.round(s.score * G.D.score);
   G.score += pts; G.kills++;
+  nukeOnKill(e); // hook (C): nuke meter
   addText(e.x, e.y - 12, '+' + fmt(pts), '#f2c14e', e.type === 'boss' ? 22 : 16);
   if (e.type === 'boss') {
     G.boss = null;
@@ -1339,7 +1367,7 @@ function damagePlayer(b) {
     for (let k = 0; k < 6; k++) { const a = rand(0, TAU); addPart('glow', b.x, b.y, Math.cos(a) * 90, Math.sin(a) * 90, 0.3, 12, 0, 4, 'blue'); }
     Sound.shield(); return;
   }
-  p.hp -= b.dmg; p.flash = 0.12; p.hurtT = G.time; G.hurt = 0.45; shake(7); Sound.hurt(); vibrate(35);
+  p.hp -= b.dmg * synTaken(b); p.flash = 0.12; p.hurtT = G.time; G.hurt = 0.45; shake(7); Sound.hurt(); vibrate(35);
   sparks(b.x, b.y, 6, '#ffb08a', 200);
   if (p.hp <= 0) { p.hp = 0; killPlayer(); }
 }
@@ -1379,6 +1407,7 @@ function applyPickup(k) {
   G.score += Math.round(50 * G.D.score);
   addPart('ring', k.x, k.y, 0, 0, 0.4, 8, 110, 0, P.rgb);
   Sound.pickup(); vibrate(15);
+  synPickup(k.kind); // hook (B)
 }
 function updatePickups(dt) {
   const p = G.player, mag = upL('magnet'), R = (2 + 2 * mag) * T;
@@ -1421,10 +1450,19 @@ function updateStrikes(dt) {
 function regen(p, dt) {
   const L = upL('repair');
   if (!L || G.phase !== 'fight' || p.hp >= p.maxHp || G.time - p.hurtT < 2) return;
-  p.hp = Math.min(p.maxHp, p.hp + 0.5 * L * dt);
+  p.hp = Math.min(p.maxHp, p.hp + 0.5 * L * synRegen(p) * dt);
   p.fxT -= dt;
   if (p.fxT <= 0) { p.fxT = 0.45; addPart('glow', p.x + rand(-12, 12), p.y + rand(-12, 12), 0, -26, 0.55, 11, 0, 1, 'pu_repair'); }
 }
+
+/* ===== NUKE ===== */
+// Owner: package C (nuclear bomb).
+// Neutral stubs called from shared code: nukeOnKill (killEnemy), nukeUpdate (updatePlay), nukeKey (keydown), nukeHud (updateHUD), drawNuke (render).
+function nukeOnKill(e) { }       // C: fill the meter when enemy e dies
+function nukeUpdate(dt) { }      // C: warning timer / effect, once per play frame
+function nukeKey(e) { return false; } // C: keydown; true = handled (caller returns)
+function nukeHud() { }           // C: button / meter refresh
+function drawNuke() { }          // C: flash, ring and warning edge (screen space, late in render)
 
 /* ================= bullets ================= */
 // Sekme: reflect off the face of the steel tile the shell just entered, then step back out of it
@@ -1434,7 +1472,7 @@ function ricochet(b, px, py) {
   if (!fx && !fy) { fx = c1 !== c0; fy = r1 !== r0; }
   if (fx) b.vx = -b.vx;
   if (fy) b.vy = -b.vy;
-  b.x = px; b.y = py; b.bounce--; b.life = Math.max(b.life, 0.9); b.seenBy = null; b.hits = null;
+  b.x = px; b.y = py; b.bounced = true; b.bounce--; b.life = Math.max(b.life, 0.9); b.seenBy = null; b.hits = null;
   sparks(px, py, 5, '#cfe8ff', 180); Sound.bounce(volAt(px, py));
 }
 function updateBullets(dt) {
@@ -1442,6 +1480,9 @@ function updateBullets(dt) {
   for (const b of G.bullets) {
     if (b.dead) continue;
     b.life -= dt; if (b.life <= 0) { b.dead = true; continue; }
+    TT.bulletStep(b, dt); // hook (A)
+    if (b.dead) continue;
+    b.dist += Math.hypot(b.vx, b.vy) * dt; // path length for packages A/B
     const steps = Math.max(1, Math.ceil(Math.hypot(b.vx, b.vy) * dt / 8));
     for (let k = 0; k < steps && !b.dead; k++) {
       const px = b.x, py = b.y;
@@ -1464,6 +1505,7 @@ function updateBullets(dt) {
         }
         if (hit) {
           G.hits++;
+          TT.bulletHit(b, hit); // hook (A): stun / knockback etc., before the shell is marked dead
           if (b.pierce) (b.hits || (b.hits = [])).push(hit.id); else b.dead = true;
           damageEnemy(hit, b);
           if (b.splash) blastAt(b, b.x, b.y, hit);
@@ -1781,6 +1823,7 @@ window.addEventListener('keydown', e => {
   if ((e.code === 'Escape' || e.code === 'KeyP') && subOpen()) { if (e.code === 'Escape') closeSub(); e.preventDefault(); return; }
   if (e.code === 'KeyP' || e.code === 'Escape') { if (G.state === 'play') pauseGame(); else if (G.state === 'paused') resumeGame(); e.preventDefault(); return; }
   if (e.code === 'KeyM' && !e.repeat) { toggleSound(); return; }
+  if (nukeKey(e)) return; // hook (C): N key etc.
   if (G.state === 'play' && G.phase === 'upgrade' && !subOpen()) {
     const n = { Digit1: 0, Digit2: 1, Digit3: 2, Numpad1: 0, Numpad2: 1, Numpad3: 2 }[e.code];
     if (n !== undefined) { e.preventDefault(); if (!e.repeat && upChoices[n]) chooseUpgrade(upChoices[n]); return; }
@@ -2280,6 +2323,7 @@ function updatePlay(rdt) {
     if (frozen) { e.lock = false; e.flash = Math.max(0, e.flash - dt); e.recoil = 0; } // Dondurucu: enemies stand still and hold fire
     else updateEnemy(e, dt);
   }
+  nukeUpdate(dt); // hook (C)
   separateTanks();
   updateBullets(dt);
   updateStrikes(dt);
@@ -2337,6 +2381,7 @@ function updateHUD() {
     measureHud();
   }
   if (ui.buffEls) for (const b of ui.buffEls) { const k = b.dataset.k; b.style.transform = `scaleX(${k === 'air' ? 1 : clamp(G.buffs[k] / (G.buffMax[k] || PU[k].dur), 0, 1).toFixed(3)})`; }
+  nukeHud(); // hook (C)
 }
 
 /* ================= render ================= */
@@ -2381,6 +2426,7 @@ function render() {
   if ((G.state === 'play' || G.state === 'paused') && !dbg.clean) { drawIndicators(); drawCrosshair(); drawSticks(); drawVignette(); }
   syncAimCursor();
   if (G.state === 'menu') drawMenuHint();
+  drawNuke(); // hook (C): screen space (setTransform(dpr)), above the overlays, below the fade
   if (G.fade > 0.001) { ctx.fillStyle = `rgba(14,16,10,${G.fade.toFixed(3)})`; ctx.fillRect(0, 0, view.w, view.h); }
 }
 function drawWaterFx(c0, c1, r0, r1) {
@@ -2864,6 +2910,9 @@ if (DEBUG) {
       for (const [c, r] of bushes || []) m.t[r * n + c] = BUSH;
       m.decals.length = 0; m.flowDirty = true; buildLayer(m); buildMini(m);
     },
+    /* -- A: tanks -- */
+    /* -- B: synergies -- */
+    /* -- C: nuke -- */
     hold(v) { bot.hold = !!v; },
     step(sec) { const n = Math.round(sec * 60); for (let i = 0; i < n && G.state === 'play'; i++) update(1 / 60); return this.info(); },
     drop(kind, dx, dy) { const p = G.player; dropPickup(p.x + (dx || 0), p.y + (dy || 0), kind); }
