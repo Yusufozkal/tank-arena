@@ -1,0 +1,15 @@
+# Signing key: never commit it. Keep the private backup; android/build.sh reads it from android/keystore/.
+android/keystore/
+*.jks
+*.keystore
+*.idsig
+
+# Build output and scratch
+android/build/
+android/out/
+android/assets/
+.tmp/
+__pycache__/
+*.pyc
+node_modules/
+.DS_Store

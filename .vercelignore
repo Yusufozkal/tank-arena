@@ -1,3 +1,10 @@
-# kept in the repo for GitHub downloads, not deployed to Vercel
+# only site/ is published; sources, tools and APKs stay out of the deployment
 *.apk
 README.md
+CLAUDE.md
+game/
+tools/
+android/
+tests/
+docs/
+.tmp/
