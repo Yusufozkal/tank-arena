@@ -3,8 +3,8 @@
 Yöntem: oyunun kendi otomatik pilotu (`window.__tank.sim`) `tests/balance_probe.py` ile oynar. Bot insan değildir; mutlak sayılar insanda farklı çıkar, ama aşağıdaki desen oyunun formüllerinden gelir.
 
 ```
-python3 tests/balance_probe.py <easy|normal|hard> survive <random|offense> 40 20
-python3 tests/balance_probe.py normal pressure random 25 1     # zırh sürekli dolar, dalga başına alınan hasar ölçülür
+python3 tests/balance_probe.py <survive|pressure> <random|offense> <en çok dalga> <tekrar>   # örn. survive random 40 20
+python3 tests/balance_probe.py pressure random 25 1     # zırh sürekli dolar, dalga başına alınan hasar ölçülür
 python3 tests/balance_report.py
 ```
 

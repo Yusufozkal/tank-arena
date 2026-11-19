@@ -1,9 +1,9 @@
-"""Seven minutes of hard-difficulty autopilot with power-ups raining, then a frame-time benchmark at full upgrades."""
+"""Seven minutes of autopilot with power-ups raining, then a frame-time benchmark at full upgrades."""
 from common import *  # noqa: F401,F403
 with sync_playwright() as p:
     b = p.chromium.launch()
     ctx = new_ctx(b, 'stress', viewport={'width': 412, 'height': 915}, device_scale_factor=2.6, is_mobile=True, has_touch=True)
-    page = ctx.new_page(); seed(page, {'difficulty': 'hard'})
+    page = ctx.new_page(); seed(page)
     page.tap('#btnStart'); page.wait_for_timeout(200)
     R['stress'] = page.evaluate("""() => { const t = __tank, G = t.G, kinds = ['shield','triple','rapid','speed','pierce','freeze','stealth','air','repair'];
       const log = []; let gives = 0;

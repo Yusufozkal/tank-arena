@@ -90,9 +90,6 @@ FOES = [
     ('boss', 'Komutan', 'Her 5. dalgada gelir, üç namludan ateş eder.'),
 ]
 foes = '\n'.join(f'<li class="foe-{k}"><img src="/img/tank-{k}.png" width="128" height="128" alt="" loading="lazy"><b>{n}</b><span>{t}</span></li>' for k, n, t in FOES)
-diffs = '\n'.join(
-    f'<li><span class="rank" aria-hidden="true">{"<i></i>" * (i + 1)}</span><div><b>{v["name"]}</b><span>{v["note"]}</span></div></li>'
-    for i, v in enumerate(D['DIFF'].values()))
 
 STEEL = ("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'%3E"
          "%3Crect width='40' height='40' fill='%23585c56'/%3E%3Crect x='1.5' y='1.5' width='37' height='36' rx='1.5' fill='%23a4a7a0'/%3E"
@@ -216,16 +213,6 @@ h1 span{{display:block}}
 .foes span{{font-size:18px;line-height:1.3;color:var(--sand-ink-2)}}
 @media (min-width:860px){{.foes{{grid-template-columns:repeat(5,minmax(0,1fr))}}}}
 
-/* difficulty: rank chevrons, one per step up */
-.diffs{{list-style:none;display:grid;gap:14px;margin-top:30px}}
-.diffs li{{display:flex;gap:18px;align-items:flex-start;padding:18px 20px;border:1px solid var(--line);border-radius:4px}}
-.diffs b{{display:block;font-family:var(--display);font-weight:800;font-size:38px;line-height:1}}
-.diffs span{{display:block;margin-top:6px;color:var(--bone-2)}}
-.rank{{display:flex;flex-direction:column;gap:3px;width:30px;flex:none;padding-top:6px}}
-.rank i{{display:block;height:12px;background:var(--signal);clip-path:polygon(0 100%,50% 30%,100% 100%,100% 66%,50% 0,0 66%)}}
-.diffs li:last-child .rank i{{background:var(--hostile)}}
-@media (min-width:860px){{.diffs{{grid-template-columns:repeat(3,minmax(0,1fr))}}}}
-
 /* controls */
 .ctl{{display:grid;gap:30px;margin-top:30px}}
 .ctl h3{{font-weight:700;font-size:24px;line-height:1.1;margin-bottom:10px}}
@@ -306,13 +293,10 @@ footer a{{text-underline-offset:3px}}
   </div>
 </section>
 
-<section id="zorluk">
+<section id="tek-savas">
   <div class="wrap">
-    <h2>Üç zorluk</h2>
-    <p class="lead">Rekorlar her zorlukta ayrı tutulur.</p>
-    <ol class="diffs">
-{diffs}
-    </ol>
+    <h2>Tek savaş</h2>
+    <p class="lead">Herkes aynı kurallarla oynar. Her beşinci dalgada Komutan gelir ve her gelişinde daha güçlüdür. Rekorların tek listede tutulur.</p>
   </div>
 </section>
 

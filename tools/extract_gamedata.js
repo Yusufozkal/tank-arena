@@ -13,15 +13,13 @@ function slice(from, to) {
   return html.slice(a, b);
 }
 
-// PU through UPS (the helpers in between come along), then the difficulty table
-const code = slice('const PU = {', 'const UP_KEYS') + '\n' + slice('const DIFF = {', 'const SET_DEFAULTS');
-const T = new Function('Path2D', 'G', 'fmt', 'bountyPts', `${code}\nreturn { PU, ICONS, UPS, DIFF };`)(class {}, {}, x => x, () => 0);
+// PU through UPS (the helpers in between come along)
+const code = slice('const PU = {', 'const UP_KEYS');
+const T = new Function('Path2D', 'G', 'fmt', 'bountyPts', `${code}\nreturn { PU, ICONS, UPS };`)(class {}, {}, x => x, () => 0);
 
 const out = { PU: {}, ICONS: T.ICONS, UPS: {} };
 for (const k in T.PU) out.PU[k] = { name: T.PU[k].name, col: T.PU[k].col, note: T.PU[k].note };
 for (const k in T.UPS) if (!T.UPS[k].extra) out.UPS[k] = { name: T.UPS[k].name, max: T.UPS[k].max, rare: !!T.UPS[k].rare, brief: T.UPS[k].brief, svg: T.UPS[k].svg };
-out.DIFF = {};
-for (const k in T.DIFF) out.DIFF[k] = { name: T.DIFF[k].name, note: T.DIFF[k].note };
 
 fs.writeFileSync(path.join(__dirname, 'gamedata.json'), JSON.stringify(out, null, 1));
-console.log('gamedata.json:', Object.keys(out.PU).length, 'power-ups,', Object.keys(out.UPS).length, 'cards,', Object.keys(out.DIFF).length, 'difficulties');
+console.log('gamedata.json:', Object.keys(out.PU).length, 'power-ups,', Object.keys(out.UPS).length, 'cards,');
