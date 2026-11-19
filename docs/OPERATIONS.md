@@ -6,7 +6,8 @@
 - GitHub `Yusufozkal/tank-arena` reposunun `main` dalına her push'ta otomatik yayın. `vercel.json` içindeki `outputDirectory: site` yalnızca `site/` klasörünü yayınlar.
 - Önizleme dalları ve diğer Vercel adresleri (`…-git-main-…`, `…-tank-arenaio…`) Vercel girişi ister; herkese açık olan tek adres yukarıdaki.
 - Hobby sınırları: ayda 100 GB trafik, ~1M istek. Aşılırsa proje durdurulur, fatura çıkmaz.
-- **APK:** kökteki `TankArena-<sürüm>.apk` GitHub raw bağlantısından iner. Sitedeki `/TankArena-<sürüm>.apk` adresleri 307 ile GitHub'a yönlenir; APK Vercel trafiği harcamaz.
+- Alan adı alınmadı; kullanıcının başka sitelerinin alan adları bu proje için kullanılmaz.
+- **APK:** kökteki `TankArena-<sürüm>.apk` GitHub raw bağlantısından iner. Sitedeki `/TankArena-<sürüm>.apk` adresleri 307 ile GitHub'a yönlenir; APK Vercel trafiği harcamaz. GitHub Releases kullanılmıyor (kullanıcı onaylamadı).
 
 ## Güvenlik başlıkları (`tools/build_site.py` üretir)
 
@@ -49,3 +50,4 @@ Notlar: kalıcı engelleme (persistent actions) Hobby'de yok, engel pencere bite
 | 1.1 | 2 | Avcı (zeki tank), ayarlar, rehber, rekorlar |
 | 1.2 | 3 | Oyun içinde yön değiştirme, yeni zorluk adları, dalga sonu atölye kartları, yeni güçlendirmeler |
 | 1.2.1 | 4 | Karda ve çölde görünen nişangâh, telefonda küçülen üst gösterge |
+| 1.3 | 5 | Tek mod, Komutan her gelişte güçlenir ve ateşten önce namlusu parlar, kartlar toplanır (en fazla ~4 kat), zayıf kartlara ikinci etki, yeni denge |

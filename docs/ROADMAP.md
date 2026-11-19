@@ -1,6 +1,6 @@
 # Yol haritası
 
-Durum (19 Kasım 2026): **1.2.1 yayında.** Sıradaki iş 1.3. Kullanıcı planı onayladı mı henüz belli değil, başlamadan sor.
+Durum (19 Kasım 2026): **1.3 yayında.** Sıradaki iş 1.4; kullanıcı onaylamadan başlama.
 
 ## Kullanıcının koyduğu ilkeler
 
@@ -11,18 +11,22 @@ Durum (19 Kasım 2026): **1.2.1 yayında.** Sıradaki iş 1.3. Kullanıcı plan�
 - Tank seçimi **diep.io gibi**: oyun içinde aşama geçtikçe yeni tank seçimleri açılır.
 - Kazanılan parayla **kalıcı geliştirmeler**; **doğrulanmış hesap** zorunlu; **nükleer bomba**; **co-op**.
 
-## 1.3 – Tek mod ve denge (çevrimdışı çalışır, sunucu yok)
+## 1.3 – Tek mod ve denge (yayında, 19 Kasım 2026)
 
-- Zorluk seçimi kalkar. Tek eğri, bugünkü Cephe'nin üstüne kurulur. Kayıtlı rekorlar tek listeye iner.
-- Komutan: ilk gelişinde (5. dalga) daha az canlı, sonra her gelişinde güçlenir. Üçlü atıştan önce namlusu parlar.
-- Atölye kartlarının etkisi çarpılmak yerine toplanır. Toplam ateş gücü en fazla ~4 kat (bugün 7,6 kat).
-- Zayıf kartlara ikinci etki: termal kamera görünen düşmana +%15 hasar, mıknatıs daha sık güçlendirme düşürür, uzun etki kalkanı da uzatır.
-- Düşman tarafında "tehdit bütçesi": 15. dalgadan sonra can şişirmek yerine yeni tank türleri gelir.
-- Üç yeni düşman:
-  - **Topçu:** uzaktan duvar üstünden atar, merminin düşeceği yer 1 sn önce işaretlenir.
-  - **Kalkanlı:** önden vurulamaz; yandan, arkadan, sekme ya da patlayıcı mermiyle vurulur.
-  - **Bombacı:** hızla gelip yanında patlar; uzaktan vurulursa etrafına zarar verir.
-- Hedefler (botla ölçülür, `docs/BALANCE.md`): hiçbir dalga oyunların %25'inden fazlasını bitirmesin; ortalama oyun 15–20. dalgaya gitsin; 30. dalgadan sonra da hasar alınmaya devam etsin.
+Kullanıcı "yeni tanklar dursun şimdilik, 1.3'ün işlerini yap" dedi; 1.3 yeni düşman türü olmadan çıktı.
+
+- Zorluk seçimi kalktı, tek kural seti (`RULES`, eski Cephe değerleri). Rekorlar tek listede (`REC.top`); eski zorluk rekorları silinmedi, en yükseği taşındı.
+- Komutan: ilk gelişinde daha az canlı, her gelişinde güçlenir (`bossHp`). Üçlü atıştan önce namluları en az 0,45 sn parlar; tuğlaya ateş ederken beklemez.
+- Atölye kartları toplanır: ateş gücü = 1 + 0,25·kalibre + 0,18·yükleyici + 1·çift namlu + 0,15·termal, en fazla ×4,05 (1.2.1'de ×7,6). Mermi başına hasar tabanın altına inmez.
+- Zayıf kartlara ikinci etki: termal kamera +%15 ateş gücü; mıknatıs seviye başına %25 daha sık güçlendirme düşürtür; uzun etki Tamir'i seviye başına +10 zırh artırır ve Hazırlık kartının süresini de uzatır. (Planda "uzun etki kalkanı da uzatır" yazıyordu; kalkan zaten uzuyordu, bu yüzden Tamir seçildi.)
+- Denge: ilk Komutan 16 canlı ve ilk gelişinde daha yavaş ateş eder. 10. dalgadan sonra düşmanlar can şişirmek yerine daha sık ve isabetli ateş eder, daha hızlı ve kalabalık gelir; ağır tank ve Avcı payı artar; dalga arası onarım ve düşen güçlendirmeler azalır (can çarpanı yine de x1,9'a kadar çıkar). Bot ölçümünde (80 oyun) ortalama bitiş 18,8. dalga, hiçbir dalga oyunların %12'sinden fazlasını bitirmiyor, 40'a ulaşan %8. Gerçek oyuncu verisiyle yeniden bakılmalı.
+- Ölçümler ve değişen sabitler: `docs/BALANCE.md`, "1.3 sonuçları".
+
+## Yeni düşmanlar (ertelendi)
+
+- Planlanan: **Topçu** (duvar üstünden atar, düşeceği yer 1 sn önce işaretlenir), **Kalkanlı** (önden vurulmaz; yandan, arkadan, sekme ya da patlayıcı mermiyle), **Bombacı** (gelip yanında patlar; uzaktan vurulursa çevresine zarar verir).
+- Önerilen ek fikirler: Tamirci (grubun arkasında durup onarır), Taşıyıcı (dron salar, diep.io havası, 1.4'e yakışır), Mayıncı, Hayalet (termal görür), Koçbaşı, Bölünen.
+- Kullanıcı "şu an çok olur" dedi. Önerim ilk etapta iki tane: **Bombacı** ve **Tamirci** (yapması kolay, telefonda ayırt edilir, birbirini tamamlar). Topçu, Kalkanlı ve Taşıyıcı sonraya. Kullanıcı henüz seçmedi.
 
 ## 1.4 – Tank evrimi ve nükleer bomba
 
@@ -73,3 +77,5 @@ Dört farklı boss, oyun başında tank seçimi (yerine evrim), aktif yetenek, k
 - Yayın sürümünden hata ayıklama modunu kaldırmak (1.5'ten önce şart).
 - `/.well-known/security.txt` eklemek (kullanıcı "şimdilik dursun" dedi).
 - Alan adı alınmadı; kullanıcı "almak istersek ayarlarız" dedi.
+- Claude Code'a (bulut) taşımanın eksikleri, kullanıcı "şimdilik dursun" dedi: bulut ortamına kurulum betiği (Android SDK, Playwright) ve izinli alan adları (`dl.google.com`, canlı site); `build.sh` imza anahtarını ortam değişkeninden de okusun; tanıtım PDF'inin kaynağı repoya alınsın; panel işleri (Vercel Firewall) bulut oturumundan yapılamaz.
+- ChatGPT/Codex bağlantısı: karar verilmedi. Seçenekler: Codex bulutu aynı repoya bağlanır, PR'lara `@codex review`; ya da yerelde Codex CLI + MCP. Codex kuralları `AGENTS.md`'den okur (repoda yok).

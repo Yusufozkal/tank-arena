@@ -80,7 +80,7 @@ Ekran görüntüleri ve ölçüm sonuçları `.tmp/` altına yazılır (git'e gi
 
 - Veriler: `SPECS` (tank tipleri ve canları), `PU` (güçlendirmeler), `UPS` (atölye kartları), `RULES` (tek kural seti), `THEMES` (haritalar).
 - Akış: `startGame` → `nextWave` → `buildRoster(w)` + `waveMods(w)` (dalga zorluğu) → `waveCleared` → `rollUpgrades` / `chooseUpgrade` (atölye).
-- Oyuncu gücü: `playerSpec()`, `fireTank()`; hasar `hurtEnemy`, `damagePlayer`.
+- Oyuncu gücü: `firepower()` (kartlar toplanır, en fazla ~×4), `playerSpec()`, `fireTank()`; hasar `hurtEnemy`, `damagePlayer`. Komutan canı `bossHp(w)`, ateş uyarısı `chargeT`.
 - Döngü: `update(dt)` sabit 1/60 adım, `render()`; arayüz `updateHUD()`; fare `drawCrosshair()` + `syncAimCursor()`.
 - Telefon HUD'u CSS'te `@media (max-width:520px),(max-height:520px)` bloğu.
 - Dosyanın sonunda otomatik pilot (bot) ve `window.__tank` (sim, step, wave, give, spawn, killAll, choices, choose…).

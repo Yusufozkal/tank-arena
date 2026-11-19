@@ -80,14 +80,14 @@ Başlangıçta (1.2.1 sonrası, aynı bot): rastgele ortalama 13,9 / ortanca 8, 
 ### Değişen sabitler (hepsi düşman tarafı)
 - `BOSS_HP0` / `BOSS_HP_STEP` 22 / 12 -> 16 / 12: ilk Komutan duvar olmasın, sonraki gelişleri yine 12 can artar. Rehber metni güncellendi (16 isabet).
 - Komutan ateş aralığı: ilk gelişinde x1,6, sonra x1,3, x1,2 ... (`1 + 0,6 / uğrama`): ilk karşılaşma adil, geç gelişler tam hızda.
-- Komutan eskortu `2 + w/5` -> `1 + w/5`, 20. dalgadan sonra ağır tank ve ek Avcı; Komutan dalgasında aynı anda canlı tank `3 + min(3, w/10)` -> `3 + min(5, w/8)`: geç Komutan'ı can değil kalabalık zorlaştırır.
+- Komutan eskortu `2 + w/5` -> `1 + w/5`, 20. dalgadan sonra ağır tank ve ek Avcı; Komutan dalgasında aynı anda canlı tank `3 + min(2, w/10)` -> `3 + min(5, w/8)`: geç Komutan'ı can değil kalabalık zorlaştırır.
 - `hpGrow` 0,06 -> 0,04 ve tavan: can çarpanı en çok x1,75 (w25), sonra dalga başına +0,01 (w40'ta x1,9). Eskiden sınırsızdı (w40'ta x3).
-- `waveMods` hız: tavan +%30 (w11) -> 11. dalgadan sonra +%1,5/dalga, en çok +%60.
+- `waveMods` hız: tavan +%30 (w11) -> 10. dalgadan sonra dalga başına +%1,5 daha, en çok +%60.
 - `waveMods` ateş aralığı: 10. dalgada 0,6'da duruyordu; artık 0,035/dalga ile 10'a kadar, sonra 0,009/dalga, taban 0,35. Düşman ilk atışı da bu çarpanla gelir.
 - `waveMods` nişan hatası taban 0,035 -> 0,012 (10. dalgadan sonra yavaşça), öngörü (`lead`) 0,85 -> 1,0 (22. dalgaya kadar).
-- `waveMods` hasar: 15. dalgadan sonra +%2/dalga, en çok +%60 (eskiden sabit).
+- `waveMods` hasar: 13. dalgadan sonra +%2/dalga, en çok +%60 (eskiden sabit).
 - `waveMods` avcı kaçışı (`dodge`) 0,65 -> dalga başına +0,01, tavan 0,85 (artık `RULES.dodge` taban değer).
-- `waveMods` yeni `pace` (güçlendirme gelme aralığı çarpanı): 10. dalgadan sonra 1 -> 0,25'e iner.
+- `waveMods` yeni `pace` (yeni düşmanların kapıdan çıkma aralığı çarpanı): 10. dalgadan sonra azalır, 25. dalgadan sonra daha hızlı, en az 0,25.
 - `waveMods` yeni `drop` (düşen güçlendirme çarpanı): 10. dalgadan sonra 1 -> 0,5; geç dalgada sürekli kalkan alınıp hasarsız kalınmasın diye.
 - `buildRoster`: ağır tank payı tavanı %30 -> %45, Avcı payı %22 -> %35, keşif tankı payı 20. dalgadan sonra azalır; sayı tavanı 24 -> 24 + (w-20)/2; aynı anda canlı tank 13. dalgadan sonra +1, her 5 dalgada bir daha, +6'ya kadar; 20. dalgadan sonra çıkış kapılarından oyuncuya en yakın üçü seçilir.
 - Dalga arası onarım (`heal`) 25 -> 10. dalgadan sonra dalga başına 1 azalır, en az 8.

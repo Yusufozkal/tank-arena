@@ -113,16 +113,6 @@ h1 span{display:block}
 .foes span{font-size:18px;line-height:1.3;color:var(--sand-ink-2)}
 @media (min-width:860px){.foes{grid-template-columns:repeat(5,minmax(0,1fr))}}
 
-/* difficulty: rank chevrons, one per step up */
-.diffs{list-style:none;display:grid;gap:14px;margin-top:30px}
-.diffs li{display:flex;gap:18px;align-items:flex-start;padding:18px 20px;border:1px solid var(--line);border-radius:4px}
-.diffs b{display:block;font-family:var(--display);font-weight:800;font-size:38px;line-height:1}
-.diffs span{display:block;margin-top:6px;color:var(--bone-2)}
-.rank{display:flex;flex-direction:column;gap:3px;width:30px;flex:none;padding-top:6px}
-.rank i{display:block;height:12px;background:var(--signal);clip-path:polygon(0 100%,50% 30%,100% 100%,100% 66%,50% 0,0 66%)}
-.diffs li:last-child .rank i{background:var(--hostile)}
-@media (min-width:860px){.diffs{grid-template-columns:repeat(3,minmax(0,1fr))}}
-
 /* controls */
 .ctl{display:grid;gap:30px;margin-top:30px}
 .ctl h3{font-weight:700;font-size:24px;line-height:1.1;margin-bottom:10px}
@@ -159,7 +149,7 @@ footer a{text-underline-offset:3px}
     <p class="pitch">Dalga dalga gelen düşman tanklarına karşı ayakta kal. Her dalgadan sonra atölyede tankını yükselt.</p>
     <div class="acts">
       <a class="btn btn-play" href="/oyna/">Hemen oyna</a>
-      <a class="btn btn-apk" href="https://github.com/Yusufozkal/tank-arena/raw/main/TankArena-1.2.1.apk"><svg viewBox="0 0 24 24" class="ico-svg" aria-hidden="true"><path d="M12 4v11M7 10.5l5 5 5-5M5 20h14"/></svg>Android için indir <small>APK, 0,4 MB</small></a>
+      <a class="btn btn-apk" href="https://github.com/Yusufozkal/tank-arena/raw/main/TankArena-1.3.apk"><svg viewBox="0 0 24 24" class="ico-svg" aria-hidden="true"><path d="M12 4v11M7 10.5l5 5 5-5M5 20h14"/></svg>Android için indir <small>APK, 0,4 MB</small></a>
     </div>
     <p class="note">Tarayıcıda kurulum gerekmez. Telefonda da bilgisayarda da oynanır.</p>
   </div>
@@ -178,16 +168,16 @@ footer a{text-underline-offset:3px}
       <ul class="grid3 ups" aria-label="Yükseltmeler">
 <li><span class="ico"><svg class="ico-svg" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="1.5"/><circle cx="7" cy="9" r="1.15" fill="currentColor" stroke="none"/><circle cx="17" cy="9" r="1.15" fill="currentColor" stroke="none"/><circle cx="7" cy="15" r="1.15" fill="currentColor" stroke="none"/><circle cx="17" cy="15" r="1.15" fill="currentColor" stroke="none"/></svg></span><b>Zırh plakası</b><span>+20 azami zırh</span><span class="lv">5 seviye</span></li>
 <li><span class="ico"><svg class="ico-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5l7 7-7 7M13 5l7 7-7 7"/></svg></span><b>Turbo motor</b><span>+%10 hız</span><span class="lv">4 seviye</span></li>
-<li><span class="ico"><svg class="ico-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20v-9a2 2 0 0 1 4 0v9zM10 20v-9a2 2 0 0 1 4 0v9zM16 20v-9a2 2 0 0 1 4 0v9zM4 16h4M10 16h4M16 16h4"/></svg></span><b>Otomatik yükleyici</b><span>Daha sık atış</span><span class="lv">5 seviye</span></li>
-<li><span class="ico"><svg class="ico-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 21V10a5 5 0 0 1 10 0v11zM7 16h10"/></svg></span><b>Büyük kalibre</b><span>+%25 hasar</span><span class="lv">4 seviye</span></li>
+<li><span class="ico"><svg class="ico-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20v-9a2 2 0 0 1 4 0v9zM10 20v-9a2 2 0 0 1 4 0v9zM16 20v-9a2 2 0 0 1 4 0v9zM4 16h4M10 16h4M16 16h4"/></svg></span><b>Otomatik yükleyici</b><span>+%18 ateş gücü, sık atış</span><span class="lv">5 seviye</span></li>
+<li><span class="ico"><svg class="ico-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 21V10a5 5 0 0 1 10 0v11zM7 16h10"/></svg></span><b>Büyük kalibre</b><span>+%25 ateş gücü, büyük mermi</span><span class="lv">4 seviye</span></li>
 <li><span class="ico"><svg class="ico-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 9h15M17 6.5h4v5h-4zM3 17h18M6 14.5L3 17l3 2.5M18 14.5l3 2.5-3 2.5"/></svg></span><b>Uzun namlu</b><span>Hızlı mermi, uzun menzil</span><span class="lv">3 seviye</span></li>
 <li><span class="ico"><svg class="ico-svg" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="8" width="14" height="11" rx="2"/><path d="M12 8V5M9 19v2.5M15 19v2.5"/><circle cx="12" cy="4" r="1.3"/><circle cx="9.5" cy="13" r="1.15" fill="currentColor" stroke="none"/><circle cx="14.5" cy="13" r="1.15" fill="currentColor" stroke="none"/></svg></span><b>Onarım robotu</b><span>Zırhı kendisi onarır</span><span class="lv">3 seviye</span></li>
-<li class=rare><span class="ico"><svg class="ico-svg" viewBox="0 0 24 24" aria-hidden="true"><circle cx="7" cy="12" r="4"/><path d="M11 9.5h10M11 14.5h10"/></svg></span><b>Çift namlu</b><span>İki paralel mermi, nadir</span><span class="lv">Tek parça</span></li>
+<li class=rare><span class="ico"><svg class="ico-svg" viewBox="0 0 24 24" aria-hidden="true"><circle cx="7" cy="12" r="4"/><path d="M11 9.5h10M11 14.5h10"/></svg></span><b>Çift namlu</b><span>+%100 ateş gücü, iki mermi, nadir</span><span class="lv">Tek parça</span></li>
 <li class=rare><span class="ico"><svg class="ico-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 3v18M3 18l16.5-6L3 6M5.6 9.1L3 6l3.9-.7"/></svg></span><b>Sekme</b><span>Çelikten seker, nadir</span><span class="lv">2 seviye</span></li>
 <li class=rare><span class="ico"><svg class="ico-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2L14 7.5 19 5 16.5 10 22 12 16.5 14 19 19 14 16.5 12 22 10 16.5 5 19 7.5 14 2 12 7.5 10 5 5 10 7.5Z"/></svg></span><b>Patlayıcı mermi</b><span>Alan hasarı, nadir</span><span class="lv">2 seviye</span></li>
-<li><span class="ico"><svg class="ico-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 3h5v9a3 3 0 0 0 6 0V3h5v9a8 8 0 0 1-16 0zM4 7h5M15 7h5"/></svg></span><b>Mıknatıs</b><span>Güçlendirmeleri çeker</span><span class="lv">2 seviye</span></li>
-<li class=rare><span class="ico"><svg class="ico-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></span><b>Termal kamera</b><span>Çalıdakileri görür, nadir</span><span class="lv">Tek parça</span></li>
-<li><span class="ico"><svg class="ico-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12M6 21h12M7.5 3c0 4.5 3.5 6 3.5 9s-3.5 4.5-3.5 9M16.5 3c0 4.5-3.5 6-3.5 9s3.5 4.5 3.5 9"/></svg></span><b>Uzun etki</b><span>Güçlendirmeler uzar</span><span class="lv">3 seviye</span></li>
+<li><span class="ico"><svg class="ico-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 3h5v9a3 3 0 0 0 6 0V3h5v9a8 8 0 0 1-16 0zM4 7h5M15 7h5"/></svg></span><b>Mıknatıs</b><span>Güçlendirmeleri çeker, daha sık düşer</span><span class="lv">2 seviye</span></li>
+<li class=rare><span class="ico"><svg class="ico-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></span><b>Termal kamera</b><span>Çalıdakileri görür, +%15 ateş gücü, nadir</span><span class="lv">Tek parça</span></li>
+<li><span class="ico"><svg class="ico-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12M6 21h12M7.5 3c0 4.5 3.5 6 3.5 9s-3.5 4.5-3.5 9M16.5 3c0 4.5-3.5 6-3.5 9s3.5 4.5 3.5 9"/></svg></span><b>Uzun etki</b><span>Güçlendirmeler uzar, Tamir artar</span><span class="lv">3 seviye</span></li>
       </ul>
     </div>
     <div class="phone"><img src="/img/workshop-phone.jpg" width="720" height="1558" alt="Atölye ekranı: Çift namlu, Otomatik yükleyici ve Uzun namlu kartları" loading="lazy"></div>
@@ -203,7 +193,7 @@ footer a{text-underline-offset:3px}
 <li class="foe-fast"><img src="/img/tank-fast.png" width="128" height="128" alt="" loading="lazy"><b>Keşif tankı</b><span>1 isabet. Çok hızlıdır, üzerine doğru gelir.</span></li>
 <li class="foe-heavy"><img src="/img/tank-heavy.png" width="128" height="128" alt="" loading="lazy"><b>Ağır tank</b><span>5 isabet. İri mermisi çok can yakar.</span></li>
 <li class="foe-hunter"><img src="/img/tank-hunter.png" width="128" height="128" alt="" loading="lazy"><b>Avcı</b><span>3 isabet. Mermilerden kaçar, siper alır, seni kaybettiği yere ateş açar.</span></li>
-<li class="foe-boss"><img src="/img/tank-boss.png" width="128" height="128" alt="" loading="lazy"><b>Komutan</b><span>Her 5. dalgada gelir, üç namludan ateş eder.</span></li>
+<li class="foe-boss"><img src="/img/tank-boss.png" width="128" height="128" alt="" loading="lazy"><b>Komutan</b><span>Her 5. dalgada gelir, her gelişinde güçlenir. Ateş etmeden önce namluları parlar.</span></li>
     </ul>
   </div>
 </section>
@@ -213,7 +203,7 @@ footer a{text-underline-offset:3px}
     <h2>Dokuz güçlendirme</h2>
     <p class="lead">Vurduğun tanklardan güçlendirme düşer, üzerinden geçince etkisi başlar. Yeni olanlar ilk dalgalarda sırayla açılır.</p>
     <ul class="grid3 pus" aria-label="Güçlendirmeler">
-<li><svg viewBox="-16 -16 32 32" aria-hidden="true"><circle r="13.5" fill="#1d2015" stroke="#6fd46b" stroke-width="2.5"/><path d="M-2.3-7.5h4.6v5.2h5.2v4.6h-5.2v5.2h-4.6V2.3h-5.2v-4.6h5.2z" fill="#6fd46b"/></svg><b>Tamir</b><span>+35 zırh</span></li>
+<li><svg viewBox="-16 -16 32 32" aria-hidden="true"><circle r="13.5" fill="#1d2015" stroke="#6fd46b" stroke-width="2.5"/><path d="M-2.3-7.5h4.6v5.2h5.2v4.6h-5.2v5.2h-4.6V2.3h-5.2v-4.6h5.2z" fill="#6fd46b"/></svg><b>Tamir</b><span>+35 zırh (Uzun etkiyle daha fazla)</span></li>
 <li><svg viewBox="-16 -16 32 32" aria-hidden="true"><circle r="13.5" fill="#1d2015" stroke="#5fb4dd" stroke-width="2.5"/><path d="M0-8.5L7-5.6 6.2 1.5Q4.6 6.6 0 8.8-4.6 6.6-6.2 1.5L-7-5.6z" fill="#5fb4dd"/></svg><b>Kalkan</b><span>7 sn hasarsız</span></li>
 <li><svg viewBox="-16 -16 32 32" aria-hidden="true"><circle r="13.5" fill="#1d2015" stroke="#f2913f" stroke-width="2.5"/><path d="M0 7L-6.5-6M0 7V-8M0 7L6.5-6" fill="none" stroke="#f2913f" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg><b>Üçlü atış</b><span>10 sn</span></li>
 <li><svg viewBox="-16 -16 32 32" aria-hidden="true"><circle r="13.5" fill="#1d2015" stroke="#f2c14e" stroke-width="2.5"/><path d="M2.2-9.5L-5.5 1.2h4.6L-2.4 9.5 5.5-1.4H.9z" fill="#f2c14e"/></svg><b>Seri atış</b><span>10 sn, iki kat atış</span></li>
@@ -226,15 +216,10 @@ footer a{text-underline-offset:3px}
   </div>
 </section>
 
-<section id="zorluk">
+<section id="tek-savas">
   <div class="wrap">
-    <h2>Üç zorluk</h2>
-    <p class="lead">Rekorlar her zorlukta ayrı tutulur.</p>
-    <ol class="diffs">
-<li><span class="rank" aria-hidden="true"><i></i></span><div><b>Talim</b><span>Isınma turu: daha az düşman, daha az hasar. Puanlar %25 düşük.</span></div></li>
-<li><span class="rank" aria-hidden="true"><i></i><i></i></span><div><b>Cephe</b><span>Asıl savaş burada. İlk kez oynuyorsan buradan başla.</span></div></li>
-<li><span class="rank" aria-hidden="true"><i></i><i></i><i></i></span><div><b>Kıyamet</b><span>Kalabalık ve keskin nişancı düşmanlar, Avcı erken gelir. Puanlar %50 fazla.</span></div></li>
-    </ol>
+    <h2>Tek savaş</h2>
+    <p class="lead">Herkes aynı kurallarla oynar. Her beşinci dalgada Komutan gelir ve her gelişinde daha güçlüdür. Rekorların tek listede tutulur.</p>
   </div>
 </section>
 
@@ -276,7 +261,7 @@ footer a{text-underline-offset:3px}
     <p class="ios"><b>iPhone'da:</b> APK yalnızca Android'de çalışır. Oyunu Safari'de aç, Paylaş menüsünden <b>Ana Ekrana Ekle</b>'yi seç. Tank Arena ana ekrandan uygulama gibi tam ekran açılır.</p>
     <div class="acts">
       <a class="btn btn-play" href="/oyna/">Hemen oyna</a>
-      <a class="btn btn-apk" href="https://github.com/Yusufozkal/tank-arena/raw/main/TankArena-1.2.1.apk"><svg viewBox="0 0 24 24" class="ico-svg" aria-hidden="true"><path d="M12 4v11M7 10.5l5 5 5-5M5 20h14"/></svg>Android için indir <small>APK, 0,4 MB</small></a>
+      <a class="btn btn-apk" href="https://github.com/Yusufozkal/tank-arena/raw/main/TankArena-1.3.apk"><svg viewBox="0 0 24 24" class="ico-svg" aria-hidden="true"><path d="M12 4v11M7 10.5l5 5 5-5M5 20h14"/></svg>Android için indir <small>APK, 0,4 MB</small></a>
     </div>
   </div>
 </section>
@@ -284,7 +269,7 @@ footer a{text-underline-offset:3px}
 <footer>
   <div class="steel" aria-hidden="true"></div>
   <div class="wrap">
-    <span>Tank Arena 1.2.1</span>
+    <span>Tank Arena 1.3</span>
     <a href="https://github.com/Yusufozkal/tank-arena">Kaynak kodu GitHub'da</a>
   </div>
 </footer>

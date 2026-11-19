@@ -3,7 +3,7 @@
 Dalga dalga gelen düşman tanklarına karşı ayakta kaldığın, her dalgadan sonra tankını atölyede yükselttiğin bir tank oyunu.
 
 - **Tarayıcıda oyna:** `/oyna/`
-- **Android:** [TankArena-1.2.1.apk](https://github.com/Yusufozkal/tank-arena/raw/main/TankArena-1.2.1.apk) (indirme GitHub üzerinden)
+- **Android:** [TankArena-1.3.apk](https://github.com/Yusufozkal/tank-arena/raw/main/TankArena-1.3.apk) (indirme GitHub üzerinden)
 
 ## Klasörler
 
@@ -12,7 +12,7 @@ Dalga dalga gelen düşman tanklarına karşı ayakta kaldığın, her dalgadan 
 | `game/index.html` | Oyunun kaynağı: tek HTML dosyası |
 | `site/` | Yayındaki site (Vercel yalnızca bu klasörü yayınlar), `tools/build_site.py` üretir |
 | `android/` | Android uygulamasının kaynağı ve `build.sh` |
-| `TankArena-1.2.1.apk` | Android uygulaması (Vercel'e yüklenmez, GitHub'dan iner) |
+| `TankArena-1.3.apk` | Android uygulaması (Vercel'e yüklenmez, GitHub'dan iner) |
 | `tools/` | Siteyi, görselleri ve oyun verisini üreten araçlar |
 | `tests/` | Tarayıcıda çalışan oyun testleri ve denge ölçümü |
 | `docs/` | Yol haritası, denge bulguları, yayın ve güvenlik notları |
