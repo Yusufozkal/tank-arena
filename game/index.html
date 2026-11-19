@@ -490,7 +490,7 @@ const SPECS = {
 };
 
 const PU = {
-  repair: { col: '#6fd46b', rgb: '111,212,107', name: 'Tamir', dur: 0, w: 3, from: 1, note: '+35 zırh' },
+  repair: { col: '#6fd46b', rgb: '111,212,107', name: 'Tamir', dur: 0, w: 3, from: 1, note: '+35 zırh, Uzun etki artırır' },
   shield: { col: '#5fb4dd', rgb: '95,180,221', name: 'Kalkan', dur: 7, w: 2, from: 1, note: '7 sn hasarsız' },
   triple: { col: '#f2913f', rgb: '242,145,63', name: 'Üçlü atış', dur: 10, w: 2, from: 1, note: '10 sn' },
   rapid: { col: '#f2c14e', rgb: '242,193,78', name: 'Seri atış', dur: 10, w: 2, from: 1, note: '10 sn, iki kat atış' },
@@ -518,9 +518,13 @@ const BUFFS = Object.keys(PU).filter(k => PU[k].dur > 0);
 const freshBuffs = () => { const o = {}; for (const k of BUFFS) o[k] = 0; return o; };
 const JET_PATH = new Path2D('M40 0L30-5H8L-6-38h-9L-5-5h-20l-8-13h-7l4 18-4 18h7l8-13h20L-15 38h9L8 5h22z');
 const dec = v => String(Math.round(v * 10) / 10).replace('.', ',');
+const dec2 = v => (Math.round(v * 100) / 100).toFixed(2).replace('.', ',');
 const tot = (L, txt) => (L > 1 ? ` (toplam ${txt})` : '');
 const DOT = (x, y) => `<circle cx="${x}" cy="${y}" r="1.15" fill="currentColor" stroke="none"/>`;
 // Workshop upgrades: one card is picked after every wave; desc(L) describes the level the card would give
+// Firepower cards add up (not multiply): F = 1 + 0.25 caliber + 0.18 loader + 1.0 twin + 0.15 thermal, at most 4.05
+const firepower = (up = G.up) => 1 + 0.25 * (up.caliber | 0) + 0.18 * (up.loader | 0) + (up.twin ? 1 : 0) + 0.15 * (up.thermal ? 1 : 0);
+const fpLine = (k, L) => `Ateş gücü ×${dec2(firepower(Object.assign({}, G.up, { [k]: L - 1 })))} → ×${dec2(firepower(Object.assign({}, G.up, { [k]: L })))}`;
 const UPS = {
   armor: { name: 'Zırh plakası', max: 5, brief: '+20 azami zırh',
     svg: '<rect x="3" y="5" width="18" height="14" rx="1.5"/>' + DOT(7, 9) + DOT(17, 9) + DOT(7, 15) + DOT(17, 15),
@@ -528,36 +532,36 @@ const UPS = {
   engine: { name: 'Turbo motor', max: 4, brief: '+%10 hız',
     svg: '<path d="M4 5l7 7-7 7M13 5l7 7-7 7"/>',
     desc: L => `Sürüş hızı +%10${tot(L, '+%' + 10 * L)}` },
-  loader: { name: 'Otomatik yükleyici', max: 5, brief: 'Daha sık atış',
+  loader: { name: 'Otomatik yükleyici', max: 5, brief: '+%18 atış hızı, ateş gücü',
     svg: '<path d="M4 20v-9a2 2 0 0 1 4 0v9zM10 20v-9a2 2 0 0 1 4 0v9zM16 20v-9a2 2 0 0 1 4 0v9zM4 16h4M10 16h4M16 16h4"/>',
-    desc: L => `Atışlar arası süre %12 kısalır${tot(L, '−%' + Math.round((1 - Math.pow(0.88, L)) * 100))}` },
-  caliber: { name: 'Büyük kalibre', max: 4, brief: '+%25 hasar',
+    desc: L => `Atış hızı +%18${tot(L, '+%' + 18 * L)}. ${fpLine('loader', L)}` },
+  caliber: { name: 'Büyük kalibre', max: 4, brief: 'Büyük mermi, ateş gücü',
     svg: '<path d="M7 21V10a5 5 0 0 1 10 0v11zM7 16h10"/>',
-    desc: L => `Mermi hasarı +%25${tot(L, '+%' + 25 * L)}` + (L === 2 ? ', tuğlaya çift hasar' : '') },
+    desc: L => `Büyük mermi${L === 2 ? ', tuğlaya çift hasar' : ''}. ${fpLine('caliber', L)}` },
   barrel: { name: 'Uzun namlu', max: 3, brief: 'Hızlı mermi, uzun menzil',
     svg: '<path d="M2 9h15M17 6.5h4v5h-4zM3 17h18M6 14.5L3 17l3 2.5M18 14.5l3 2.5-3 2.5"/>',
     desc: L => `Mermi hızı ve menzili +%15${tot(L, '+%' + 15 * L)}` },
   repair: { name: 'Onarım robotu', max: 3, brief: 'Zırhı kendisi onarır',
     svg: '<rect x="5" y="8" width="14" height="11" rx="2"/><path d="M12 8V5M9 19v2.5M15 19v2.5"/><circle cx="12" cy="4" r="1.3"/>' + DOT(9.5, 13) + DOT(14.5, 13),
     desc: L => `2 sn hasar almazsan saniyede ${dec(0.5 * L)} zırh onarır` },
-  twin: { name: 'Çift namlu', max: 1, rare: true, brief: 'İki paralel mermi',
+  twin: { name: 'Çift namlu', max: 1, rare: true, brief: 'İki mermi, ateş gücü ×2',
     svg: '<circle cx="7" cy="12" r="4"/><path d="M11 9.5h10M11 14.5h10"/>',
-    desc: () => 'Her atışta yan yana iki mermi çıkar' },
+    desc: L => `Her atışta iki mermi. ${fpLine('twin', L)}` },
   ricochet: { name: 'Sekme', max: 2, rare: true, brief: 'Çelikten seker',
     svg: '<path d="M21 3v18M3 18l16.5-6L3 6M5.6 9.1L3 6l3.9-.7"/>',
     desc: L => L === 1 ? 'Mermilerin çelik duvardan bir kez seker' : 'Mermilerin çelikten iki kez seker' },
   blast: { name: 'Patlayıcı mermi', max: 2, rare: true, brief: 'Alan hasarı',
     svg: '<path d="M12 2L14 7.5 19 5 16.5 10 22 12 16.5 14 19 19 14 16.5 12 22 10 16.5 5 19 7.5 14 2 12 7.5 10 5 5 10 7.5Z"/>',
     desc: L => L === 1 ? 'Mermi isabette patlar, yakındaki tanklara %50 hasar verir' : 'Patlama büyür, yakındaki tanklara %75 hasar' },
-  magnet: { name: 'Mıknatıs', max: 2, brief: 'Güçlendirmeleri çeker',
+  magnet: { name: 'Mıknatıs', max: 2, brief: 'Çeker, daha çok düşer',
     svg: '<path d="M4 3h5v9a3 3 0 0 0 6 0V3h5v9a8 8 0 0 1-16 0zM4 7h5M15 7h5"/>',
-    desc: L => `Güçlendirmeleri ${2 + 2 * L} kare öteden kendine çeker` },
-  thermal: { name: 'Termal kamera', max: 1, rare: true, brief: 'Çalıdakileri görür',
+    desc: L => `Güçlendirmeleri ${2 + 2 * L} kare öteden çeker, düşme şansı +%${25 * L}` },
+  thermal: { name: 'Termal kamera', max: 1, rare: true, brief: 'Çalıdakileri görür, +%15 ateş gücü',
     svg: '<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
-    desc: () => 'Çalıya saklanan düşmanları görürsün, nişan yardımı da onları hedefler' },
-  boost: { name: 'Uzun etki', max: 3, brief: 'Güçlendirmeler uzar',
+    desc: L => `Çalıdaki düşmanları görür, nişan onları da seçer. ${fpLine('thermal', L)}` },
+  boost: { name: 'Uzun etki', max: 3, brief: 'Uzun süre, güçlü tamir',
     svg: '<path d="M6 3h12M6 21h12M7.5 3c0 4.5 3.5 6 3.5 9s-3.5 4.5-3.5 9M16.5 3c0 4.5-3.5 6-3.5 9s3.5 4.5 3.5 9"/>',
-    desc: L => `Güçlendirmeler %25 daha uzun sürer${tot(L, '+%' + 25 * L)}` },
+    desc: L => `Güçlendirme süresi +%25${tot(L, '+%' + 25 * L)}, Tamir ${25 + 10 * L} zırh` },
   // extra cards: never levelled, only offered when they matter or the pool runs dry
   fix: { name: 'Acil onarım', max: 99, extra: true,
     svg: '<circle cx="12" cy="12" r="9"/><path d="M12 7.5v9M7.5 12h9"/>',
@@ -567,7 +571,7 @@ const UPS = {
     desc: () => `+${fmt(bountyPts())} puan` },
   prep: { name: 'Hazırlık', max: 99, extra: true,
     svg: '<path d="M12 3l7 3v5c0 5-3.2 8.3-7 10-3.8-1.7-7-5-7-10V6z"/><path d="M9 12l2 2 4-4"/>',
-    desc: () => 'Sonraki dalgaya 10 sn kalkan ve seri atışla başlarsın' }
+    desc: () => `Sonraki dalgaya ${dec(10 * (1 + 0.25 * upL('boost')))} sn kalkan ve seri atışla başlarsın` }
 };
 const UP_KEYS = Object.keys(UPS).filter(k => !UPS[k].extra);
 const ICON_ON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z"/><path d="M15.5 9a4.2 4.2 0 0 1 0 6"/><path d="M18.3 6.3a8 8 0 0 1 0 11.4"/></svg>';
@@ -1149,11 +1153,11 @@ function trackUpdate(t, moved, dA) {
 }
 // Player spec with the workshop upgrades applied; the levels ride along in spec.up so drawTank can show the parts
 function playerSpec() {
-  const b = SPECS.player, cal = upL('caliber'), bar = upL('barrel');
+  const b = SPECS.player, cal = upL('caliber'), bar = upL('barrel'), ld = upL('loader'), twin = upL('twin') > 0, F = firepower();
   return Object.assign({}, b, {
-    speed: b.speed * (1 + 0.1 * upL('engine')), cool: b.cool * Math.pow(0.88, upL('loader')),
-    dmg: b.dmg * (1 + 0.25 * cal), bW: b.bW + 0.8 * cal, bR: b.bR + 0.5 * cal, big: cal >= 2,
-    bSpeed: b.bSpeed * (1 + 0.15 * bar), barrel: b.barrel + 3 * bar, twin: upL('twin') > 0, twinOff: (b.bW + 0.8 * cal) * 0.5 + 1.4, up: Object.assign({}, G.up)
+    speed: b.speed * (1 + 0.1 * upL('engine')), cool: b.cool / (1 + 0.18 * ld),
+    dmg: Math.max(b.dmg, b.dmg * F / ((1 + 0.18 * ld) * (twin ? 2 : 1))), fire: F, bW: b.bW + 0.8 * cal, bR: b.bR + 0.5 * cal, big: cal >= 2,
+    bSpeed: b.bSpeed * (1 + 0.15 * bar), barrel: b.barrel + 3 * bar, twin, twinOff: (b.bW + 0.8 * cal) * 0.5 + 1.4, up: Object.assign({}, G.up)
   });
 }
 function refreshPlayer() {
@@ -1321,7 +1325,7 @@ function killEnemy(e) {
     showBanner('KOMUTAN İMHA EDİLDİ', '+' + fmt(pts) + ' puan', 1.9);
     ['repair', 'shield', pick(['triple', 'rapid', 'pierce', 'freeze', 'air'])].forEach((k, i) => dropPickup(e.x + Math.cos(i * 2.1) * 26, e.y + Math.sin(i * 2.1) * 26, k, e.x, e.y));
     vibrate([40, 30, 80]);
-  } else if (Math.random() < s.drop) dropPickup(e.x, e.y);
+  } else if (Math.random() < s.drop * (1 + 0.25 * upL('magnet'))) dropPickup(e.x, e.y);
 }
 function damagePlayer(b) {
   const p = G.player;
@@ -1358,7 +1362,7 @@ function dropPickup(x, y, kind, fx, fy) {
 }
 function applyPickup(k) {
   const p = G.player, P = PU[k.kind];
-  if (k.kind === 'repair') { const h = Math.min(35, p.maxHp - p.hp); p.hp = Math.min(p.maxHp, p.hp + 35); addText(p.x, p.y - 28, h > 0.5 ? '+' + Math.round(h) + ' zırh' : 'Zırh tam', P.col, 16); }
+  if (k.kind === 'repair') { const amt = 35 + 10 * upL('boost'), h = Math.min(amt, p.maxHp - p.hp); p.hp = Math.min(p.maxHp, p.hp + amt); addText(p.x, p.y - 28, h > 0.5 ? '+' + Math.round(h) + ' zırh' : 'Zırh tam', P.col, 16); }
   else if (k.kind === 'air') { addText(p.x, p.y - 28, P.name, P.col, 16); callAirStrike(); }
   else {
     const d = P.dur * (1 + 0.25 * upL('boost'));
@@ -1999,7 +2003,7 @@ function chooseUpgrade(k) {
   let label;
   if (k === 'fix') { p.hp = p.maxHp; label = 'Zırh tam'; }
   else if (k === 'bounty') { const pts = bountyPts(); G.score += pts; label = '+' + fmt(pts) + ' puan'; }
-  else if (k === 'prep') { for (const b of ['shield', 'rapid']) { G.buffs[b] = 10; G.buffMax[b] = 10; } label = 'Kalkan ve seri atış hazır'; }
+  else if (k === 'prep') { { const d = 10 * (1 + 0.25 * upL('boost')); for (const b of ['shield', 'rapid']) { G.buffs[b] = d; G.buffMax[b] = d; } } label = 'Kalkan ve seri atış hazır'; }
   else {
     G.up[k] = Math.min(u.max, upL(k) + 1); refreshPlayer();
     if (k === 'armor') p.hp = Math.min(p.maxHp, p.hp + 20);
