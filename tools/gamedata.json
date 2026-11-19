@@ -123,13 +123,6 @@
    "brief": "Zırhı kendisi onarır",
    "svg": "<rect x=\"5\" y=\"8\" width=\"14\" height=\"11\" rx=\"2\"/><path d=\"M12 8V5M9 19v2.5M15 19v2.5\"/><circle cx=\"12\" cy=\"4\" r=\"1.3\"/><circle cx=\"9.5\" cy=\"13\" r=\"1.15\" fill=\"currentColor\" stroke=\"none\"/><circle cx=\"14.5\" cy=\"13\" r=\"1.15\" fill=\"currentColor\" stroke=\"none\"/>"
   },
-  "twin": {
-   "name": "Çift namlu",
-   "max": 1,
-   "rare": true,
-   "brief": "+%100 ateş gücü, iki mermi",
-   "svg": "<circle cx=\"7\" cy=\"12\" r=\"4\"/><path d=\"M11 9.5h10M11 14.5h10\"/>"
-  },
   "ricochet": {
    "name": "Sekme",
    "max": 2,
@@ -165,5 +158,133 @@
    "brief": "Güçlendirmeler uzar, Tamir artar",
    "svg": "<path d=\"M6 3h12M6 21h12M7.5 3c0 4.5 3.5 6 3.5 9s-3.5 4.5-3.5 9M16.5 3c0 4.5-3.5 6-3.5 9s3.5 4.5 3.5 9\"/>"
   }
- }
+ },
+ "TANKS": {
+  "std": {
+   "name": "Standart",
+   "tier": 0,
+   "parent": null,
+   "traitName": "Dengeli",
+   "blurb": "Dengeli başlangıç tankı."
+  },
+  "ikiz": {
+   "name": "İkiz",
+   "tier": 1,
+   "parent": "std",
+   "traitName": "Çift darbe",
+   "blurb": "İki mermi aynı tanka birlikte isabet ederse tank 0,3 sn sersemler."
+  },
+  "nisanci": {
+   "name": "Keskin Nişancı",
+   "tier": 1,
+   "parent": "std",
+   "traitName": "Uzak görüş",
+   "blurb": "Kamera geri çekilir, geniş alan görünür; mermisi hızlı ve güçlü, tankı yavaş."
+  },
+  "makineli": {
+   "name": "Makineli",
+   "tier": 1,
+   "parent": "std",
+   "traitName": "Isınma",
+   "blurb": "Sürekli ateşte atış hızı artar; çok ısınırsa namlu kızarır ve 1,5 sn soğur."
+  },
+  "uclu": {
+   "name": "Üçlü",
+   "tier": 2,
+   "parent": "ikiz",
+   "traitName": "Delici orta mermi",
+   "blurb": "Üç mermilik yelpaze; ortadaki mermi bir tankı delip arkasındakine gider."
+  },
+  "cift": {
+   "name": "Çift Yön",
+   "tier": 2,
+   "parent": "ikiz",
+   "traitName": "İtici arka namlu",
+   "blurb": "Arkaya da ateş eder (arka mermi %80 hasar); her atışta tank ileri hızlanır, geri tepme yok."
+  },
+  "rayli": {
+   "name": "Raylı Top",
+   "tier": 2,
+   "parent": "nisanci",
+   "traitName": "Lazer çizgisi",
+   "blurb": "Lazer çizgisi merminin yolunu gösterir; hızlı mermi tuğlayı ve tankı deler, çeliği delemez (Sekme varsa seker)."
+  },
+  "obus": {
+   "name": "Obüs",
+   "tier": 2,
+   "parent": "nisanci",
+   "traitName": "Mesafe ayarı",
+   "blurb": "Nişan çubuğu ne kadar itilirse mermi o kadar uzağa, duvarın üstünden düşer ve alanda patlar."
+  },
+  "alev": {
+   "name": "Alev Topu",
+   "tier": 2,
+   "parent": "makineli",
+   "traitName": "Alev perdesi",
+   "blurb": "Kısa menzilli sürekli alev (2,6 kare); düşman mermilerini yakar, vurduğu tank 3 sn yanar. Komutan yarı hızda yanar."
+  },
+  "sarapnel": {
+   "name": "Şarapnel",
+   "tier": 2,
+   "parent": "makineli",
+   "traitName": "Geri itme",
+   "blurb": "Yedi saçma atar; yakından (2 kare) vurduğu tankları geri iter, ağırları pek oynatamaz."
+  }
+ },
+ "SYN": [
+  {
+   "id": "bb",
+   "name": "Seken patlama",
+   "a": "ricochet",
+   "b": "blast",
+   "aName": "Sekme",
+   "bName": "Patlayıcı mermi",
+   "desc": "Çelikten seken mermi ilk isabetinde daha geniş patlar."
+  },
+  {
+   "id": "mov",
+   "name": "Hareketli onarım",
+   "a": "engine",
+   "b": "repair",
+   "aName": "Turbo motor",
+   "bName": "Onarım robotu",
+   "desc": "Birkaç saniye hareket edip hasar almazsan onarım iki kat hızlanır."
+  },
+  {
+   "id": "far",
+   "name": "Uzak vuruş",
+   "a": "caliber",
+   "b": "barrel",
+   "aName": "Büyük kalibre",
+   "bName": "Uzun namlu",
+   "desc": "Mermi uzağa gittikçe sert vurur, en fazla +%40."
+  },
+  {
+   "id": "amb",
+   "name": "Pusu",
+   "a": "thermal",
+   "b": "caliber",
+   "aName": "Termal kamera",
+   "bName": "Büyük kalibre",
+   "desc": "Seni görmeyen ya da çalıdaki düşmana ilk isabet çift hasar verir."
+  },
+  {
+   "id": "fort",
+   "name": "Kale",
+   "a": "armor",
+   "b": "loader",
+   "aName": "Zırh plakası",
+   "bName": "Otomatik yükleyici",
+   "desc": "Durup ateş ederken aldığın hasar %25 azalır."
+  },
+  {
+   "id": "chain",
+   "name": "Zincir",
+   "a": "magnet",
+   "b": "boost",
+   "aName": "Mıknatıs",
+   "bName": "Uzun etki",
+   "desc": "Güçlendirme alınca etkin olan diğerleri 3 sn uzar."
+  }
+ ]
 }

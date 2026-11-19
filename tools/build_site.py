@@ -94,8 +94,9 @@ foes = '\n'.join(f'<li class="foe-{k}"><img src="/img/tank-{k}.png" width="128" 
 TK = D['TANKS']
 def tank_card(i):
     t = TK[i]
+    line = t['blurb'] if t['blurb'].lower().startswith(t['traitName'].lower()) else f'{t["traitName"]}: {t["blurb"]}'
     return (f'<li class="tk tier{t["tier"]}"><img src="/img/tank-{i}.png" width="128" height="128" alt="" loading="lazy">'
-            f'<b>{t["name"]}</b><span>{t["traitName"]}: {t["blurb"]}</span></li>')
+            f'<b>{t["name"]}</b><span>{line}</span></li>')
 tree = '<ul class="tk-root">' + tank_card('std').replace('<li class="tk tier0">', '<li class="tk tier0">') + '</ul>\n<div class="tk-branches">\n' + '\n'.join(
     '<div class="tk-branch"><ul class="tk-one">' + tank_card(i) + '</ul><ul class="tk-two">' + ''.join(tank_card(k) for k in [c for c in TK if TK[c]['parent'] == i]) + '</ul></div>'
     for i in TK if TK[i]['parent'] == 'std') + '\n</div>'

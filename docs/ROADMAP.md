@@ -1,6 +1,6 @@
 # Yol haritası
 
-Durum (19 Kasım 2026): **1.3 yayında.** 1.4 onaylandı, yapılıyor.
+Durum (19 Kasım 2026): **1.4 yayında.** Sıradaki iş 1.5; kullanıcı onaylamadan başlama.
 
 ## Kullanıcının koyduğu ilkeler
 
@@ -28,7 +28,7 @@ Kullanıcı "yeni tanklar dursun şimdilik, 1.3'ün işlerini yap" dedi; 1.3 yen
 - Önerilen ek fikirler: Tamirci (grubun arkasında durup onarır), Taşıyıcı (dron salar, diep.io havası, 1.4'e yakışır), Mayıncı, Hayalet (termal görür), Koçbaşı, Bölünen.
 - Kullanıcı "şu an çok olur" dedi. Önerim ilk etapta iki tane: **Bombacı** ve **Tamirci** (yapması kolay, telefonda ayırt edilir, birbirini tamamlar). Topçu, Kalkanlı ve Taşıyıcı sonraya. Kullanıcı henüz seçmedi.
 
-## 1.4 – Tank evrimi, birleşimler ve nükleer bomba (onaylandı, 19 Kasım 2026)
+## 1.4 – Tank evrimi, birleşimler ve nükleer bomba (yayında, 19 Kasım 2026)
 
 Oyuna Standart tankla başlanır; Komutan yenilince tank seçimi atölye kartları gibi gelir:
 

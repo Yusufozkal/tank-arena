@@ -117,10 +117,9 @@ const dec2 = v => (Math.round(v * 100) / 100).toFixed(2).replace('.', ',');
 const tot = (L, txt) => (L > 1 ? ` (toplam ${txt})` : '');
 const DOT = (x, y) => `<circle cx="${x}" cy="${y}" r="1.15" fill="currentColor" stroke="none"/>`;
 // Workshop upgrades: one card is picked after every wave; desc(L) describes the level the card would give
-// Firepower cards add up (not multiply): F = 1 + 0.25 caliber + 0.18 loader + 1.0 twin + 0.15 thermal, at most 4.05
-// A shell never hits for less than the base damage, so fast fire plus twin barrels can sit a little above the plain sum (x3.8 vs x2.9)
-const firepower = (up = G.up) => { const rate = 1 + 0.18 * (up.loader | 0), shells = up.twin ? 2 : 1;
-  return Math.max(1 + 0.25 * (up.caliber | 0) + 0.18 * (up.loader | 0) + (up.twin ? 1 : 0) + 0.15 * (up.thermal ? 1 : 0), rate * shells); };
+// Firepower cards add up (not multiply): F = 1 + 0.25 caliber + 0.18 loader + 0.15 thermal, at most 3.05 (the twin card became the Ikiz tank in 1.4)
+// F scales the tank's own base weapon; a shell never hits for less than the tank's base damage
+const firepower = (up = G.up) => 1 + 0.25 * (up.caliber | 0) + 0.18 * (up.loader | 0) + 0.15 * (up.thermal ? 1 : 0);
 const fpLine = (k, L) => `Ateş gücü ×${dec2(firepower(Object.assign({}, G.up, { [k]: L - 1 })))} → ×${dec2(firepower(Object.assign({}, G.up, { [k]: L })))}`;
 const UPS = {
   armor: { name: 'Zırh plakası', max: 5, brief: '+20 azami zırh',
@@ -141,9 +140,6 @@ const UPS = {
   repair: { name: 'Onarım robotu', max: 3, brief: 'Zırhı kendisi onarır',
     svg: '<rect x="5" y="8" width="14" height="11" rx="2"/><path d="M12 8V5M9 19v2.5M15 19v2.5"/><circle cx="12" cy="4" r="1.3"/>' + DOT(9.5, 13) + DOT(14.5, 13),
     desc: L => `2 sn hasar almazsan saniyede ${dec(0.5 * L)} zırh onarır` },
-  twin: { name: 'Çift namlu', max: 1, rare: true, brief: '+%100 ateş gücü, iki mermi',
-    svg: '<circle cx="7" cy="12" r="4"/><path d="M11 9.5h10M11 14.5h10"/>',
-    desc: L => `Her atışta iki mermi. ${fpLine('twin', L)}` },
   ricochet: { name: 'Sekme', max: 2, rare: true, brief: 'Çelikten seker',
     svg: '<path d="M21 3v18M3 18l16.5-6L3 6M5.6 9.1L3 6l3.9-.7"/>',
     desc: L => L === 1 ? 'Mermilerin çelik duvardan bir kez seker' : 'Mermilerin çelikten iki kez seker' },
@@ -171,8 +167,167 @@ const UPS = {
     desc: () => `Sonraki dalgaya ${dec(10 * (1 + 0.25 * upL('boost')))} sn kalkan ve seri atışla başlarsın` }
 };
 const UP_KEYS = Object.keys(UPS).filter(k => !UPS[k].extra);
+const LEGACY_UPS = ['twin']; // cards removed in 1.4; an old save with one of them is converted (twin -> the Ikiz tank)
+
+/* ===== TANKS (data) ===== */
+// Owner: package A (tank framework). D1/D2 only append entries.
+// Tank tree (1.4): Standart -> wave 5 -> Ikiz / Nisanci / Makineli -> wave 10 -> two children each. Ids are ASCII.
+// Weapon base per tank; the workshop cards scale it in playerSpec(). dps = dmg * shells / cool (derived, see playerSpec).
+//   hpMul/speedMul/turnMul  multipliers on SPECS.player        dmg/cool/bSpeed/bR/bW/life/barrel  the weapon (life = shell flight time, s)
+//   muzzles [{off, ang, rear?, dmgK?, pierceN?}]  barrel layout, shared by fireTank and drawTank (off = sideways px, ang = radians from the turret)
+//   spread/pellets  random angle / shells per muzzle     zoom  camera factor (1 = normal)      mode  'shell' | 'lob' | 'flame'
+//   tr  trait numbers (read by TT)     shape  barrel look (drawTank)     col  palette     botRange  autopilot preferred distance (px), undefined = Standart behaviour
+//   stub  tier-2 entry that still clones its parent's weapon and look (D2's rayli / obus until they land)
+const TANKS = {
+  std: { name: 'Standart', tier: 0, parent: null, kids: ['ikiz', 'nisanci', 'makineli'], traitName: 'Dengeli', blurb: 'Dengeli başlangıç tankı.',
+    hpMul: 1, speedMul: 1, turnMul: 1, dmg: 1, cool: 0.3, bSpeed: 660, bR: 4, bW: 6, life: 2.4, barrel: 26, shape: 'std', zoom: 1, mode: 'shell',
+    muzzles: [{ off: 0, ang: 0 }], col: { body: '#3d86ad', dk: '#235b7b', hi: '#7cc0e2', acc: '#f2c14e' } },
+  ikiz: { name: 'İkiz', tier: 1, parent: 'std', kids: ['uclu', 'cift'], traitName: 'Çift darbe', blurb: 'İki mermi aynı tanka birlikte isabet ederse tank 0,3 sn sersemler.',
+    hpMul: 1, speedMul: 1, turnMul: 1, dmg: 0.42, cool: 0.3, bSpeed: 660, bR: 3.6, bW: 4.4, life: 2.4, barrel: 26, shape: 'twin', zoom: 1, mode: 'shell',
+    muzzles: [{ off: -5, ang: 0 }, { off: 5, ang: 0 }], tr: { stun: 0.3, stunCd: 1.5, win: 0.12 }, botRange: 330,
+    col: { body: '#2f9e8f', dk: '#1a6258', hi: '#7fd6c8', acc: '#ffe27a' } },
+  nisanci: { name: 'Keskin Nişancı', tier: 1, parent: 'std', kids: ['rayli', 'obus'], traitName: 'Uzak görüş', blurb: 'Kamera geri çekilir, geniş alan görünür; mermisi hızlı ve güçlü, tankı yavaş.',
+    hpMul: 1, speedMul: 0.9, turnMul: 0.9, dmg: 1.9, cool: 0.43, bSpeed: 900, bR: 4.5, bW: 5, life: 1.8, barrel: 34, shape: 'long', zoom: 0.82, mode: 'shell',
+    muzzles: [{ off: 0, ang: 0 }], botRange: 250,
+    col: { body: '#4a5bb0', dk: '#2b3670', hi: '#8f9de4', acc: '#ff9f43' } },
+  makineli: { name: 'Makineli', tier: 1, parent: 'std', kids: ['alev', 'sarapnel'], traitName: 'Isınma', blurb: 'Sürekli ateşte atış hızı artar; çok ısınırsa namlu kızarır ve 1,5 sn soğur.',
+    hpMul: 1, speedMul: 1, turnMul: 1, dmg: 0.95, cool: 0.16, bSpeed: 640, bR: 3.4, bW: 6.5, life: 2, barrel: 24, shape: 'mg', zoom: 1, mode: 'shell', spread: 0.04,
+    muzzles: [{ off: 0, ang: 0 }], tr: { heatUp: 0.04, heatDown: 0.5, cd: 1.5, rateGain: 0.8 }, botRange: 260,
+    col: { body: '#6bb23a', dk: '#3e6e1f', hi: '#a9de7a', acc: '#ff5a36' } }
+};
+// Tier-2 stubs for D1 / D2: right name, tier, parent, blurb, trait name and palette; weapon, muzzles and look are the parent's until D1 / D2 replace the call
+function stubTank(id, parent, o) { TANKS[id] = Object.assign(JSON.parse(JSON.stringify(TANKS[parent])), { kids: [], stub: true }, o); }
+TANKS.uclu = { name: 'Üçlü', tier: 2, parent: 'ikiz', kids: [], traitName: 'Delici orta mermi', blurb: 'Üç mermilik yelpaze; ortadaki mermi bir tankı delip arkasındakine gider.',
+  hpMul: 1, speedMul: 1, turnMul: 1, dmg: 0.27, cool: 0.3, bSpeed: 660, bR: 3.6, bW: 4.6, life: 2.4, barrel: 26, shape: 'tri', zoom: 1, mode: 'shell',
+  muzzles: [{ off: 0, ang: -0.2, len: 23 }, { off: 0, ang: 0, len: 30, pierceN: 1 }, { off: 0, ang: 0.2, len: 23 }], botRange: 340, // D1: dps 1.2 x Standart (3 shells of 0.4 per 0.3 s)
+  col: { body: '#1f7f93', dk: '#124a58', hi: '#6cc6d9', acc: '#ff8fd0' } };
+TANKS.cift = { name: 'Çift Yön', tier: 2, parent: 'ikiz', kids: [], traitName: 'İtici arka namlu', blurb: 'Arkaya da ateş eder (arka mermi %80 hasar); her atışta tank ileri hızlanır, geri tepme yok.',
+  hpMul: 1, speedMul: 1, turnMul: 1, dmg: 0.67, cool: 0.3, bSpeed: 660, bR: 3.8, bW: 5, life: 2.4, barrel: 26, shape: 'duo', zoom: 1, mode: 'shell', kick: 0,
+  muzzles: [{ off: 0, ang: 0 }, { off: 0, ang: Math.PI, rear: true, dmgK: 0.8, len: 21 }], tr: { push: 0.6, pushK: 0.3, impulse: 70 }, botRange: 300, // D1: dps 1.1 x Standart (1.8 shells of 0.61 per 0.3 s)
+  col: { body: '#35b07a', dk: '#1d6c48', hi: '#86e0b4', acc: '#fff0a0' } };
+// D2 (Keskin Nisanci branch): full entries, same table as above. dps vs Standart (3.33): rayli 4.5 / 1.08 = 4.17 (x1.25), obus 4 / 1.09 = 3.67 (x1.1, per target in the blast)
+TANKS.rayli = { name: 'Raylı Top', tier: 2, parent: 'nisanci', kids: [], traitName: 'Lazer çizgisi',
+  blurb: 'Lazer çizgisi merminin yolunu gösterir; hızlı mermi tuğlayı ve tankı deler, çeliği delemez (Sekme varsa seker).',
+  hpMul: 0.95, speedMul: 0.9, turnMul: 0.9, dmg: 2.6, cool: 0.85, bSpeed: 1100, bR: 3.8, bW: 4.2, life: 1.3, barrel: 42, shape: 'rail', zoom: 0.82, mode: 'shell',
+  muzzles: [{ off: 0, ang: 0 }], tr: { pierce: true, zap: true }, botRange: 300,
+  col: { body: '#3578d8', dk: '#1b4687', hi: '#86b4f4', acc: '#7ef0ff' } };
+TANKS.obus = { name: 'Obüs', tier: 2, parent: 'nisanci', kids: [], traitName: 'Mesafe ayarı',
+  blurb: 'Nişan çubuğu ne kadar itilirse mermi o kadar uzağa, duvarın üstünden düşer ve alanda patlar.',
+  hpMul: 1, speedMul: 0.8, turnMul: 0.9, dmg: 3.5, cool: 0.8, bSpeed: 380, bR: 5.2, bW: 9.5, life: 3, barrel: 24, shape: 'obus', zoom: 0.8, mode: 'lob', range: 12 * T, kick: 1,
+  muzzles: [{ off: 0, ang: 0 }], tr: { area: 70, edge: 0.5, blastK: 0.25, vFly: 380, tMin: 0.35, minD: 2.5, maxD: 12, hgt: 34 }, botRange: 300,
+  col: { body: '#6f7f35', dk: '#414c1c', hi: '#a9ba6a', acc: '#ffd24a' } };
+TANKS.alev = { name: 'Alev Topu', tier: 2, parent: 'makineli', kids: [], traitName: 'Alev perdesi', blurb: 'Kısa menzilli sürekli alev (2,6 kare); düşman mermilerini yakar, vurduğu tank 3 sn yanar. Komutan yarı hızda yanar.',
+  hpMul: 1, speedMul: 1, turnMul: 1, dmg: 0.87, cool: 0.2, bSpeed: 600, bR: 4, bW: 7, life: 0.2, range: 125, barrel: 22, shape: 'flame', zoom: 1, mode: 'flame',
+  muzzles: [{ off: 0, ang: 0 }], tr: { range: 125, half: 0.3, direct: 0.65, burnK: 0.35, burn: 3, bossK: 0.5 }, botRange: 140, // D1: dps 1.3 x Standart at range (65% direct, 35% burn)
+  col: { body: '#e0801f', dk: '#8a4a0c', hi: '#f5b868', acc: '#fff2a0' } };
+TANKS.sarapnel = { name: 'Şarapnel', tier: 2, parent: 'makineli', kids: [], traitName: 'Geri itme', blurb: 'Yedi saçma atar; yakından (2 kare) vurduğu tankları geri iter, ağırları pek oynatamaz.',
+  hpMul: 1, speedMul: 1, turnMul: 1, dmg: 0.36, cool: 0.5, bSpeed: 620, bR: 2.7, bW: 6.5, life: 0.42, barrel: 22, shape: 'bell', zoom: 1, mode: 'shell', spread: 0.32, pellets: 7,
+  muzzles: [{ off: 0, ang: 0 }], tr: { kb: 60, kbRange: 105, kbMax: 420 }, botRange: 150, // D1: dps 1.5 x Standart with all 7 pellets, about 0.4 far away
+  col: { body: '#3f8c3a', dk: '#235a20', hi: '#82c47c', acc: '#e8e0b0' } };
+for (const id in TANKS) TANKS[id].id = id;
+const TANK_IDS = Object.keys(TANKS);
+const tankShells = tk => tk.muzzles.reduce((a, m) => a + (m.dmgK || 1), 0) * (tk.pellets || 1);
+const tankRange = tk => tk.range || tk.bSpeed * tk.life;
+const needTier = w => (w >= 10 ? 2 : w >= 5 ? 1 : 0); // the tank tier the player should have reached at wave w (debt rule)
+/* ===== TANKS end ===== */
+
 const ICON_ON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z"/><path d="M15.5 9a4.2 4.2 0 0 1 0 6"/><path d="M18.3 6.3a8 8 0 0 1 0 11.4"/></svg>';
 const ICON_OFF = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z"/><path d="M16 9.5l5 5M21 9.5l-5 5"/></svg>';
+
+/* ===== SYNERGY ===== */
+// Owner: package B (synergies). Two cards together unlock one extra effect. All numbers are here (the balance package tunes them).
+// Hooks called from shared code: synFlags (fireTank), synDmg (damageEnemy), synTaken (damagePlayer), synRegen / synRegenGlow (regen), synPickup (applyPickup),
+// synTrack (updatePlay, player movement bookkeeping), splashFor (blastAt), synBadgeHTML (cardHTML), synUnlocked (chooseUpgrade).
+const SYN_K = {
+  bbR: 1.6,        // Seken patlama: blast radius factor for the first hit of a shell that has ricocheted
+  movNeed: 3,      // Hareketli onarım: seconds of driving (mvT) before the bonus starts
+  movCap: 4,       // mvT ceiling, so a short stop does not lose the bonus at once
+  movDecay: 1.5,   // mvT falls this fast (per second) while standing still
+  movRate: 2,      // Onarım robotu rate factor once mvT >= movNeed
+  farMax: 0.4,     // Uzak vuruş: bonus damage at full distance
+  farDist: 12,     // ... reached at this many tiles of flight
+  ambMul: 2,       // Pusu: damage factor against an enemy that does not see the player or sits in a bush
+  ambCd: 2,        // ... at most once per enemy per this many seconds
+  ambHunt: 1.5,    // Avcı counts as unaware when it last saw the player longer ago than this
+  fortMul: 0.75,   // Kale: damage taken while standing still and firing
+  fortStill: 20,   // ... standing still means speed below this (px/s)
+  fortFire: 0.4,   // ... and a shot within this many seconds
+  chainAdd: 3      // Zincir: seconds added to every other active power-up on a pickup
+};
+const SYN = [
+  { id: 'bb', name: 'Seken patlama', a: 'ricochet', b: 'blast', desc: 'Çelikten seken mermi ilk isabetinde daha geniş patlar.' },
+  { id: 'mov', name: 'Hareketli onarım', a: 'engine', b: 'repair', desc: 'Birkaç saniye hareket edip hasar almazsan onarım iki kat hızlanır.' },
+  { id: 'far', name: 'Uzak vuruş', a: 'caliber', b: 'barrel', desc: 'Mermi uzağa gittikçe sert vurur, en fazla +%40.' },
+  { id: 'amb', name: 'Pusu', a: 'thermal', b: 'caliber', desc: 'Seni görmeyen ya da çalıdaki düşmana ilk isabet çift hasar verir.' },
+  { id: 'fort', name: 'Kale', a: 'armor', b: 'loader', desc: 'Durup ateş ederken aldığın hasar %25 azalır.' },
+  { id: 'chain', name: 'Zincir', a: 'magnet', b: 'boost', desc: 'Güçlendirme alınca etkin olan diğerleri 3 sn uzar.' }
+];
+const synOnS = (sy, up = G.up) => ((up[sy.a] | 0) > 0) && ((up[sy.b] | 0) > 0);
+const synOn = id => synOnS(SYN.find(x => x.id === id));
+const synList = (up = G.up) => SYN.filter(sy => synOnS(sy, up));
+function synFlags(b) { // player shells only; read later by synDmg / splashFor
+  if (b.owner !== 0) return;
+  b.bb = synOn('bb'); b.far = synOn('far'); b.ambush = synOn('amb');
+}
+// Splash settings for the blast of shell b (called once per blast from blastAt): Seken patlama widens the first blast of a ricocheted shell
+function splashFor(b) {
+  const sp = b.splash;
+  if (!sp || !b.bb || !b.bounced || b.bbDone) return sp;
+  b.bbDone = true;
+  addPart('ring', b.x, b.y, 0, 0, 0.4, 8, sp.r * SYN_K.bbR * 3.6, 0, '150,215,255');
+  addText(b.x, b.y - 26, 'SEKEN PATLAMA', '#9fd8ff', 14);
+  return { r: sp.r * SYN_K.bbR, k: sp.k };
+}
+// Pusu: the enemy has not noticed the player (or hides in a bush)
+const synUnaware = e => e.type === 'hunter' ? (e.hidden || G.time - e.seenT > SYN_K.ambHunt) : (e.hidden || !e.canSee);
+function synDmg(b, e) { // damage multiplier for a player shell hitting enemy e
+  if (b.owner !== 0) return 1;
+  let m = 1;
+  if (b.far && !b.lob && !b.flame) m *= 1 + SYN_K.farMax * Math.min(1, b.dist / (SYN_K.farDist * T));
+  if (b.ambush && synUnaware(e) && G.time - (e.ambT === undefined ? -99 : e.ambT) >= SYN_K.ambCd) {
+    e.ambT = G.time; m *= SYN_K.ambMul;
+    addText(e.x, e.y - 30, 'PUSU', '#ff8a5c', 17);
+  }
+  return m;
+}
+function synTaken(b) { // damage multiplier for a shell hitting the player
+  const p = G.player;
+  if (p && p.still && synOn('fort')) {
+    addPart('ring', p.x, p.y, 0, 0, 0.3, p.r, p.r + 16, 0, '170,190,210');
+    return SYN_K.fortMul;
+  }
+  return 1;
+}
+// Per-frame player bookkeeping: mvT (seconds of driving, falls when idle, zeroed by a hit) and still (standing and shooting)
+function synTrack(p, dt) {
+  const sp = Math.hypot(p.vx, p.vy);
+  if (p.hurtT !== p.synHurt) { p.synHurt = p.hurtT; p.mvT = 0; }
+  p.mvT = sp > 50 ? Math.min(SYN_K.movCap, (p.mvT || 0) + dt) : Math.max(0, (p.mvT || 0) - SYN_K.movDecay * dt);
+  p.still = sp < SYN_K.fortStill && G.time - p.lastShot < SYN_K.fortFire;
+}
+const synMoving = p => (p.mvT || 0) >= SYN_K.movNeed && synOn('mov');
+function synRegen(p) { return synMoving(p) ? SYN_K.movRate : 1; } // multiplier on the Onarım robotu rate
+const synRegenGlow = p => synMoving(p) ? 'pu_speed' : 'pu_repair';
+function synPickup(kind) { // Zincir: every other active power-up grows
+  if (!synOn('chain')) return;
+  let n = 0;
+  for (const k of BUFFS) if (k !== kind && G.buffs[k] > 0) { G.buffs[k] += SYN_K.chainAdd; G.buffMax[k] += SYN_K.chainAdd; n++; }
+  if (n) { const p = G.player; addText(p.x, p.y - 46, 'Zincir +' + SYN_K.chainAdd + ' sn', '#7fd0ff', 15); addPart('ring', p.x, p.y, 0, 0, 0.45, 10, 90, 0, '127,208,255'); }
+}
+// Workshop: badge on a card that completes a synergy with an owned card, otherwise a faint hint for its first synergy
+function synBadgeHTML(k) {
+  const mine = SYN.filter(sy => sy.a === k || sy.b === k);
+  if (!mine.length) return '';
+  const partner = sy => sy.a === k ? sy.b : sy.a;
+  const done = mine.find(sy => !upL(k) && upL(partner(sy)) > 0);
+  if (done) return `<span class="up-syn on">Birleşim: ${done.name}</span>`;
+  const open = mine.find(sy => !upL(partner(sy)));
+  return open ? `<span class="up-syn">${UPS[partner(open)].name} ile birleşir</span>` : '';
+}
+// chooseUpgrade: before = ids active before the card, returns the new ones; the banner is shown by the caller's phase delay
+function synUnlocked(before) { return synList().filter(sy => !before.includes(sy.id)); }
+function synChipsHTML() { return synList().map(sy => `<span class="up-chip syn">${sy.name}</span>`).join(''); }
+function renderSynList(wrap, list) { const h = synChipsHTML(); $(list).innerHTML = h; $(wrap).classList.toggle('hidden', !h); }
 
 /* ================= rules, settings, records ================= */
 const RULES = { dmg: 1, cool: 1, err: 1, count: 1, alive: 0, hunterFrom: 4, dodge: 0.65, score: 1, heal: 25, hpGrow: 0.04 };
@@ -282,12 +437,17 @@ const Sound = (() => {
     wave(boss) { if (!ok('wv', 300)) return; const t = ac.currentTime; (boss ? [196, 196, 147] : [330, 440, 660]).forEach((f, i) => tn(t + i * 0.16, i === 2 ? 0.38 : 0.14, f, f, 0.12, 'square')); },
     cleared() { if (!ok('cl', 300)) return; const t = ac.currentTime; [523, 659, 784, 1047].forEach((f, i) => tn(t + i * 0.09, 0.2, f, f, 0.13, 'triangle')); },
     upgrade() { if (!ok('ug', 200)) return; const t = ac.currentTime; [392, 523, 659, 784].forEach((f, i) => tn(t + i * 0.07, 0.24, f, f * 1.01, 0.13, 'triangle')); },
+    evolve() { if (!ok('ev', 400)) return; const t = ac.currentTime; nz(t, 0.5, 400, 3000, 0.16, 'bandpass', 1); [196, 294, 392, 587].forEach((f, i) => tn(t + 0.05 + i * 0.09, 0.3, f, f * 1.02, 0.14, 'sawtooth')); },
     jet() { if (!ok('jt', 500)) return; const t = ac.currentTime; nz(t, 1.3, 300, 2600, 0.24, 'bandpass', 0.9); nz(t + 0.3, 1.1, 2400, 220, 0.18, 'lowpass'); },
     freeze() { if (!ok('fz', 300)) return; const t = ac.currentTime; [1568, 2093, 2637].forEach((f, i) => tn(t + i * 0.05, 0.5, f, f * 0.98, 0.06, 'sine')); nz(t, 0.4, 7000, 3000, 0.08, 'highpass'); },
+    zap() { if (!ok('zp', 60)) return; const t = ac.currentTime; tn(t, 0.16, 2400, 380, 0.22, 'sawtooth'); tn(t, 0.1, 5200, 1400, 0.1, 'square'); nz(t, 0.14, 6000, 900, 0.18, 'bandpass', 1.2); tn(t + 0.02, 0.22, 140, 60, 0.3, 'sine'); },
     cloak() { if (!ok('ck', 300)) return; const t = ac.currentTime; tn(t, 0.35, 600, 200, 0.1, 'sine'); nz(t, 0.3, 3000, 600, 0.08, 'bandpass', 1); },
+    flame() { if (!ok('fl', 100)) return; const t = ac.currentTime; nz(t, 0.16, 900, 380, 0.2, 'bandpass', 0.7); tn(t, 0.14, 85, 60, 0.1, 'sawtooth'); },
     bounce(v) { if (!ok('bc', 40)) return; tn(ac.currentTime, 0.07, 2600, 1700, 0.09 * v, 'triangle'); },
     pop(v) { if (!ok('pp', 70)) return; const t = ac.currentTime; nz(t, 0.22, 1600, 120, 0.3 * v); tn(t, 0.16, 140, 50, 0.22 * v); },
-    over() { if (!ok('ov', 300)) return; const t = ac.currentTime; [392, 330, 262, 196].forEach((f, i) => tn(t + i * 0.18, 0.32, f, f * 0.98, 0.14, 'triangle')); }
+    over() { if (!ok('ov', 300)) return; const t = ac.currentTime; [392, 330, 262, 196].forEach((f, i) => tn(t + i * 0.18, 0.32, f, f * 0.98, 0.14, 'triangle')); },
+    nukeWarn() { if (!ok('nw', 600)) return; const t = ac.currentTime; for (let i = 0; i < 6; i++) tn(t + i * 0.2, 0.19, i & 1 ? 560 : 820, i & 1 ? 560 : 820, 0.16, 'square'); },
+    nuke() { if (!ok('nk', 500)) return; const t = ac.currentTime; nz(t, 1.8, 2400, 45, 0.95, 'lowpass', 0.8); tn(t, 1.5, 78, 20, 0.75, 'sine'); nz(t + 0.25, 2.1, 700, 40, 0.5, 'lowpass', 0.9); tn(t, 0.5, 1200, 200, 0.12, 'sawtooth'); }
   };
 })();
 
@@ -297,7 +457,7 @@ const canvas = $('game'), ctx = canvas.getContext('2d', { alpha: false });
 const miniCv = $('mini'), mctx = miniCv.getContext('2d');
 const el = {
   hud: $('hud'), leftCol: $('leftCol'), rightCol: $('rightCol'), armor: $('armor'), hpFill: $('hpFill'), hpNum: $('hpNum'), waveT: $('waveT'), waveS: $('waveS'),
-  bossBar: $('bossBar'), bossFill: $('bossFill'), buffs: $('buffs'), score: $('scoreNum'), btnPause: $('btnPause'), btnSound: $('btnSound'),
+  bossBar: $('bossBar'), bossFill: $('bossFill'), buffs: $('buffs'), score: $('scoreNum'), btnPause: $('btnPause'), btnSound: $('btnSound'), btnNuke: $('btnNuke'),
   banner: $('banner'), bTitle: $('bTitle'), bSub: $('bSub'), hint: $('hint'),
   menu: $('menu'), menuPanel: $('menuPanel'), pause: $('pause'), over: $('over'), overPanel: $('overPanel'),
   btnStart: $('btnStart'), btnContinue: $('btnContinue'), btnResume: $('btnResume'), btnRestart: $('btnRestart'),
@@ -315,7 +475,8 @@ const G = {
   wave: 0, score: 0, kills: 0, shots: 0, hits: 0, hurt: 0, fade: 0, god: false,
   buffs: freshBuffs(), buffMax: freshBuffs(), bushHint: false, resume: null, overFree: null,
   D: RULES, dodges: 0, covers: 0,
-  up: {}, strikes: [], jet: null, airQ: 0
+  up: {}, strikes: [], jet: null, airQ: 0,
+  tank: 'std', upMode: 'cards', evoWait: 0, noEvo: false
 };
 const upL = k => G.up[k] | 0;
 const bountyPts = () => Math.round(250 * Math.max(1, G.wave) * G.D.score);
@@ -324,7 +485,7 @@ const menu = { aim: null, aimAt: 0, shot: false, fired: false, hintA: 1 };
 const dbg = { freeze: false, clean: false }; // debug-only: freeze the world / hide overlay markers for screenshots
 
 /* ================= view / camera ================= */
-const view = { w: 1, h: 1, dpr: 1, scale: 1, x0: 0, y0: 0, x1: 0, y1: 0, st: 0, sr: 0, sb: 0, sl: 0, hudRects: [] };
+const view = { w: 1, h: 1, dpr: 1, base: 1, zoomK: 1, scale: 1, x0: 0, y0: 0, x1: 0, y1: 0, bx0: 0, by0: 0, bx1: 0, by1: 0, st: 0, sr: 0, sb: 0, sl: 0, hudRects: [] };
 const cam = { x: 0, y: 0, shake: 0 };
 function readSafe() {
   const cs = getComputedStyle(el.probe);
@@ -334,9 +495,9 @@ function readSafe() {
 function sizeMini() { const cs = miniCv.clientWidth; if (!cs) return; const px = Math.round(cs * view.dpr); if (miniCv.width !== px) { miniCv.width = px; miniCv.height = px; } }
 function measureHud() {
   if (el.hud.classList.contains('hidden')) return;
-  view.hudRects = [el.leftCol, el.rightCol].map(n => { const r = n.getBoundingClientRect(); return { l: r.left - 8, t: r.top - 8, r: r.right + 8, b: r.bottom + 8 }; });
+  view.hudRects = [el.leftCol, el.rightCol, el.btnNuke].filter(n => n.offsetWidth).map(n => { const r = n.getBoundingClientRect(); return { l: r.left - 8, t: r.top - 8, r: r.right + 8, b: r.bottom + 8 }; });
 }
-const layerRes = () => clamp(view.scale * view.dpr, 1, 2);
+const layerRes = () => clamp(view.base * view.dpr, 1, 2);
 function resize() {
   const wasTall = view.h > view.w;
   view.dpr = Math.min(window.devicePixelRatio || 1, SET.effects === 'low' ? 1.25 : 2);
@@ -345,7 +506,7 @@ function resize() {
   if ((view.h > view.w) !== wasTall) for (const st of [sticks.move, sticks.aim]) { st.id = null; st.vx = st.vy = 0; }
   canvas.width = Math.round(view.w * view.dpr); canvas.height = Math.round(view.h * view.dpr);
   const minSide = Math.min(view.w, view.h);
-  view.scale = minSide / (T * (9.5 + clamp((minSide - 400) / 400, 0, 1) * 2.5));
+  view.base = minSide / (T * (9.5 + clamp((minSide - 400) / 400, 0, 1) * 2.5)); view.scale = view.base * view.zoomK; // base = the unzoomed scale; zoomK follows the tank's camera factor
   readSafe(); sizeMini(); measureHud();
   if (G.map && Math.abs(layerRes() - G.map.res) / G.map.res > 0.2) buildLayer(G.map);
   if (G.state === 'menu' && G.map && G.player) { cam.x = G.map.w / 2; cam.y = G.map.h / 2; clampCam(); computeView(); placeMenuTank(); }
@@ -360,8 +521,11 @@ function clampCam() {
 function computeView() {
   const hw = view.w / view.scale / 2, hh = view.h / view.scale / 2;
   view.x0 = cam.x - hw; view.x1 = cam.x + hw; view.y0 = cam.y - hh; view.y1 = cam.y + hh;
+  const bw = view.w / view.base / 2, bh = view.h / view.base / 2; // the same view without the tank's zoom: enemies fire only inside it
+  view.bx0 = cam.x - bw; view.bx1 = cam.x + bw; view.by0 = cam.y - bh; view.by1 = cam.y + bh;
 }
 const onScreen = (x, y, m) => x > view.x0 - m && x < view.x1 + m && y > view.y0 - m && y < view.y1 + m;
+const onFireView = (x, y, m) => x > view.bx0 - m && x < view.bx1 + m && y > view.by0 - m && y < view.by1 + m;
 const toWorld = (sx, sy) => ({ x: (sx - view.w / 2) / view.scale + cam.x, y: (sy - view.h / 2) / view.scale + cam.y });
 const volAt = (x, y) => clamp(1.15 - Math.hypot(x - cam.x, y - cam.y) / 850, 0.08, 1);
 const prox = (x, y) => clamp(1.2 - Math.hypot(x - cam.x, y - cam.y) / 650, 0, 1);
@@ -707,7 +871,9 @@ function makeTank(type, x, y) {
     wp: null, wpBest: 1e9, stuckT: 0, senseT: 0, canSee: false, distP: 1e9, hidden: false, blast: null, aimErr: 0,
     speedMul: 1, coolMul: 1, enraged: false, smokeT: 0,
     mode: 'hunt', modeT: 0, path: null, pathI: 0, pathT: 0, dodge: null, dodgeCd: 0, seenT: -99, seenX: 0, seenY: 0, reconDone: true, fled: false, lock: false,
-    hurtT: -99, fxT: 0, chargeT: 0 };
+    hurtT: -99, fxT: 0, chargeT: 0,
+    stunT: 0, kvx: 0, kvy: 0, burnT: 0, burnTick: 0, burnDps: 0, lastVol: 0, lastVolT: -99, // enemy status (tickStatus)
+    heat: 0, overheatT: 0, pushT: 0, shield1T: 0, volId: 0, evoT: 0, flameOn: false, smkT: 0, aimDist: 6 * T }; // player tank state (TT)
 }
 function collideWalls(t) {
   const m = G.map, r = t.r;
@@ -749,51 +915,325 @@ function trackUpdate(t, moved, dA) {
   }
 }
 // Player spec with the workshop upgrades applied; the levels ride along in spec.up so drawTank can show the parts
-function playerSpec() {
-  const b = SPECS.player, cal = upL('caliber'), bar = upL('barrel'), ld = upL('loader'), twin = upL('twin') > 0, F = firepower();
-  return Object.assign({}, b, {
-    speed: b.speed * (1 + 0.1 * upL('engine')), cool: b.cool / (1 + 0.18 * ld),
-    dmg: Math.max(b.dmg, b.dmg * F / ((1 + 0.18 * ld) * (twin ? 2 : 1))), fire: F, bW: b.bW + 0.8 * cal, bR: b.bR + 0.5 * cal, big: cal >= 2,
-    bSpeed: b.bSpeed * (1 + 0.15 * bar), barrel: b.barrel + 3 * bar, twin, twinOff: (b.bW + 0.8 * cal) * 0.5 + 1.4, up: Object.assign({}, G.up)
+// The player's tank = the tank's own weapon (TANKS) scaled by the workshop cards. spec.dps = dmg * shells / cool, exported for the balance probe
+function playerSpec(id, bare) { // bare: the tank without workshop cards (evolution card sprites)
+  const base = SPECS.player, tk = TANKS[id || G.tank] || TANKS.std, up = bare ? {} : G.up, cal = up.caliber | 0, bar = up.barrel | 0, ld = up.loader | 0, F = firepower(up);
+  const spec = Object.assign({}, base, {
+    speed: base.speed * tk.speedMul * (1 + 0.1 * (up.engine | 0)), turn: base.turn * tk.turnMul, cool: tk.cool / (1 + 0.18 * ld),
+    dmg: Math.max(tk.dmg, tk.dmg * F / (1 + 0.18 * ld)), fire: F, bW: tk.bW + 0.8 * cal, bR: tk.bR + 0.5 * cal, big: cal >= 2,
+    bSpeed: tk.bSpeed * (1 + 0.15 * bar), barrel: tk.barrel + 3 * bar, life: tk.life, up: Object.assign({}, up),
+    tankId: tk.id, muzzles: tk.muzzles, spread: tk.spread || 0, pellets: tk.pellets || 1, mode: tk.mode, kick: tk.kick, shape: tk.shape, tr: tk.tr || null, zoom: tk.zoom, col: tk.col
   });
+  spec.dps = spec.dmg * tankShells(tk) / spec.cool;
+  return spec;
 }
 function refreshPlayer() {
   const p = G.player; if (!p) return;
-  p.spec = playerSpec(); p.maxHp = 100 + 20 * upL('armor'); p.hp = Math.min(p.hp, p.maxHp);
+  p.spec = playerSpec(); p.maxHp = Math.round(100 * TANKS[G.tank].hpMul) + 20 * upL('armor'); p.hp = Math.min(p.hp, p.maxHp);
 }
+// Muzzle layouts for tanks without a muzzles list (enemies): one barrel, or the Komutan's three
+const M_ONE = [{ off: 0, ang: 0 }], M_TRIPLE = [{ off: 0, ang: -0.2 }, { off: 0, ang: 0 }, { off: 0, ang: 0.2 }];
+const FAN = [-0.16, 0, 0.16], NOFAN = [0];
 function fireTank(t) {
   const s = t.spec, isP = t === G.player, m = G.map;
-  let angles;
-  if (isP && G.buffs.triple > 0) angles = [t.turret - 0.16, t.turret, t.turret + 0.16];
-  else if (s.triple) angles = [t.turret - 0.2, t.turret, t.turret + 0.2];
-  else angles = [t.turret];
-  const offs = isP && s.twin ? [-s.twinOff, s.twinOff] : [0];
+  if (TT.fire(t, { s, isP, m })) return; // hook (A): a tank trait may take over firing; false = normal path
+  const muz = s.muzzles || (s.triple ? M_TRIPLE : M_ONE), fan = isP && G.buffs.triple > 0 ? FAN : NOFAN, np = isP ? (s.pellets | 0) || 1 : 1;
+  const vol = isP ? ++t.volId : 0, volN = muz.length * fan.length * np; // volley id: shells of one volley share it (Ikiz stun)
   const big = !!s.big || s.bR >= 5.5, bl = isP ? upL('blast') : 0, splash = bl ? { r: bl > 1 ? 46 : 32, k: bl > 1 ? 0.75 : 0.5 } : null;
-  const pierce = isP && G.buffs.pierce > 0, bounce = isP ? upL('ricochet') : 0;
-  const look = !isP ? 'enemy' : pierce ? 'pierce' : splash ? 'blast' : bounce ? 'bounce' : 'player';
-  for (const a of angles) {
-    const ca = Math.cos(a), sa = Math.sin(a);
-    for (const o of offs) {
+  const rail = isP && !!(s.tr && s.tr.pierce), pierce = isP && (G.buffs.pierce > 0 || rail), bounce = isP ? upL('ricochet') : 0;
+  const look = !isP ? 'enemy' : rail ? 'rail' : pierce ? 'pierce' : splash ? 'blast' : bounce ? 'bounce' : 'player';
+  for (const mz of muz) {
+    const base = t.turret + (mz.ang || 0), o = mz.off || 0, mlen = mz.len || s.barrel;
+    for (const f of fan) for (let q = 0; q < np; q++) {
+      const a = base + f + (s.spread ? rand(-s.spread, s.spread) : 0);
+      const ca = Math.cos(a), sa = Math.sin(a);
       const ox = t.x - sa * o, oy = t.y + ca * o;
       let bx = ox, by = oy, blocked = false;
-      for (let d = 6; d <= s.barrel; d += 6) { bx = ox + ca * d; by = oy + sa * d; if (isWall(m.at(bx, by))) { blocked = true; break; } }
+      for (let d = 6; d <= mlen; d += 6) { bx = ox + ca * d; by = oy + sa * d; if (isWall(m.at(bx, by))) { blocked = true; break; } }
       const b = { x: bx, y: by, vx: ca * s.bSpeed, vy: sa * s.bSpeed, r: s.bR, owner: isP ? 0 : 1,
-        dmg: isP ? s.dmg : Math.max(1, Math.round(s.dmg * (G.mods ? G.mods.dmg : 1))), life: 2.4, big, dead: false,
-        pierce, bounce, splash, look, hits: null, bricks: null };
+        dmg: isP ? s.dmg * (mz.dmgK || 1) : Math.max(1, Math.round(s.dmg * (G.mods ? G.mods.dmg : 1))), life: s.life || 2.4, big, dead: false,
+        pierce, bounce, splash, look, hits: null, bricks: null,
+        sx: bx, sy: by, dist: 0, bounced: false, // origin, path length so far, has ricocheted (read by packages A/B)
+        vol, volN, pn: mz.pierceN | 0 }; // volley id / size, remaining limited tank penetrations
+      synFlags(b); // hook (B): synergy flags on the new shell
       if (blocked) { hitTile(b, bx, by); if (splash) blastAt(b, bx, by, null); } else G.bullets.push(b);
       if (isP) G.shots++;
     }
   }
   t.recoil = 1;
-  const ca = Math.cos(t.turret), sa = Math.sin(t.turret);
-  for (const o of offs) {
-    const mx = t.x - sa * o + ca * (s.barrel + 3), my = t.y + ca * o + sa * (s.barrel + 3);
-    addPart('fire', mx, my, ca * 60, sa * 60, 0.08, 14 + s.bW * 1.6, 40, 0);
-    addPart('smoke', mx, my, ca * 40 + rand(-10, 10), sa * 40 + rand(-10, 10), rand(0.5, 0.8), 10 + s.bW, 28, 3);
+  const ct = Math.cos(t.turret), st = Math.sin(t.turret);
+  for (const mz of (isP && s.muzzles ? muz : M_ONE)) { // one puff per barrel; the Komutan's three barrels share one
+    const o = mz.off || 0, ma = t.turret + (mz.ang || 0), cm = Math.cos(ma), sm = Math.sin(ma), ml = (mz.len || s.barrel) + 3;
+    const mx = t.x - st * o + cm * ml, my = t.y + ct * o + sm * ml;
+    addPart('fire', mx, my, cm * 60, sm * 60, 0.08, 14 + s.bW * 1.6, 40, 0);
+    addPart('smoke', mx, my, cm * 40 + rand(-10, 10), sm * 40 + rand(-10, 10), rand(0.5, 0.8), 10 + s.bW, 28, 3);
   }
-  moveTank(t, -ca * 1.4, -sa * 1.4);
+  const kick = s.kick === undefined ? 1.4 : s.kick;
+  if (kick) moveTank(t, -ct * kick, -st * kick);
   t.lastShot = G.time;
-  Sound.shoot(isP, big, isP ? 1 : volAt(t.x, t.y));
+  if (isP && s.tr && s.tr.zap) Sound.zap(); else Sound.shoot(isP, big, isP ? 1 : volAt(t.x, t.y)); // D2: Rayli has its own zap
+}
+/* ===== TANK TRAITS ===== */
+// Owner: package A (tank traits); D1/D2 append. Every tank-specific spot is a `switch` marked `// D1:` (Uclu, Cift, Alev, Sarapnel) or `// D2:` (Rayli, Obus)
+// that adds case lines; D1/D2 keep their code in named sub-blocks (`/* -- obus -- */`).
+const TT = {
+  // Called first by fireTank for every shot. true = the trait handled the shot itself (lob / flame), false = continue the normal fire path
+  fire(t, ctx) {
+    if (!ctx.isP) return false;
+    const s = ctx.s, tr = s.tr;
+    if (tr && tr.heatUp) { // Makineli: every shot heats the barrel; at 1 it overheats and the gun is locked for tr.cd seconds
+      t.heat = Math.min(1, t.heat + tr.heatUp);
+      if (t.heat >= 1) { t.overheatT = tr.cd; Sound.metal(1); }
+    }
+    switch (s.mode) {
+      case 'lob': return TT_obus.fire(t, ctx);
+      case 'flame': return true; // D1: Alev Topu: the cone is ticked in playerTick, no shells
+      default: return false;
+    }
+  },
+  // Cooldown multiplier for the next shot (Makineli: heat raises the fire rate)
+  coolK(p) { const tr = p.spec.tr; return tr && tr.rateGain ? 1 / (1 + tr.rateGain * p.heat) : 1; },
+  // True while the gun may not fire (Makineli overheat)
+  locked(p) { return p.overheatT > 0; },
+  // Once per frame for the player while the world runs. firing = the fire input is held
+  playerTick(p, dt, firing) {
+    const s = p.spec, tr = s.tr;
+    if (tr && tr.heatUp) {
+      if (p.overheatT > 0) {
+        p.overheatT -= dt; p.smkT -= dt;
+        if (p.smkT <= 0) { p.smkT = fxScale === 1 ? 0.07 : 0.16; const ml = s.barrel + 2; addPart('smoke', p.x + Math.cos(p.turret) * ml, p.y + Math.sin(p.turret) * ml, rand(-14, 14), rand(-30, -12), rand(0.5, 0.9), rand(7, 11), 24, 2); }
+        if (p.overheatT <= 0) { p.overheatT = 0; p.heat = 0.25; }
+      } else if (!firing && p.heat > 0) p.heat = Math.max(0, p.heat - tr.heatDown * dt);
+    }
+    if (p.pushT > 0) p.pushT = Math.max(0, p.pushT - dt);
+    if (p.shield1T > 0 && G.phase === 'fight') p.shield1T = Math.max(0, p.shield1T - dt); // the transformation shield runs while enemies can shoot
+    switch (s.tankId) {
+      case 'alev': flameTick(p, dt, firing); break; // D1
+      case 'cift': ciftTick(p, dt); break; // D1
+    }
+  },
+  // While the workshop freezes the world: only the transformation flash runs
+  frozenTick(rdt) { const p = G.player; if (p && p.evoT > 0) p.evoT = Math.max(0, p.evoT - rdt); },
+  // Called by updateBullets before a shell moves. true = the trait moved the shell itself (lob shells skip walls and tanks while they fly)
+  bulletStep(b, dt) {
+    if (!b.lob) return false;
+    const L = b.lob; L.t += dt;
+    const k = Math.min(1, L.t / L.T);
+    b.x = L.sx + (L.tx - L.sx) * k; b.y = L.sy + (L.ty - L.sy) * k; b.h = Math.sin(k * Math.PI); // b.h: arc height 0..1 for drawing
+    b.dist = Math.hypot(b.x - L.sx, b.y - L.sy);
+    if (k >= 1) {
+      b.dead = true;
+      switch (L.kind) {
+        case 'obus': TT_obus.land(b, L); break;
+        default: break;
+      }
+    }
+    return true;
+  },
+  // A player shell hit enemy tank e (before the shell is marked dead and the damage applied)
+  bulletHit(b, e) {
+    const s = G.player && G.player.spec, tr = s && s.tr;
+    if (tr && tr.stun && b.volN > 1 && b.vol) { // Ikiz: two shells of one volley hitting the same tank within tr.win stun it
+      if (e.lastVol === b.vol && G.time - e.lastVolT <= tr.win && G.time >= (e.stunReadyT || 0)) { // stunReadyT: a stunned tank is not stunned again at once (tr.stunCd)
+        e.stunT = tr.stun; e.lastVol = 0; e.stunReadyT = G.time + tr.stun + (tr.stunCd || 0);
+        for (let k = 0; k < 7; k++) { const a = rand(0, TAU); addPart('spark', e.x, e.y, Math.cos(a) * 140, Math.sin(a) * 140, rand(0.25, 0.4), 1, 0, 3, '#ffe27a'); }
+        addPart('ring', e.x, e.y, 0, 0, 0.3, 10, 90, 0, '255,226,122');
+        addText(e.x, e.y - 30, 'Sersem', '#ffe27a', 14);
+      } else { e.lastVol = b.vol; e.lastVolT = G.time; }
+    }
+    switch (s && s.tankId) {
+      case 'sarapnel': sarapnelHit(b, e); break; // D1
+      default: break;
+    }
+  }
+};
+/* -- uclu -- */
+// Üçlü needs no code of its own: the three muzzles and the middle one's pierceN are data (TANKS.uclu); updateBullets handles b.pn.
+/* -- cift -- */
+// Çift Yön: every volley (p.volId changes) pushes the tank forward for tr.push seconds: speed x(1 + pushK) in updatePlayer plus a small impulse along the hull
+function ciftTick(p, dt) {
+  const tr = p.spec.tr;
+  if (p.pv === undefined || p.volId < p.pv) p.pv = p.volId;
+  if (p.volId !== p.pv) {
+    p.pv = p.volId; p.pushT = tr.push;
+    p.vx += Math.cos(p.angle) * tr.impulse; p.vy += Math.sin(p.angle) * tr.impulse;
+    if (fxScale === 1) addPart('dust', p.x - Math.cos(p.angle) * 22, p.y - Math.sin(p.angle) * 22, -Math.cos(p.angle) * 40 + rand(-12, 12), -Math.sin(p.angle) * 40 + rand(-12, 12), rand(0.3, 0.5), rand(7, 11), 20, 2);
+  }
+}
+const pushK = p => (p.pushT > 0 && p.spec.tr && p.spec.tr.pushK ? 1 + p.spec.tr.pushK * Math.min(1, p.pushT / p.spec.tr.push) : 1); // speed factor while a Çift Yön volley pushes
+/* -- alev -- */
+// Alev Topu: a flame cone, not shells. Enemies in the cone with a clear line take dps * direct quietly and burn for tr.burn s (burnDps = dps * burnK; tickStatus ticks it);
+// enemy shells in the cone are destroyed; the Komutan burns at tr.bossK. Particle budget: 4 per frame (1 with low effects).
+function inCone(ox, oy, a, R, half, x, y, r) {
+  const dx = x - ox, dy = y - oy, d = Math.hypot(dx, dy);
+  if (d - r > R) return false;
+  if (d < r + 4) return true;
+  return Math.abs(angDiff(a, Math.atan2(dy, dx))) <= half + Math.atan2(r * 0.7, d);
+}
+function flameTick(p, dt, firing) {
+  const s = p.spec, tr = s.tr;
+  p.flameOn = !!firing;
+  if (!firing) { p.flameShotT = 0; p.flameSnd = 0; return; }
+  p.lastShot = G.time;
+  const a = p.turret, ca = Math.cos(a), sa = Math.sin(a), ox = p.x + ca * s.barrel * 0.7, oy = p.y + sa * s.barrel * 0.7;
+  const dps = s.dps * (G.buffs.rapid > 0 ? 2 : 1);
+  let touched = 0;
+  for (const e of G.enemies) {
+    if (e.dead || !inCone(ox, oy, a, tr.range, tr.half, e.x, e.y, e.r) || !los(p.x, p.y, e.x, e.y)) continue;
+    touched++;
+    const k = e.type === 'boss' ? tr.bossK : 1, fl = e.flash;
+    hurtEnemy(e, dps * tr.direct * k * dt, e.x, e.y, 0, true);
+    if (e.dead) continue;
+    e.flash = fl; // no white flash every frame; the burn ticks flash it a little
+    e.burnT = tr.burn; e.burnDps = dps * tr.burnK * k;
+  }
+  for (const b of G.bullets) { // enemy shells burn up in the flame
+    if (b.dead || b.owner !== 1 || !inCone(ox, oy, a, tr.range, tr.half, b.x, b.y, b.r)) continue;
+    b.dead = true; sparks(b.x, b.y, 4, '#ffb04a', 150);
+  }
+  p.flameShotT = (p.flameShotT || 0) - dt; if (p.flameShotT <= 0) { p.flameShotT = 0.25; G.shots++; if (touched || p.flameHit) G.hits++; p.flameHit = false; } // accuracy stays <= 100%: one shot per 0.25 s
+  if (touched) p.flameHit = true;
+  p.flameSnd = (p.flameSnd || 0) - dt; if (p.flameSnd <= 0) { p.flameSnd = 0.11; Sound.flame(); }
+  const n = fxScale === 1 ? 4 : 1;
+  for (let i = 0; i < n; i++) {
+    const aa = a + rand(-tr.half, tr.half) * 0.9, v = rand(380, 500);
+    addPart('fire', ox, oy, Math.cos(aa) * v, Math.sin(aa) * v, rand(0.22, 0.34), rand(9, 15), 22, 1.5);
+  }
+}
+// Flame cone outline under the shells, and a glow on every burning enemy
+function flameFx(p) {
+  const tr = p.spec.tr;
+  if (!p.flameOn) return;
+  const a = p.turret, ox = p.x + Math.cos(a) * p.spec.barrel * 0.7, oy = p.y + Math.sin(a) * p.spec.barrel * 0.7;
+  ctx.globalAlpha = fxScale === 1 ? 0.13 : 0.1; ctx.fillStyle = '#ff9a30';
+  ctx.beginPath(); ctx.moveTo(ox, oy); ctx.arc(ox, oy, tr.range, a - tr.half, a + tr.half); ctx.closePath(); ctx.fill(); ctx.globalAlpha = 1;
+}
+function burnFx() {
+  for (const e of G.enemies) {
+    if (!(e.burnT > 0) || e.dead || !onScreen(e.x, e.y, 60)) continue;
+    const f = 0.5 + 0.5 * Math.sin(G.time * 17 + e.id * 2), gs = e.r * 2.4;
+    if (fxScale === 1) { ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.28 + 0.22 * f; ctx.drawImage(SPR.fire, e.x - gs / 2, e.y - gs / 2, gs, gs); ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1; }
+    else { ctx.globalAlpha = 0.3 + 0.2 * f; ctx.fillStyle = '#ff8a30'; ctx.beginPath(); ctx.arc(e.x, e.y, e.r * 0.8, 0, TAU); ctx.fill(); ctx.globalAlpha = 1; }
+  }
+}
+/* -- sarapnel -- */
+// Şarapnel: a pellet that hits a tank within tr.kbRange px of the muzzle shoves it along the pellet's path (impulse tr.kb / mass, capped at tr.kbMax / mass); tickStatus moves it
+function sarapnelHit(b, e) {
+  const tr = G.player.spec.tr;
+  if (!tr || !tr.kb || b.dist > tr.kbRange) return;
+  const sp = Math.hypot(b.vx, b.vy) || 1, m = e.spec.mass || 1;
+  e.kvx += b.vx / sp * tr.kb / m; e.kvy += b.vy / sp * tr.kb / m;
+  const v = Math.hypot(e.kvx, e.kvy), cap = tr.kbMax / m; if (v > cap) { e.kvx *= cap / v; e.kvy *= cap / v; }
+}
+/* -- rayli -- */
+// Rayli Top (D2): a fast shell with pierce (fireTank sets it from tr.pierce; steel stops it unless Sekme is owned, see updateBullets) and a laser line showing its path
+const TT_rayli = {
+  // DDA over the tile grid from (x0, y0) along angle a: the first steel tile (or the world edge, which the map reports as steel) ends the line. Bricks and tanks do not.
+  laser(x0, y0, a, maxLen) {
+    const m = G.map, dx = Math.cos(a), dy = Math.sin(a), lim = maxLen || 4000;
+    let c = Math.floor(x0 / T), r = Math.floor(y0 / T);
+    if (m.get(c, r) === STEEL) return { x: x0, y: y0, steel: true, len: 0 };
+    const sx = dx > 0 ? 1 : -1, sy = dy > 0 ? 1 : -1, tDx = dx !== 0 ? Math.abs(T / dx) : Infinity, tDy = dy !== 0 ? Math.abs(T / dy) : Infinity;
+    let tMx = dx > 0 ? ((c + 1) * T - x0) / dx : dx < 0 ? (c * T - x0) / dx : Infinity, tMy = dy > 0 ? ((r + 1) * T - y0) / dy : dy < 0 ? (r * T - y0) / dy : Infinity;
+    for (let i = 0; i < 400; i++) {
+      let t;
+      if (tMx < tMy) { t = tMx; tMx += tDx; c += sx; } else { t = tMy; tMy += tDy; r += sy; }
+      if (t >= lim) return { x: x0 + dx * lim, y: y0 + dy * lim, steel: false, len: lim };
+      if (m.get(c, r) === STEEL) return { x: x0 + dx * t, y: y0 + dy * t, steel: true, len: t };
+    }
+    return { x: x0 + dx * lim, y: y0 + dy * lim, steel: false, len: lim };
+  },
+  fx(p) {
+    const s = p.spec, ca = Math.cos(p.turret), sa = Math.sin(p.turret), x0 = p.x + ca * (s.barrel + 1), y0 = p.y + sa * (s.barrel + 1);
+    const L = this.laser(x0, y0, p.turret), pulse = 0.78 + 0.22 * Math.sin(G.time * 14);
+    ctx.lineCap = 'butt';
+    ctx.strokeStyle = 'rgba(10,28,52,.38)'; ctx.lineWidth = 3.6; ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(L.x, L.y); ctx.stroke(); // dark rim: reads on sand and snow
+    if (fxScale === 1) { ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.16 * pulse; ctx.strokeStyle = '#7ef0ff'; ctx.lineWidth = 7; ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(L.x, L.y); ctx.stroke(); ctx.globalCompositeOperation = 'source-over'; }
+    ctx.globalAlpha = 0.9 * pulse; ctx.strokeStyle = '#46e4ff'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(L.x, L.y); ctx.stroke();
+    ctx.globalAlpha = 1; ctx.fillStyle = '#e8fdff'; ctx.strokeStyle = 'rgba(10,28,52,.8)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(L.x, L.y, L.steel ? 3.4 : 2.4, 0, TAU); ctx.fill(); ctx.stroke(); // end mark
+  }
+};
+
+/* -- obus -- */
+// Obus (D2): mode 'lob'. The shell is thrown to p.aimDist along the turret, flies above everything (TT.bulletStep moves it) and lands with area damage.
+const TT_obus = {
+  area(s) { return s.tr.area * (1 + s.tr.blastK * upL('blast')); }, // Patlayici mermi: +25% per level. Delici and Sekme do nothing for a lob
+  target(t, s) { // where the next shell will land
+    const tr = s.tr, D = clamp(t.aimDist, tr.minD * T, tr.maxD * T), n = G.map.n, ca = Math.cos(t.turret), sa = Math.sin(t.turret);
+    return { x: clamp(t.x + ca * D, T * 0.5, (n - 0.5) * T), y: clamp(t.y + sa * D, T * 0.5, (n - 0.5) * T) };
+  },
+  fire(t, ctx) {
+    const s = ctx.s, tr = s.tr, ca = Math.cos(t.turret), sa = Math.sin(t.turret), sx = t.x + ca * s.barrel, sy = t.y + sa * s.barrel, g = this.target(t, s);
+    const dist = Math.hypot(g.x - sx, g.y - sy), T0 = Math.max(tr.tMin, dist / tr.vFly), ang = Math.atan2(g.y - sy, g.x - sx);
+    const b = { x: sx, y: sy, vx: Math.cos(ang) * tr.vFly, vy: Math.sin(ang) * tr.vFly, r: s.bR, owner: 0, dmg: s.dmg, life: T0 + 1, big: !!s.big, dead: false,
+      pierce: false, bounce: 0, splash: null, look: 'lob', hits: null, bricks: null, sx, sy, dist: 0, bounced: false, vol: ++t.volId, volN: 1, pn: 0, h: 0,
+      lob: { sx, sy, tx: g.x, ty: g.y, t: 0, T: T0, kind: 'obus', R: this.area(s) } };
+    synFlags(b); b.bb = false; b.far = false; // Seken patlama / Uzak vuruş do not apply to a lob; Pusu (b.ambush) does, through synDmg
+    G.bullets.push(b); G.shots++;
+    t.recoil = 1; moveTank(t, -ca * s.kick, -sa * s.kick); t.lastShot = G.time;
+    addPart('fire', sx + ca * 4, sy + sa * 4, ca * 60, sa * 60, 0.1, 20, 40, 0);
+    for (let k = 0, nk = Math.max(2, Math.round(5 * fxScale)); k < nk; k++) addPart('smoke', sx + ca * 6, sy + sa * 6, ca * rand(30, 90) + rand(-18, 18), sa * rand(30, 90) + rand(-18, 18), rand(0.5, 0.9), rand(11, 17), 30, 3);
+    Sound.shoot(true, true, 1); Sound.pop(1);
+    return true;
+  },
+  land(b, L) { // area damage (full at the centre, tr.edge at the rim), bricks in reach take one hit, scorch decal, explosion
+    const tr = TANKS.obus.tr, R = L.R, x = L.tx, y = L.ty, m = G.map;
+    explode(x, y, 0.85 * R / 60);
+    addPart('ring', x, y, 0, 0, 0.35, 8, (R - 8) / 0.35, 0, '255,210,90');
+    let any = false;
+    for (const e of G.enemies) {
+      if (e.dead) continue;
+      const d = Math.hypot(e.x - x, e.y - y); if (d >= R + e.r) continue;
+      any = true; hurtEnemy(e, b.dmg * (1 - (1 - tr.edge) * clamp(d / R, 0, 1)) * synDmg(b, e), e.x, e.y, Math.atan2(e.y - y, e.x - x));
+    }
+    if (any) G.hits++;
+    const pseudo = { vx: 0, vy: 0, big: b.big };
+    for (let r = Math.floor((y - R) / T); r <= Math.floor((y + R) / T); r++) for (let c = Math.floor((x - R) / T); c <= Math.floor((x + R) / T); c++) {
+      if (m.get(c, r) !== BRICK) continue;
+      const nx = clamp(x, c * T, c * T + T), ny = clamp(y, r * T, r * T + T);
+      if ((nx - x) * (nx - x) + (ny - y) * (ny - y) <= R * R) hitTile(pseudo, c * T + T / 2, r * T + T / 2);
+    }
+    addDecals(m, [{ k: 'scorch', x, y, r: R * 0.8 }]);
+  },
+  ring(x, y, R, a, k) { // a landing mark: a dashed yellow ring with a dark rim and a cross; k (0..1) shrinks an inner ring for shells in flight
+    ctx.setLineDash([]); ctx.globalAlpha = a; ctx.fillStyle = 'rgba(255,210,74,.14)'; ctx.beginPath(); ctx.arc(x, y, R, 0, TAU); ctx.fill();
+    ctx.strokeStyle = 'rgba(30,22,6,.6)'; ctx.lineWidth = 4.4; ctx.beginPath(); ctx.arc(x, y, R, 0, TAU); ctx.stroke();
+    ctx.strokeStyle = '#ffd24a'; ctx.lineWidth = 2.2; ctx.setLineDash([9, 6]); ctx.lineDashOffset = -G.time * 24; ctx.beginPath(); ctx.arc(x, y, R, 0, TAU); ctx.stroke(); ctx.setLineDash([]);
+    ctx.strokeStyle = 'rgba(30,22,6,.6)'; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(x - 8, y); ctx.lineTo(x + 8, y); ctx.moveTo(x, y - 8); ctx.lineTo(x, y + 8); ctx.stroke();
+    ctx.strokeStyle = '#fff2b0'; ctx.lineWidth = 1.8; ctx.beginPath(); ctx.moveTo(x - 8, y); ctx.lineTo(x + 8, y); ctx.moveTo(x, y - 8); ctx.lineTo(x, y + 8); ctx.stroke();
+    if (k !== undefined) { ctx.strokeStyle = '#fff2b0'; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.arc(x, y, R * (1 - k), 0, TAU); ctx.stroke(); }
+    ctx.globalAlpha = 1;
+  },
+  fx(p) {
+    const s = p.spec, g = this.target(p, s);
+    for (const b of G.bullets) if (b.lob && !b.dead) this.ring(b.lob.tx, b.lob.ty, b.lob.R, 0.55, clamp(b.lob.t / b.lob.T, 0, 1));
+    this.ring(g.x, g.y, this.area(s), 0.95);
+  },
+  draw(b) { // in flight: a ground shadow, then the shell lifted by its arc height and drawn bigger (the 3 passes of drawBullets skip lobs)
+    const h = b.h || 0, hy = b.y - h * TANKS.obus.tr.hgt, rr = b.r * (1 + 0.9 * h);
+    ctx.fillStyle = 'rgba(0,0,0,.34)'; ctx.beginPath(); ctx.ellipse(b.x, b.y + 2, b.r * (1.5 - 0.35 * h), b.r * (1.5 - 0.35 * h) * 0.6, 0, 0, TAU); ctx.fill();
+    ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.55; const gs = rr * 6; ctx.drawImage(SPR.fire, b.x - gs / 2, hy - gs / 2, gs, gs); ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
+    ctx.fillStyle = '#ffd89a'; ctx.strokeStyle = 'rgba(40,24,6,.85)'; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.arc(b.x, hy, rr, 0, TAU); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#8a5a1c'; ctx.beginPath(); ctx.arc(b.x - rr * 0.25, hy + rr * 0.25, rr * 0.45, 0, TAU); ctx.fill();
+  }
+};
+// Enemy status effects, once per frame per enemy before its AI. Returns true while the tank is stunned (it stands still and holds fire, like Dondurucu).
+// stunT: Ikiz.   kvx/kvy: knockback velocity (px/s, divided by mass where it is set), decays quickly.   burnT/burnDps: Alev Topu burn, ticks every 0.25 s.
+function tickStatus(e, dt) {
+  if (e.kvx || e.kvy) { // D1: Sarapnel / Cift knockback
+    moveTank(e, e.kvx * dt, e.kvy * dt);
+    const k = Math.exp(-8 * dt); e.kvx *= k; e.kvy *= k;
+    if (Math.abs(e.kvx) + Math.abs(e.kvy) < 6) e.kvx = e.kvy = 0;
+  }
+  if (e.burnT > 0) { // D1: Alev Topu burn
+    e.burnT -= dt; e.burnTick -= dt;
+    if (e.burnTick <= 0 && !e.dead) {
+      e.burnTick = 0.25; hurtEnemy(e, e.burnDps * 0.25, e.x, e.y, 0, true);
+      if (!e.dead && fxScale === 1) addPart('fire', e.x + rand(-8, 8), e.y + rand(-8, 8), rand(-10, 10), rand(-40, -15), rand(0.25, 0.45), rand(8, 14), 10, 2);
+    }
+  }
+  if (e.stunT > 0) { e.stunT -= dt; return !e.dead; }
+  return false;
 }
 function damageSmoke(t, dt) {
   if (t.hp / t.maxHp >= 0.35) return;
@@ -884,21 +1324,21 @@ const wreckOf = t => {
   return { k: 'wreck', x: t.x, y: t.y, a: t.angle, ta: t.turret - t.angle + rand(-0.7, 0.7), tox: rand(-7, 7), toy: rand(-7, 7),
     L: s.len, W: s.wid, tw: s.tread, tR: s.tR, bW: s.bW, barrel: s.barrel, r: s.len * 0.75 };
 };
-function hurtEnemy(e, dmg, x, y, dir) {
+function hurtEnemy(e, dmg, x, y, dir, quiet) { // quiet: burn ticks and flame, no sparks or sound
   if (e.dead) return;
   e.hp -= dmg; e.flash = 0.1;
-  sparks(x, y, 6, '#ffd27a', 200, dir, 1.4);
+  if (!quiet) sparks(x, y, 6, '#ffd27a', 200, dir, 1.4);
   if (e.hp <= 0.001) { killEnemy(e); return; }
-  Sound.metal(volAt(e.x, e.y));
+  if (!quiet) Sound.metal(volAt(e.x, e.y));
   if (e.type === 'boss' && !e.enraged && e.hp <= e.maxHp / 2) {
     e.enraged = true; e.speedMul *= 1.2; e.coolMul *= 0.7;
     addText(e.x, e.y - 36, 'Komutan öfkelendi', '#ff7a5c', 16);
   }
 }
-const damageEnemy = (e, b) => hurtEnemy(e, b.dmg, b.x, b.y, Math.atan2(-b.vy, -b.vx));
+const damageEnemy = (e, b) => hurtEnemy(e, b.dmg * synDmg(b, e), b.x, b.y, Math.atan2(-b.vy, -b.vx));
 // Explosive shells (Patlayıcı mermi): a small blast that hurts every other enemy tank in reach
 function blastAt(b, x, y, skip) {
-  const sp = b.splash;
+  const sp = splashFor(b); // hook (B): Seken patlama
   addPart('flash', x, y, 0, 0, 0.12, sp.r * 2.2, 0, 0);
   addPart('ring', x, y, 0, 0, 0.3, 6, sp.r * 3.3, 0, '255,170,90');
   for (let i = 0, n = Math.max(2, Math.round(5 * fxScale)); i < n; i++) { const a = rand(0, TAU), v = rand(30, 110); addPart('fire', x, y, Math.cos(a) * v, Math.sin(a) * v, rand(0.2, 0.4), rand(10, 18), 30, 3); }
@@ -916,6 +1356,7 @@ function killEnemy(e) {
   addDecals(G.map, [{ k: 'scorch', x: e.x, y: e.y, r: 34 * pw }, wreckOf(e)]);
   const pts = Math.round(s.score * G.D.score);
   G.score += pts; G.kills++;
+  nukeOnKill(e); // hook (C): nuke meter
   addText(e.x, e.y - 12, '+' + fmt(pts), '#f2c14e', e.type === 'boss' ? 22 : 16);
   if (e.type === 'boss') {
     G.boss = null;
@@ -927,11 +1368,11 @@ function killEnemy(e) {
 function damagePlayer(b) {
   const p = G.player;
   if (G.god) return;
-  if (G.buffs.shield > 0) {
+  if (G.buffs.shield > 0 || p.shield1T > 0) {
     for (let k = 0; k < 6; k++) { const a = rand(0, TAU); addPart('glow', b.x, b.y, Math.cos(a) * 90, Math.sin(a) * 90, 0.3, 12, 0, 4, 'blue'); }
     Sound.shield(); return;
   }
-  p.hp -= b.dmg; p.flash = 0.12; p.hurtT = G.time; G.hurt = 0.45; shake(7); Sound.hurt(); vibrate(35);
+  p.hp -= b.dmg * synTaken(b); p.flash = 0.12; p.hurtT = G.time; G.hurt = 0.45; shake(7); Sound.hurt(); vibrate(35);
   sparks(b.x, b.y, 6, '#ffb08a', 200);
   if (p.hp <= 0) { p.hp = 0; killPlayer(); }
 }
@@ -971,6 +1412,7 @@ function applyPickup(k) {
   G.score += Math.round(50 * G.D.score);
   addPart('ring', k.x, k.y, 0, 0, 0.4, 8, 110, 0, P.rgb);
   Sound.pickup(); vibrate(15);
+  synPickup(k.kind); // hook (B)
 }
 function updatePickups(dt) {
   const p = G.player, mag = upL('magnet'), R = (2 + 2 * mag) * T;
@@ -1013,9 +1455,113 @@ function updateStrikes(dt) {
 function regen(p, dt) {
   const L = upL('repair');
   if (!L || G.phase !== 'fight' || p.hp >= p.maxHp || G.time - p.hurtT < 2) return;
-  p.hp = Math.min(p.maxHp, p.hp + 0.5 * L * dt);
+  p.hp = Math.min(p.maxHp, p.hp + 0.5 * L * synRegen(p) * dt);
   p.fxT -= dt;
-  if (p.fxT <= 0) { p.fxT = 0.45; addPart('glow', p.x + rand(-12, 12), p.y + rand(-12, 12), 0, -26, 0.55, 11, 0, 1, 'pu_repair'); }
+  if (p.fxT <= 0) { p.fxT = 0.45; addPart('glow', p.x + rand(-12, 12), p.y + rand(-12, 12), 0, -26, 0.55, 11, 0, 1, synRegenGlow(p)); }
+}
+
+/* ===== NUKE ===== */
+// Owner: package C (nuclear bomb).
+// Hooks called from shared code: nukeOnKill (killEnemy), nukeUpdate (updatePlay), nukeKey (keydown), nukeHud (updateHUD), drawNuke (render).
+// Meter: every kill adds weight / (NUKE_WAVES * expected weight of a whole wave), so a wave of any size gives about 1/NUKE_WAVES of the meter.
+const NUKE_WAVES = 2.5;                                                  // waves of kills to fill the meter (E tunes this)
+const NUKE_WEIGHT = { basic: 1, fast: 1, hunter: 1.5, heavy: 2, boss: 3 }; // meter weight per enemy type
+const NUKE_WARN = 1.2;      // seconds of warning (game time) before the blast
+const NUKE_BOSS_CUT = 0.25; // share of the Komutan's max HP the blast takes (never kills)
+const NUKE_FLASH = 0.6;     // seconds the white flash fades
+// expected total weight of wave w's roster; mirrors buildRoster without touching its random numbers
+function nukeWaveWeight(w) {
+  const W = NUKE_WEIGHT;
+  if (w % 5 === 0) {
+    const list = [];
+    for (let i = 0, esc = 1 + Math.floor(w / 5); i < esc; i++) list.push(i % 2 ? 'fast' : 'basic');
+    if (w >= 10) list[list.length - 1] = 'hunter';
+    if (w >= 20) { list[0] = 'heavy'; list[2] = 'hunter'; }
+    list.push('boss');
+    return list.reduce((a, t) => a + W[t], 0);
+  }
+  const D = G.D, total = clamp(Math.round((3 + w + Math.floor(w / 2)) * D.count), 3, 24 + Math.floor(Math.max(0, w - 20) / 2));
+  const pf = w >= 2 ? Math.min(0.28, 0.12 + 0.03 * w) - Math.max(0, w - 20) * 0.005 : 0, ph = w >= 3 ? Math.min(0.45, 0.08 + 0.025 * w) : 0;
+  const pu = w >= D.hunterFrom ? Math.min(0.35, 0.07 + 0.025 * (w - D.hunterFrom)) : 0;
+  return total * (ph * W.heavy + pf * W.fast + pu * W.hunter + Math.max(0, 1 - ph - pf - pu) * W.basic);
+}
+const nukeFresh = m => ({ meter: clamp(+m || 0, 0, 1), warnT: 0, flashT: -1e9, firing: false, used: 0, hinted: false });
+G.nuke = nukeFresh(0);
+const nukeReady = () => G.nuke.meter >= 0.9999;
+const nukeSave = () => +G.nuke.meter.toFixed(4);
+function nukeReset(saved) { G.nuke = nukeFresh(saved); } // startGame: new run or resume
+function nukeOnKill(e) {
+  const n = G.nuke;
+  if (n.firing || G.phase === 'dying' || !G.player || !G.player.alive) return; // blast kills and kills while dying do not count
+  n.meter = Math.min(1, n.meter + NUKE_WEIGHT[e.type] / (NUKE_WAVES * nukeWaveWeight(G.wave)));
+}
+const nukeOnScreen = () => G.enemies.filter(e => !e.dead && onScreen(e.x, e.y, 0));
+// true when the warning started; says why not (hint) when the player asked for it by hand
+function nukeFire(manual) {
+  const n = G.nuke, p = G.player;
+  if (G.state !== 'play' || G.phase !== 'fight' || !p || !p.alive || n.warnT > 0) return false;
+  if (!nukeReady()) { if (manual) showHint('Nükleer bomba %' + Math.floor(n.meter * 100) + ' şarjlı, kill yaparak doldur', 2); return false; }
+  if (!nukeOnScreen().length) { if (manual) showHint('Ekranda düşman yok', 2); return false; }
+  n.warnT = NUKE_WARN;
+  hintT = 0; el.hint.classList.remove('show'); // the "ready" hint is done
+  showBanner('NÜKLEER BOMBA', '', NUKE_WARN);
+  Sound.nukeWarn(); vibrate([40, 60, 40, 60, 40]);
+  return true;
+}
+function nukeBlast() {
+  const n = G.nuke, p = G.player;
+  n.firing = true; n.used++;
+  const mods = G.mods, drop = mods.drop; mods.drop = 0; // no pickup drops from blast kills
+  for (const e of G.enemies.slice()) if (!e.dead && e.type !== 'boss' && onScreen(e.x, e.y, 0)) killEnemy(e);
+  mods.drop = drop;
+  const b = G.boss && !G.boss.dead ? G.boss : null;
+  if (b) hurtEnemy(b, Math.min(NUKE_BOSS_CUT * b.maxHp, b.hp - 0.5), b.x, b.y, 0); // never lethal; the enrage check still runs
+  G.bullets = G.bullets.filter(q => q.owner === 0);
+  n.firing = false; n.meter = 0; n.hinted = false; n.flashT = G.time;
+  addPart('ring', cam.x, cam.y, 0, 0, 0.9, 30, 1700, 0, '255,244,214');
+  addPart('ring', cam.x, cam.y, 0, 0, 1.3, 20, 1300, 0, '255,170,90');
+  shake(16); Sound.nuke(); vibrate([80, 40, 160, 40, 260]);
+}
+function nukeUpdate(dt) {
+  const n = G.nuke, p = G.player;
+  if (n.warnT > 0) {
+    if (G.phase !== 'fight' || !p.alive) n.warnT = 0; // wave ended or player died during the warning: the charge is kept
+    else if ((n.warnT -= dt) <= 0) { n.warnT = 0; nukeBlast(); }
+  } else if (bot.on && bot.nuke && G.phase === 'fight' && p.alive && nukeReady()) {
+    if (nukeOnScreen().length >= 3 || (G.boss && !G.boss.dead)) nukeFire();
+  }
+}
+function nukeKey(e) {
+  if (e.code !== 'KeyN' || e.ctrlKey || e.metaKey || e.altKey) return false;
+  if (G.state === 'play' && !e.repeat) nukeFire(true);
+  return G.state === 'play';
+}
+el.btnNuke.addEventListener('click', e => { Sound.init(); Sound.resume(); nukeFire(true); e.currentTarget.blur(); });
+function nukeHud() {
+  const n = G.nuke, st = n.warnT > 0 ? 'w' : nukeReady() ? 'r' : 'c', pct = Math.floor(n.meter * 100);
+  const key = st + pct;
+  if (ui.nk === key) return;
+  const stChanged = ui.nkSt !== st; ui.nk = key; ui.nkSt = st;
+  el.btnNuke.style.setProperty('--p', (n.meter).toFixed(3));
+  if (stChanged) {
+    el.btnNuke.classList.toggle('ready', st !== 'c');
+    el.btnNuke.classList.toggle('warn', st === 'w');
+    el.btnNuke.setAttribute('aria-label', st === 'c' ? 'Nükleer bomba, %' + pct + ' şarjlı' : st === 'r' ? 'Nükleer bomba hazır' : 'Nükleer bomba başlıyor');
+    measureHud();
+    if (st === 'r' && !n.hinted && G.phase === 'fight') { n.hinted = true; showHint(input.touch ? 'Nükleer bomba hazır: düğmeye dokun' : 'Nükleer bomba hazır: N tuşuna bas', 3.5); }
+  }
+}
+function drawNuke() {
+  if (G.state !== 'play' && G.state !== 'paused') return;
+  const n = G.nuke, w = view.w, h = view.h;
+  if (n.warnT > 0) { // pulsing red edge, faster as the blast nears
+    const k = 1 - n.warnT / NUKE_WARN, a = (0.28 + 0.2 * Math.sin(G.time * (14 + 10 * k))) * (0.6 + 0.4 * k);
+    const gr = ctx.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.25, w / 2, h / 2, Math.max(w, h) * 0.68);
+    gr.addColorStop(0, 'rgba(224,50,30,0)'); gr.addColorStop(1, `rgba(224,50,30,${clamp(a, 0.05, 0.75).toFixed(3)})`);
+    ctx.fillStyle = gr; ctx.fillRect(0, 0, w, h);
+  }
+  const f = (G.time - n.flashT) / NUKE_FLASH;
+  if (f >= 0 && f < 1 && SET.effects !== 'low' && !REDUCED) { ctx.fillStyle = `rgba(255,255,255,${(0.95 * (1 - f) * (1 - f)).toFixed(3)})`; ctx.fillRect(0, 0, w, h); }
 }
 
 /* ================= bullets ================= */
@@ -1026,7 +1572,7 @@ function ricochet(b, px, py) {
   if (!fx && !fy) { fx = c1 !== c0; fy = r1 !== r0; }
   if (fx) b.vx = -b.vx;
   if (fy) b.vy = -b.vy;
-  b.x = px; b.y = py; b.bounce--; b.life = Math.max(b.life, 0.9); b.seenBy = null; b.hits = null;
+  b.x = px; b.y = py; b.bounced = true; b.bounce--; b.life = Math.max(b.life, 0.9); b.seenBy = null; b.hits = null;
   sparks(px, py, 5, '#cfe8ff', 180); Sound.bounce(volAt(px, py));
 }
 function updateBullets(dt) {
@@ -1034,6 +1580,8 @@ function updateBullets(dt) {
   for (const b of G.bullets) {
     if (b.dead) continue;
     b.life -= dt; if (b.life <= 0) { b.dead = true; continue; }
+    if (TT.bulletStep(b, dt) || b.dead) continue; // hook (A): lob shells fly over everything and are moved by the trait
+    b.dist += Math.hypot(b.vx, b.vy) * dt; // path length for packages A/B
     const steps = Math.max(1, Math.ceil(Math.hypot(b.vx, b.vy) * dt / 8));
     for (let k = 0; k < steps && !b.dead; k++) {
       const px = b.x, py = b.y;
@@ -1056,18 +1604,19 @@ function updateBullets(dt) {
         }
         if (hit) {
           G.hits++;
-          if (b.pierce) (b.hits || (b.hits = [])).push(hit.id); else b.dead = true;
+          TT.bulletHit(b, hit); // hook (A): stun / knockback etc., before the shell is marked dead
+          if (b.pierce || b.pn > 0) { (b.hits || (b.hits = [])).push(hit.id); if (!b.pierce) b.pn--; } else b.dead = true; // pn: a limited number of tank penetrations (Uclu)
           damageEnemy(hit, b);
           if (b.splash) blastAt(b, b.x, b.y, hit);
         }
       } else if (p && p.alive) {
-        const rr = p.r + b.r + (G.buffs.shield > 0 ? 8 : 0);
+        const rr = p.r + b.r + (G.buffs.shield > 0 || p.shield1T > 0 ? 8 : 0);
         if (dist2(b.x, b.y, p.x, p.y) < rr * rr) { b.dead = true; damagePlayer(b); }
       }
     }
   }
   for (const a of G.bullets) {
-    if (a.dead || a.owner !== 0) continue;
+    if (a.dead || a.owner !== 0 || a.lob) continue; // lob shells fly above enemy shells
     for (const c of G.bullets) {
       if (c.dead || c.owner !== 1) continue;
       const rr = a.r + c.r + 3;
@@ -1086,11 +1635,11 @@ function waveMods(w) {
   return { speed: 1 + Math.min(0.3, (w - 1) * 0.03) + Math.min(0.3, late * 0.015), cool: Math.max(0.35, 1 - 0.035 * Math.min(9, w - 1) - 0.009 * late) * D.cool,
     err: Math.max(0.012, err0 - Math.max(0, w - 9) * 0.0008) * D.err,
     lead: Math.min(0.85, (w - 1) * 0.14) + Math.min(0.15, Math.max(0, w - 7) * 0.01),
-    dmg: D.dmg * (1 + Math.min(0.6, Math.max(0, w - 13) * 0.02)),
+    dmg: D.dmg * (1 + Math.min(0.6, Math.max(0, w - 13) * 0.02) + Math.max(0, w - 25) * 0.04),
     dodge: Math.min(0.85, D.dodge + late * 0.01), // Avcı sidesteps more of the player's shells as waves go on
     drop: Math.max(0.5, 1 - late * 0.02), // supplies thin out: fewer power-ups (shields!) from late-wave wrecks
     pace: Math.max(0.25, 1 - late * 0.015 - Math.max(0, w - 25) * 0.02), // spawn interval factor: reinforcements arrive faster in late waves
-    hp: 1 + Math.min(0.75, Math.max(0, w - 6) * D.hpGrow) + Math.max(0, w - 25) * 0.01 };
+    hp: 1 + Math.min(0.75, Math.max(0, w - 6) * D.hpGrow) + Math.max(0, w - 20) * 0.09 };
 }
 function buildRoster(w) {
   const D = G.D, list = [];
@@ -1206,7 +1755,7 @@ function updateEnemy(e, dt) {
   if (e.canSee && p.alive) {
     const tt = e.distP / s.bSpeed * G.mods.lead;
     aim = Math.atan2(p.y + p.avy * tt - e.y, p.x + p.avx * tt - e.x) + e.aimErr;
-    may = onScreen(e.x, e.y, T * 0.3);
+    may = onFireView(e.x, e.y, T * 0.3);
   } else if (e.blast) { aim = Math.atan2(e.blast.y - e.y, e.blast.x - e.x); may = true; }
   if (e.type === 'boss') e.chargeT = e.canSee && p.alive && e.cool < 0.55 ? e.chargeT + dt : 0; // Komutan's barrels glow while charging
   if (aim !== null) {
@@ -1335,10 +1884,10 @@ function updateHunter(e, dt) {
     let tx = p.x + p.avx * tt, ty = p.y + p.avy * tt;
     if (!los(e.x, e.y, tx, ty)) { tx = p.x; ty = p.y; }
     aim = Math.atan2(ty - e.y, tx - e.x) + e.aimErr * 0.3;
-    may = onScreen(e.x, e.y, T * 0.3);
+    may = onFireView(e.x, e.y, T * 0.3);
   } else if (p.alive && !e.reconDone && G.time - e.seenT < 2.2 && dist2(e.x, e.y, e.seenX, e.seenY) < (T * 9) * (T * 9) && los(e.x, e.y, e.seenX, e.seenY)) {
     aim = Math.atan2(e.seenY - e.y, e.seenX - e.x);
-    may = onScreen(e.x, e.y, T * 0.3);
+    may = onFireView(e.x, e.y, T * 0.3);
   } else if (e.blast) { aim = Math.atan2(e.blast.y - e.y, e.blast.x - e.x); may = true; }
   e.lock = false;
   if (aim !== null) {
@@ -1373,6 +1922,7 @@ window.addEventListener('keydown', e => {
   if ((e.code === 'Escape' || e.code === 'KeyP') && subOpen()) { if (e.code === 'Escape') closeSub(); e.preventDefault(); return; }
   if (e.code === 'KeyP' || e.code === 'Escape') { if (G.state === 'play') pauseGame(); else if (G.state === 'paused') resumeGame(); e.preventDefault(); return; }
   if (e.code === 'KeyM' && !e.repeat) { toggleSound(); return; }
+  if (nukeKey(e)) return; // hook (C): N key etc.
   if (G.state === 'play' && G.phase === 'upgrade' && !subOpen()) {
     const n = { Digit1: 0, Digit2: 1, Digit3: 2, Numpad1: 0, Numpad2: 1, Numpad3: 2 }[e.code];
     if (n !== undefined) { e.preventDefault(); if (!e.repeat && upChoices[n]) chooseUpgrade(upChoices[n]); return; }
@@ -1436,20 +1986,20 @@ document.addEventListener('gesturestart', e => e.preventDefault());
 document.addEventListener('visibilitychange', () => { if (document.hidden) pauseGame(); });
 window.addEventListener('blur', () => { keys.clear(); mouse.down = false; pauseGame(); });
 
-function autoTarget(p, base, cone) {
+function autoTarget(p, base, cone) { // sets autoTarget.lastD to the distance of the chosen target
   let best = null, bestScore = 1e9;
   for (const e of G.enemies) {
     if (e.dead || (e.hidden && !upL('thermal')) || !onScreen(e.x, e.y, 0)) continue;
     const a = Math.atan2(e.y - p.y, e.x - p.x), d = Math.hypot(e.x - p.x, e.y - p.y);
     const da = base === null ? 0 : Math.abs(angDiff(base, a));
     if (da > cone || !los(p.x, p.y, e.x, e.y)) continue;
-    const sc = da * 300 + d; if (sc < bestScore) { bestScore = sc; best = a; }
+    const sc = da * 300 + d; if (sc < bestScore) { bestScore = sc; best = a; autoTarget.lastD = d; }
   }
   return best;
 }
 
 /* ================= player ================= */
-const bot = { on: false, mx: 0, my: 0, aim: null, fire: false, t: 0 };
+const bot = { on: false, mx: 0, my: 0, aim: null, fire: false, t: 0, dist: 0, sd: 1, tank: 'random' }; // dist: shot distance for the Obüs; tank: evolution pick (id, 'random' or a function of the offered ids)
 function updatePlayer(p, dt) {
   const s = p.spec, m = G.map, now = performance.now();
   p.cool -= dt; p.flash = Math.max(0, p.flash - dt); p.recoil = Math.max(0, p.recoil - dt * 7);
@@ -1467,7 +2017,7 @@ function updatePlayer(p, dt) {
   if (thr > 0) {
     const target = Math.atan2(iy, ix);
     p.angle = turnTo(p.angle, target, s.turn * (turbo > 1 ? 1.25 : 1) * dt);
-    const al = Math.cos(angDiff(p.angle, target)), spd = al > 0 ? s.speed * turbo * thr * al * al : 0;
+    const al = Math.cos(angDiff(p.angle, target)), spd = al > 0 ? s.speed * turbo * thr * al * al * pushK(p) : 0; // pushK: Çift Yön volley boost
     tvx = Math.cos(p.angle) * spd; tvy = Math.sin(p.angle) * spd;
   }
   const k = 1 - Math.exp(-12 * dt);
@@ -1480,28 +2030,32 @@ function updatePlayer(p, dt) {
   if (turbo > 1 && moving && Math.random() < dt * 22) addPart('glow', bx + rand(-4, 4), by + rand(-4, 4), -p.vx * 0.2, -p.vy * 0.2, 0.32, 15, -24, 2, 'pu_speed');
   if (upL('engine') && moving && fxScale === 1 && Math.random() < dt * (2 + upL('engine'))) addPart('smoke', bx, by, -p.vx * 0.15 + rand(-8, 8), -p.vy * 0.15 + rand(-8, 8), rand(0.4, 0.7), rand(6, 9), 22, 2);
 
-  let aim = null, firing = false;
+  let aim = null, firing = false, aimD = 6 * T; // aimD: how far the shot should go (Obus lob); 6 tiles when nothing says otherwise
   const am = sticks.aim;
-  if (bot.on) { aim = bot.aim; firing = bot.fire; }
+  if (bot.on) { aim = bot.aim; firing = bot.fire; if (bot.dist) aimD = bot.dist; }
   else if (am.id !== null) {
     const mag = Math.hypot(am.vx, am.vy);
     if (mag > 0.22) {
       aim = Math.atan2(am.vy, am.vx);
-      if (SET.aimAssist) { const as = autoTarget(p, aim, 0.26); if (as !== null) aim = as; }
+      aimD = (2.5 + 8.5 * clamp((mag - 0.32) / 0.68, 0, 1)) * T; // stick deflection 0.32..1 -> 2.5..11 tiles
+      if (SET.aimAssist) { const as = autoTarget(p, aim, 0.26); if (as !== null) { aim = as; aimD = autoTarget.lastD; } }
       firing = mag > 0.32;
     }
   } else if (input.mouseAim && !input.touch) {
     const w = toWorld(mouse.x, mouse.y); aim = Math.atan2(w.y - p.y, w.x - p.x); firing = mouse.down || keys.has('fire');
+    aimD = clamp(Math.hypot(w.x - p.x, w.y - p.y), 2.5 * T, 12 * T);
     if (thr > 0 && now - mouse.lastMove > 6000 && now - mouse.lastDown > 6000) input.mouseAim = false;
   } else { aim = p.angle; firing = keys.has('fire') || mouse.down; }
   if (tapFire) {
     tapFire = false;
     const as = autoTarget(p, null, 9);
-    if (as !== null) { aim = as; p.turret = as; } else if (aim === null) aim = p.turret;
+    if (as !== null) { aim = as; p.turret = as; aimD = autoTarget.lastD; } else if (aim === null) aim = p.turret;
     firing = true;
   }
   if (aim !== null) p.turret = turnTo(p.turret, aim, s.tTurn * dt);
-  if (firing && p.cool <= 0) { fireTank(p); p.cool = s.cool * (G.buffs.rapid > 0 ? 0.5 : 1); }
+  p.aimDist = clamp(aimD, 2.5 * T, 12 * T);
+  TT.playerTick(p, dt, firing);
+  if (firing && p.cool <= 0 && s.mode !== 'flame' && !TT.locked(p)) { fireTank(p); p.cool = s.cool * (G.buffs.rapid > 0 ? 0.5 : 1) * TT.coolK(p); }
   if (!G.bushHint && m.at(p.x, p.y) === BUSH) { G.bushHint = true; showHint('Çalıdayken düşmanlar seni ancak yakından görebilir', 4); }
   damageSmoke(p, dt);
 }
@@ -1527,8 +2081,13 @@ function startGame(resume) {
   G.buffs = freshBuffs(); G.buffMax = freshBuffs(); G.strikes = []; G.jet = null; G.airQ = 0;
   G.D = RULES;
   G.dodges = 0; G.covers = 0;
-  G.up = {};
+  nukeReset(resume && resume.nuke); // nuke meter: restored on resume
+  G.up = {}; G.tank = 'std'; G.upMode = 'cards'; G.evoWait = 0;
   if (resume && resume.ups && typeof resume.ups === 'object') for (const k of UP_KEYS) { const L = resume.ups[k] | 0; if (L > 0) G.up[k] = Math.min(L, UPS[k].max); }
+  if (resume) { // saved tank; an old save that owned the removed twin card becomes the Ikiz tank; unknown ids fall back to Standart
+    if (typeof resume.tank === 'string' && Object.prototype.hasOwnProperty.call(TANKS, resume.tank)) G.tank = resume.tank;
+    else if (!resume.tank && resume.ups && typeof resume.ups === 'object' && LEGACY_UPS.some(k => (resume.ups[k] | 0) > 0)) G.tank = 'ikiz';
+  }
   G.player = makeTank('player', 0, 0);
   refreshPlayer(); G.player.hp = G.player.maxHp;
   if (resume) {
@@ -1548,6 +2107,7 @@ function nextWave() {
   G.enemies = []; G.bullets = []; G.pickups = []; G.portals = []; G.texts = []; G.strikes = []; G.jet = null; parts.length = 0; tm.n = 0; tm.head = 0;
   const p = G.player;
   p.x = HALF * T + T / 2; p.y = HALF * T + T / 2; p.vx = p.vy = p.avx = p.avy = 0; p.angle = p.turret = -Math.PI / 2; p.pl = p.pr = null;
+  p.heat = 0; p.overheatT = 0; p.pushT = 0; p.flameOn = false; // Makineli heat etc. start cold every wave
   const ro = buildRoster(w); G.queue = ro.list; G.maxAlive = ro.maxAlive; G.mods = waveMods(w); G.spawnTimer = 0.4; G.boss = null;
   G.phase = 'intro'; G.phaseT = 0; G.fade = 1;
   cam.x = p.x; cam.y = p.y; cam.shake = 0; clampCam(); computeView();
@@ -1588,38 +2148,90 @@ function rollUpgrades() {
   return shuffle(out);
 }
 function cardHTML(k, i) {
-  const u = UPS[k], L = upL(k) + 1;
+  const u = UPS[k], L = upL(k) + 1, sb = u.extra ? '' : synBadgeHTML(k);
   let lv = '';
   if (!u.extra) {
     const pips = u.max > 1 ? Array.from({ length: u.max }, (_, j) => `<i class="${j < L - 1 ? 'on' : j === L - 1 ? 'new' : ''}"></i>`).join('') : '';
     lv = `<span class="up-lv">${pips}<span>${u.max > 1 ? `Seviye ${L}/${u.max}` : 'Tek parça'}</span>${u.rare ? '<b>Nadir</b>' : ''}</span>`;
   }
-  return `<button type="button" class="up-card${u.rare ? ' rare' : ''}${u.extra ? ' extra' : ''}" data-k="${k}">`
+  return `<button type="button" class="up-card${u.rare ? ' rare' : ''}${u.extra ? ' extra' : ''}${sb ? ' has-syn' : ''}" data-k="${k}">`
     + `<span class="ico"><svg class="ico-svg" viewBox="0 0 24 24" aria-hidden="true">${u.svg}</svg></span>`
-    + `<span class="up-name">${u.name}</span>${lv}<span class="up-desc">${u.desc(L)}</span>`
+    + `<span class="up-name">${u.name}</span>${lv}<span class="up-desc">${u.desc(L)}</span>${sb}`
     + `<span class="up-key only-fine" aria-hidden="true">${i + 1}</span></button>`;
 }
+// Tank evolution: debt rule. The player should own a tank of tier needTier(wave); a missed evolution comes back at the next workshop
+const evoDue = () => !G.noEvo && TANKS[G.tank].tier < needTier(G.wave) && TANKS[G.tank].kids.length > 0;
+const evoRel = id => { const a = TANKS[id], b = TANKS.std; const fp = a.dmg * tankShells(a) / a.cool / (b.dmg * tankShells(b) / b.cool); return { fp, fpHot: a.tr && a.tr.rateGain ? fp * (1 + a.tr.rateGain) : 0, spd: a.speedMul, bs: a.bSpeed / b.bSpeed }; }; // fp: firepower (dps) vs Standart; fpHot: at full heat
+function tankCardHTML(id, i) {
+  const tk = TANKS[id], r = evoRel(id);
+  return `<button type="button" class="up-card tank" data-k="${id}">`
+    + `<span class="ico evo"><canvas data-evo="${id}" width="64" height="64" aria-hidden="true"></canvas></span>`
+    + `<span class="up-name">${tk.name}</span>`
+    + `<span class="evo-stats"><span>Ateş gücü <b>×${dec2(r.fp)}${r.fpHot ? '–' + dec2(r.fpHot) : ''}</b></span><span>Hız <b>×${dec2(r.spd)}</b></span><span>Mermi hızı <b>×${dec2(r.bs)}</b></span></span>`
+    + `<span class="up-desc"><b>${tk.traitName}.</b> ${tk.blurb}</span>`
+    + `<span class="up-key only-fine" aria-hidden="true">${i + 1}</span></button>`;
+}
+// small tank sprites on the evolution cards (the same drawTank as in play, bare tank without workshop parts)
+function drawEvoSprites() {
+  const d = Math.min(window.devicePixelRatio || 1, 2), px = Math.round(64 * d), k = px / 64;
+  el.upCards.querySelectorAll('canvas[data-evo]').forEach(cv => {
+    cv.width = cv.height = px;
+    const g = cv.getContext('2d');
+    g.setTransform(k * 0.95, 0, 0, k * 0.95, px / 2, px / 2 + 3 * k);
+    drawTank({ id: 0, type: 'player', spec: playerSpec(cv.dataset.evo, true), x: 0, y: 0, angle: -Math.PI / 2, turret: -Math.PI / 2, treadL: 0, treadR: 0, recoil: 0, flash: 0, heat: 0, overheatT: 0, evoT: 0 }, 1, g);
+  });
+}
 function showUpgrades() {
-  G.phase = 'upgrade'; G.phaseT = 0;
+  G.phase = 'upgrade'; G.phaseT = 0; G.evoWait = 0;
   releaseInput(); hideBanner(); canvas.classList.remove('aim');
-  upChoices = rollUpgrades();
-  const boss = G.wave % 5 === 0;
-  $('upTitle').textContent = boss ? 'KOMUTAN GANİMETİ' : 'ATÖLYE';
-  $('upSub').textContent = `Dalga ${G.wave} bitti. Tankına bir yükseltme seç.`;
-  el.upCards.innerHTML = upChoices.map(cardHTML).join('');
+  const evo = evoDue();
+  G.upMode = evo ? 'evo' : 'cards';
+  if (evo) {
+    upChoices = TANKS[G.tank].kids.slice();
+    $('upTitle').textContent = 'TANK EVRİMİ';
+    $('upSub').textContent = TANKS[G.tank].tier === 0 ? `Dalga ${G.wave} bitti. Tankın yeni bir biçime geçiyor, birini seç.` : `${TANKS[G.tank].name} dalı ikiye ayrılıyor, birini seç.`;
+    el.upCards.innerHTML = upChoices.map(tankCardHTML).join('');
+    drawEvoSprites();
+  } else {
+    upChoices = rollUpgrades();
+    const boss = G.wave % 5 === 0;
+    $('upTitle').textContent = boss ? 'KOMUTAN GANİMETİ' : 'ATÖLYE';
+    $('upSub').textContent = `Dalga ${G.wave} bitti. Tankına bir yükseltme seç.`;
+    el.upCards.innerHTML = upChoices.map(cardHTML).join('');
+  }
   el.upgrade.classList.remove('hidden');
   const panel = $('upPanel'); if (panel) panel.scrollTop = 0;
   upShownAt = performance.now();
 }
+// The evolution screen was answered: switch tank, flash, 1 s shield; the card screen follows after a moment (or at once, evoWait = 0)
+function chooseTank(id) {
+  const p = G.player, tk = TANKS[id], oldMax = p.maxHp;
+  G.tank = id; refreshPlayer();
+  p.hp = Math.min(p.maxHp, Math.max(1, p.hp * p.maxHp / oldMax)); // keep the armour ratio when the tank has more or less hull
+  p.heat = 0; p.overheatT = 0; p.pushT = 0; p.shield1T = 1; p.evoT = 0.7; p.volId = 0;
+  upChoices = []; G.upMode = 'cards';
+  el.upgrade.classList.add('hidden');
+  showBanner(tk.name.toLocaleUpperCase('tr'), tk.traitName + ': ' + tk.blurb, 2.4);
+  addPart('ring', p.x, p.y, 0, 0, 0.6, 14, 220, 0, '255,255,255');
+  addPart('flash', p.x, p.y, 0, 0, 0.25, 130, 0, 0);
+  for (let k = 0; k < 14; k++) { const a = rand(0, TAU); addPart('spark', p.x, p.y, Math.cos(a) * 260, Math.sin(a) * 260, rand(0.3, 0.6), 1, 0, 3, '#ffffff'); }
+  Sound.evolve(); vibrate([20, 30, 40]); shake(4);
+  G.evoWait = 1.5; // world stays frozen (phase 'upgrade'); updatePlay opens the card screen when the wait is over
+}
+// open the card screen that follows an evolution (or the next evolution if one is still due)
+function finishEvo() { if (G.evoWait > 0 && G.phase === 'upgrade') { G.evoWait = 0; hideBanner(); showUpgrades(); } }
 function chooseUpgrade(k) {
   if (G.phase !== 'upgrade' || !upChoices.includes(k)) return;
+  if (G.upMode === 'evo') { chooseTank(k); return; }
   const p = G.player, u = UPS[k];
-  let label;
+  let label, unlocked = [];
   if (k === 'fix') { p.hp = p.maxHp; label = 'Zırh tam'; }
   else if (k === 'bounty') { const pts = bountyPts(); G.score += pts; label = '+' + fmt(pts) + ' puan'; }
   else if (k === 'prep') { const d = 10 * (1 + 0.25 * upL('boost')); for (const b of ['shield', 'rapid']) { G.buffs[b] = d; G.buffMax[b] = d; } label = 'Kalkan ve seri atış hazır'; }
   else {
+    const synBefore = synList().map(sy => sy.id);
     G.up[k] = Math.min(u.max, upL(k) + 1); refreshPlayer();
+    unlocked = synUnlocked(synBefore);
     if (k === 'armor') p.hp = Math.min(p.maxHp, p.hp + 20);
     label = u.name + (u.max > 1 ? ' ' + G.up[k] : '');
   }
@@ -1628,6 +2240,7 @@ function chooseUpgrade(k) {
   addText(p.x, p.y - 34, label, '#f2c14e', 18);
   addPart('ring', p.x, p.y, 0, 0, 0.5, 14, 170, 0, '242,193,78');
   G.phase = 'out'; G.phaseT = -0.55; // a moment to see the new part before the next wave fades in
+  if (unlocked.length) { showBanner('BİRLEŞİM AÇILDI', unlocked.map(sy => sy.name).join(', '), 1.9); G.phaseT = -1.6; } // longer pause: the wave banner must not overwrite it
   Sound.upgrade(); vibrate(20);
 }
 function upChipsHTML() {
@@ -1752,6 +2365,7 @@ function renderGuideLists() {
     const u = UPS[k];
     return `<li${u.rare ? ' class="rare"' : ''}><span class="ico"><svg class="ico-svg" viewBox="0 0 24 24" aria-hidden="true">${u.svg}</svg></span>${u.name}<small>${u.brief}</small><small>${u.max > 1 ? u.max + ' seviye' : 'Tek parça'}</small></li>`;
   }).join('');
+  $('guideSyn').innerHTML = SYN.map(sy => `<li><b>${sy.name}</b><small>${UPS[sy.a].name} + ${UPS[sy.b].name}</small><span>${sy.desc}</span></li>`).join('');
 }
 let guideDrawn = false;
 function renderGuideSprites() {
@@ -1772,6 +2386,7 @@ function toMenu() {
   hideBanner(); el.hint.classList.remove('show'); hintT = 0;
   G.enemies = []; G.bullets = []; G.pickups = []; G.portals = []; G.texts = []; G.queue = []; parts.length = 0; tm.n = 0; tm.head = 0;
   G.buffs = freshBuffs(); G.buffMax = freshBuffs(); G.strikes = []; G.jet = null; G.airQ = 0; G.up = {}; upChoices = [];
+  G.tank = 'std'; G.upMode = 'cards'; G.evoWait = 0; view.zoomK = 1; view.scale = view.base;
   canvas.classList.remove('aim'); releaseInput(); updateRecords();
   el.btnContinue.classList.toggle('hidden', !G.resume);
   if (G.resume) el.btnContinue.textContent = `Kaldığın yerden devam et (dalga ${G.resume.wave})`;
@@ -1794,12 +2409,12 @@ function placeMenuTank() {
 function pauseGame() {
   if (G.state !== 'play') return;
   G.state = 'paused'; el.pause.classList.remove('hidden'); el.upgrade.classList.add('hidden'); releaseInput();
-  renderUpList('pauseUpsWrap', 'pauseUps');
+  renderUpList('pauseUpsWrap', 'pauseUps'); renderSynList('pauseSynWrap', 'pauseSyn');
 }
 function resumeGame() {
   if (G.state !== 'paused') return;
   G.state = 'play'; el.pause.classList.add('hidden');
-  if (G.phase === 'upgrade') { el.upgrade.classList.remove('hidden'); upShownAt = performance.now(); }
+  if (G.phase === 'upgrade' && upChoices.length) { el.upgrade.classList.remove('hidden'); upShownAt = performance.now(); }
   lastT = performance.now(); Sound.resume();
 }
 function renderSoundBtn(on) { el.btnSound.innerHTML = on ? ICON_ON : ICON_OFF; el.btnSound.setAttribute('aria-label', on ? 'Sesi kapat' : 'Sesi aç'); }
@@ -1833,6 +2448,8 @@ function updateCamera(rdt) {
       if (input.touch && view.h > view.w) ty += view.h / view.scale * 0.07;
     }
   }
+  const zt = G.state === 'menu' ? 1 : TANKS[G.tank].zoom; // Keskin Nişancı: the camera pulls back
+  if (view.zoomK !== zt) { view.zoomK = Math.abs(zt - view.zoomK) < 0.001 ? zt : view.zoomK + (zt - view.zoomK) * (1 - Math.exp(-3 * rdt)); view.scale = view.base * view.zoomK; }
   const k = 1 - Math.exp(-5 * rdt);
   cam.x += (tx - cam.x) * k; cam.y += (ty - cam.y) * k;
   clampCam();
@@ -1861,17 +2478,24 @@ function updatePlay(rdt) {
   G.hurt = Math.max(0, G.hurt - rdt);
   updatePhase(rdt);
   if (G.state !== 'play') return;
-  if (G.phase === 'upgrade') { updateParticles(rdt); updateTexts(rdt); updateCamera(rdt); updateHUD(); return; } // world waits behind the workshop
+  if (G.phase === 'upgrade') { // world waits behind the workshop
+    TT.frozenTick(rdt);
+    if (G.evoWait > 0 && (G.evoWait -= rdt) <= 0) { G.evoWait = 0; hideBanner(); showUpgrades(); }
+    updateParticles(rdt); updateTexts(rdt); updateCamera(rdt); updateHUD(); return;
+  }
   const p = G.player;
-  if (p.alive) { updatePlayer(p, dt); regen(p, dt); }
+  if (p.alive) { updatePlayer(p, dt); synTrack(p, dt); regen(p, dt); }
   updateFlow(dt);
   if (G.phase === 'fight') updateSpawns(dt);
   const frozen = G.buffs.freeze > 0;
   for (const e of G.enemies) {
     if (e.dead) continue;
-    if (frozen) { e.lock = false; e.flash = Math.max(0, e.flash - dt); e.recoil = 0; } // Dondurucu: enemies stand still and hold fire
+    const stunned = tickStatus(e, dt);
+    if (e.dead) continue;
+    if (frozen || stunned) { e.lock = false; e.flash = Math.max(0, e.flash - dt); e.recoil = 0; } // Dondurucu / Ikiz stun: enemies stand still and hold fire
     else updateEnemy(e, dt);
   }
+  nukeUpdate(dt); // hook (C)
   separateTanks();
   updateBullets(dt);
   updateStrikes(dt);
@@ -1929,6 +2553,7 @@ function updateHUD() {
     measureHud();
   }
   if (ui.buffEls) for (const b of ui.buffEls) { const k = b.dataset.k; b.style.transform = `scaleX(${k === 'air' ? 1 : clamp(G.buffs[k] / (G.buffMax[k] || PU[k].dur), 0, 1).toFixed(3)})`; }
+  nukeHud(); // hook (C)
 }
 
 /* ================= render ================= */
@@ -1960,8 +2585,9 @@ function render() {
   drawBushes(c0, c1, r0, r1);
   if (upL('thermal')) for (const e of G.enemies) if (e.hidden && !e.dead && onScreen(e.x, e.y, 60)) drawThermal(e);
   if (pAlive && m.at(p.x, p.y) === BUSH) drawTank(p, 0.5 * pa);
-  if (pAlive && G.buffs.shield > 0) drawShield(p);
+  if (pAlive && (G.buffs.shield > 0 || p.shield1T > 0)) drawShield(p);
   drawPips();
+  drawTankFx(); // tank-specific effects under the shells (stun, transformation ring; D1/D2: laser, landing marks, flame)
   drawBullets();
   drawLocks();
   drawStrikes();
@@ -1973,6 +2599,7 @@ function render() {
   if ((G.state === 'play' || G.state === 'paused') && !dbg.clean) { drawIndicators(); drawCrosshair(); drawSticks(); drawVignette(); }
   syncAimCursor();
   if (G.state === 'menu') drawMenuHint();
+  drawNuke(); // hook (C): screen space (setTransform(dpr)), above the overlays, below the fade
   if (G.fade > 0.001) { ctx.fillStyle = `rgba(14,16,10,${G.fade.toFixed(3)})`; ctx.fillRect(0, 0, view.w, view.h); }
 }
 function drawWaterFx(c0, c1, r0, r1) {
@@ -2019,11 +2646,129 @@ function drawPortals() {
 function tankShadow(t) {
   const s = t.spec; ctx.save(); ctx.translate(t.x + 5, t.y + 7); ctx.rotate(t.angle); rrect(ctx, -s.len / 2, -s.wid / 2, s.len, s.wid, 6); ctx.fill(); ctx.restore();
 }
-function barrel(s, rec, c, g) {
-  const x0 = s.tR * 0.4 - rec, len = s.barrel - s.tR * 0.4;
-  g.fillStyle = c.dk; g.fillRect(x0, -s.bW / 2, len, s.bW);
-  g.fillStyle = 'rgba(255,255,255,.16)'; g.fillRect(x0, -s.bW / 2 + 1, len, 1.2);
-  g.fillStyle = '#1f1d19'; g.fillRect(x0 + len - 5, -s.bW / 2 - 1, 5, s.bW + 2);
+// One barrel in the turret frame. s.shape picks the look; heat (0..1, Makineli) tints it red, with a dark rim so it reads on sand and snow
+const mixHex = (a, b, k) => { const pa = parseInt(a.slice(1), 16), pb = parseInt(b.slice(1), 16); let o = 0; for (let sh = 16; sh >= 0; sh -= 8) { const x = (pa >> sh) & 255, y = (pb >> sh) & 255; o = (o << 8) | Math.round(x + (y - x) * k); } return '#' + (o + 0x1000000).toString(16).slice(1); };
+function barrel(s, rec, c, g, heat, len0) {
+  const x0 = s.tR * 0.4 - rec, len = (len0 || s.barrel) - s.tR * 0.4, bW = s.bW;
+  let dk = c.dk;
+  if (heat > 0) { // hot barrel: dark -> orange -> pulsing red when overheated
+    const over = G.player && s === G.player.spec && G.player.overheatT > 0;
+    dk = over ? mixHex('#ff3b1f', '#ff8a5c', 0.5 + 0.5 * Math.sin(G.time * 20)) : mixHex(c.dk, '#ff5a2a', Math.min(1, heat) * 0.85);
+    if (heat > 0.25) { g.fillStyle = 'rgba(30,12,6,.9)'; g.fillRect(x0 - 1, -bW / 2 - 1.2, len + 2, bW + 2.4); }
+  }
+  switch (s.shape) {
+    case 'long': { // Keskin Nişancı: thin long barrel, breech collar and a slotted muzzle brake
+      g.fillStyle = dk; g.fillRect(x0, -bW / 2, len, bW);
+      g.fillStyle = 'rgba(255,255,255,.16)'; g.fillRect(x0, -bW / 2 + 1, len, 1.1);
+      g.fillStyle = c.dk; g.fillRect(x0, -bW / 2 - 1.3, 5, bW + 2.6);
+      g.fillStyle = '#1f1d19'; g.fillRect(x0 + len - 7, -bW / 2 - 1.8, 7, bW + 3.6);
+      g.fillStyle = c.acc; g.fillRect(x0 + len - 5.2, -bW / 2 - 1.8, 1.2, bW + 3.6); g.fillRect(x0 + len - 2.6, -bW / 2 - 1.8, 1.2, bW + 3.6);
+      break;
+    }
+    case 'mg': { // Makineli: short thick barrel in a ventilated jacket
+      g.fillStyle = dk; g.fillRect(x0, -bW / 2, len, bW);
+      g.fillStyle = 'rgba(255,255,255,.14)'; g.fillRect(x0, -bW / 2 + 1, len, 1.1);
+      const jl = len * 0.62;
+      g.fillStyle = heat > 0.25 ? dk : c.body; g.fillRect(x0, -bW / 2 - 1.6, jl, bW + 3.2);
+      g.fillStyle = '#1f1d19'; for (let v = 3; v < jl - 2; v += 4.2) g.fillRect(x0 + v, -bW / 2 - 0.9, 1.7, bW + 1.8);
+      g.fillStyle = '#1f1d19'; g.fillRect(x0 + len - 5, -bW / 2 - 1, 5, bW + 2);
+      break;
+    }
+    case 'tri': { // Üçlü: thin barrels with a pink tip; the long middle one (the piercing shell) gets a pointed tip
+      g.fillStyle = dk; g.fillRect(x0, -bW / 2, len, bW);
+      g.fillStyle = 'rgba(255,255,255,.16)'; g.fillRect(x0, -bW / 2 + 1, len, 1.1);
+      g.fillStyle = '#1f1d19'; g.fillRect(x0 + len - 4, -bW / 2 - 1, 4, bW + 2);
+      g.fillStyle = c.acc;
+      if (len0 > 26) { g.beginPath(); g.moveTo(x0 + len - 6, -bW / 2 - 0.8); g.lineTo(x0 + len + 3, 0); g.lineTo(x0 + len - 6, bW / 2 + 0.8); g.closePath(); g.fill(); }
+      else g.fillRect(x0 + len - 6, -bW / 2 - 0.8, 1.6, bW + 1.6);
+      break;
+    }
+    case 'duo': { // Çift Yön: a front and a rear barrel, each with a pale ring near the tip
+      g.fillStyle = dk; g.fillRect(x0, -bW / 2, len, bW);
+      g.fillStyle = 'rgba(255,255,255,.16)'; g.fillRect(x0, -bW / 2 + 1, len, 1.1);
+      g.fillStyle = '#1f1d19'; g.fillRect(x0 + len - 4, -bW / 2 - 1, 4, bW + 2);
+      g.fillStyle = c.acc; g.fillRect(x0 + len - 9, -bW / 2 - 1.2, 2.2, bW + 2.4);
+      break;
+    }
+    case 'flame': { // Alev Topu: short fat tube widening to a nozzle with a glowing mouth
+      g.fillStyle = dk; g.fillRect(x0, -bW / 2, len * 0.62, bW);
+      g.beginPath(); g.moveTo(x0 + len * 0.62, -bW / 2); g.lineTo(x0 + len, -bW * 0.78); g.lineTo(x0 + len, bW * 0.78); g.lineTo(x0 + len * 0.62, bW / 2); g.closePath(); g.fill();
+      g.fillStyle = c.acc; g.fillRect(x0 + len * 0.62 - 1, -bW / 2 - 1.2, 2.4, bW + 2.4);
+      g.fillStyle = '#1f1d19'; g.fillRect(x0 + len - 3.2, -bW * 0.78 - 0.6, 3.2, bW * 1.56 + 1.2);
+      g.fillStyle = G.player && s === G.player.spec && G.player.flameOn ? '#fff0a0' : '#ff7a2a'; g.fillRect(x0 + len - 2, -bW * 0.5, 2.4, bW);
+      break;
+    }
+    case 'bell': { // Şarapnel: a flared bell with a dark mouth and a pale rim
+      g.fillStyle = dk; g.fillRect(x0, -bW * 0.36, len * 0.45, bW * 0.72);
+      g.beginPath(); g.moveTo(x0 + len * 0.4, -bW * 0.36); g.lineTo(x0 + len, -bW * 1.1); g.lineTo(x0 + len, bW * 1.1); g.lineTo(x0 + len * 0.4, bW * 0.36); g.closePath(); g.fill();
+      g.fillStyle = 'rgba(255,255,255,.16)'; g.fillRect(x0, -bW * 0.36 + 0.8, len * 0.45, 1.1);
+      g.fillStyle = '#1f1d19'; g.beginPath(); g.ellipse(x0 + len - 1, 0, 2.6, bW * 0.95, 0, 0, TAU); g.fill();
+      g.fillStyle = c.acc; g.fillRect(x0 + len - 4.4, -bW * 1.1, 1.4, bW * 2.2);
+      break;
+    }
+    case 'rail': { // Rayli Top: a long thin barrel with glowing coil rings and a small emitter at the tip
+      g.fillStyle = '#1f1d19'; g.fillRect(x0, -bW / 2 - 0.8, len, bW + 1.6);
+      g.fillStyle = dk; g.fillRect(x0, -bW / 2, len, bW);
+      g.fillStyle = 'rgba(255,255,255,.2)'; g.fillRect(x0, -bW / 2 + 0.7, len, 1);
+      for (let k = 0; k < 4; k++) { const cx = x0 + 6 + k * (len - 16) / 3.4; g.fillStyle = '#1f1d19'; g.fillRect(cx - 0.4, -bW / 2 - 2.9, 3.8, bW + 5.8); g.fillStyle = c.acc; g.fillRect(cx + 0.4, -bW / 2 - 2.2, 2.2, bW + 4.4); }
+      g.fillStyle = '#1f1d19'; g.fillRect(x0 + len - 3.5, -bW / 2 - 1.6, 3.5, bW + 3.2);
+      g.fillStyle = c.acc; g.fillRect(x0 + len - 2.2, -1, 2.2, 2);
+      break;
+    }
+    case 'obus': { // Obus: a short fat barrel with a wide collar and a heavy muzzle ring
+      g.fillStyle = '#1f1d19'; g.fillRect(x0, -bW / 2 - 1.2, len, bW + 2.4);
+      g.fillStyle = dk; g.fillRect(x0, -bW / 2, len, bW);
+      g.fillStyle = 'rgba(255,255,255,.2)'; g.fillRect(x0, -bW / 2 + 1, len, 1.4);
+      const cx = x0 + len * 0.42; g.fillStyle = '#1f1d19'; g.fillRect(cx - 0.8, -bW / 2 - 4.2, 6.6, bW + 8.4); g.fillStyle = c.acc; g.fillRect(cx + 0.6, -bW / 2 - 3.2, 3.8, bW + 6.4);
+      g.fillStyle = '#1f1d19'; g.fillRect(x0 + len - 5, -bW / 2 - 2.4, 5, bW + 4.8);
+      g.fillStyle = '#0d0c0a'; g.fillRect(x0 + len - 2.2, -bW / 2 + 2, 2.2, bW - 4);
+      break;
+    }
+    default: // std and twin (one thin barrel per muzzle): the original look
+      g.fillStyle = dk; g.fillRect(x0, -bW / 2, len, bW);
+      g.fillStyle = 'rgba(255,255,255,.16)'; g.fillRect(x0, -bW / 2 + 1, len, 1.2);
+      g.fillStyle = '#1f1d19'; g.fillRect(x0 + len - 5, -bW / 2 - 1, 5, bW + 2);
+  }
+}
+// Marks per tank shape: hullMarks go on the hull (before the turret), turretMarks on the turret (the Standart keeps its gold arrow)
+function hullMarks(g, s, c, hx, hy, hw, hh, alpha) {
+  g.fillStyle = c.acc; g.globalAlpha = alpha * 0.92;
+  switch (s.shape) {
+    case 'twin': g.fillRect(hx + 2, hy + 0.5, hw - 4, 1.7); g.fillRect(hx + 2, hy + hh - 2.2, hw - 4, 1.7); break; // racing stripes along both tracks
+    case 'long': g.fillRect(hx + 2, hy + hh / 2 - 1.1, 7, 2.2); break; // rear stripe
+    case 'mg': for (let k = 0; k < 2; k++) { const x = hx + 2.5 + k * 4.2; g.beginPath(); g.moveTo(x, hy + 3); g.lineTo(x + 3, hy + hh / 2); g.lineTo(x, hy + hh - 3); g.lineTo(x + 1.7, hy + hh - 3); g.lineTo(x + 4.7, hy + hh / 2); g.lineTo(x + 1.7, hy + 3); g.closePath(); g.fill(); } break; // belt chevrons on the rear deck
+    case 'tri': for (let k = -1; k <= 1; k++) { g.beginPath(); g.arc(hx + 6, hy + hh / 2 + k * 6, 1.9, 0, TAU); g.fill(); } g.fillRect(hx + 10, hy + hh / 2 - 0.8, 4, 1.6); break; // three studs across the rear deck
+    case 'duo': g.fillRect(hx + 4, hy + hh / 2 - 0.9, hw - 8, 1.8); for (const sg of [-1, 1]) { const x = sg > 0 ? hx + hw - 3 : hx + 3; g.beginPath(); g.moveTo(x, hy + hh / 2); g.lineTo(x - sg * 4.5, hy + hh / 2 - 3.6); g.lineTo(x - sg * 4.5, hy + hh / 2 + 3.6); g.closePath(); g.fill(); } break; // arrow pointing both ways
+    case 'flame': for (let k = 0; k < 2; k++) { const x = hx + 2.5 + k * 5.2; g.beginPath(); g.moveTo(x, hy + hh - 3); g.quadraticCurveTo(x + 4, hy + hh / 2 + 1, x + 1.5, hy + 3); g.quadraticCurveTo(x + 1.5, hy + hh / 2, x - 1.8, hy + hh - 3); g.closePath(); g.fill(); } break; // two flame tongues
+    case 'bell': for (let k = 0; k < 3; k++) { const x = hx + 2.5 + k * 3.4; g.beginPath(); g.moveTo(x, hy + hh - 2.5); g.lineTo(x + 2, hy + hh - 2.5); g.lineTo(x + 5.5, hy + 2.5); g.lineTo(x + 3.5, hy + 2.5); g.closePath(); g.fill(); } break; // hazard slashes
+    case 'rail': g.fillRect(hx + 2, hy + 1, hw - 6, 1.5); g.fillRect(hx + 2, hy + hh - 2.5, hw - 6, 1.5); g.beginPath(); g.moveTo(hx + hw - 9, hy + hh / 2 - 3); g.lineTo(hx + hw - 4, hy + hh / 2); g.lineTo(hx + hw - 9, hy + hh / 2 + 3); g.closePath(); g.fill(); break; // cyan side rails and a forward arrow
+    case 'obus': for (const yy of [hy + 3, hy + hh - 6]) for (let k = 0; k < 3; k++) g.fillRect(hx + 3 + k * 4.4, yy, 3, 3); break; // yellow ammo-crate squares on the rear deck
+  }
+  g.globalAlpha = alpha;
+}
+function turretMarks(g, s, c, tr) {
+  g.fillStyle = c.acc;
+  switch (s.shape) {
+    case 'twin': g.beginPath(); g.moveTo(tr * 0.62, 0); g.lineTo(tr * 0.15, -tr * 0.3); g.lineTo(tr * 0.15, tr * 0.3); g.closePath(); g.fill(); break;
+    case 'long': // scope tube on the turret's right, orange lens
+      g.fillStyle = '#1f1d19'; rrect(g, -tr * 0.3, tr * 0.5, tr * 1.3, tr * 0.46, 2); g.fill();
+      g.fillStyle = c.acc; g.fillRect(tr * 0.82, tr * 0.56, 2.4, tr * 0.34); g.fillRect(-tr * 0.12, tr * 0.6, 2, tr * 0.26);
+      break;
+    case 'mg': g.fillRect(tr * 0.15, -tr * 0.12, tr * 0.5, tr * 0.24); break;
+    case 'tri': g.lineWidth = 1.8; g.lineCap = 'round'; g.strokeStyle = c.acc; for (const a of [-0.55, 0, 0.55]) { g.beginPath(); g.moveTo(-tr * 0.1, 0); g.lineTo(-tr * 0.1 + Math.cos(a) * tr * 0.8, Math.sin(a) * tr * 0.8); g.stroke(); } break; // three prongs
+    case 'duo': g.beginPath(); g.moveTo(tr * 0.7, 0); g.lineTo(tr * 0.2, -tr * 0.3); g.lineTo(tr * 0.2, tr * 0.3); g.closePath(); g.fill(); g.beginPath(); g.moveTo(-tr * 0.75, 0); g.lineTo(-tr * 0.25, -tr * 0.3); g.lineTo(-tr * 0.25, tr * 0.3); g.closePath(); g.fill(); break; // front and rear arrow
+    case 'flame': g.beginPath(); g.arc(tr * 0.2, 0, tr * 0.38, 0, TAU); g.fill(); g.fillStyle = c.dk; g.beginPath(); g.arc(tr * 0.2, 0, tr * 0.18, 0, TAU); g.fill(); break; // fuel cap
+    case 'bell': g.lineWidth = 2; g.strokeStyle = c.acc; g.beginPath(); g.arc(tr * 0.1, 0, tr * 0.42, 0, TAU); g.stroke(); g.fillRect(tr * 0.04, -tr * 0.1, tr * 0.12, tr * 0.2); break; // ring sight
+    case 'rail': // power coil box on the turret: two cyan bars with a dark gap, plus a glowing node
+      g.fillStyle = '#1f1d19'; rrect(g, -tr * 0.6, -tr * 0.46, tr * 1.25, tr * 0.92, 2); g.fill();
+      g.fillStyle = c.acc; g.fillRect(-tr * 0.46, -tr * 0.34, tr * 0.38, tr * 0.68); g.fillRect(tr * 0.12, -tr * 0.34, tr * 0.38, tr * 0.68);
+      break;
+    case 'obus': // round hatch with a yellow ring
+      g.fillStyle = '#1f1d19'; g.beginPath(); g.arc(-tr * 0.2, 0, tr * 0.55, 0, TAU); g.fill();
+      g.strokeStyle = c.acc; g.lineWidth = 2; g.beginPath(); g.arc(-tr * 0.2, 0, tr * 0.38, 0, TAU); g.stroke();
+      break;
+    default: g.beginPath(); g.moveTo(tr * 0.6, 0); g.lineTo(tr * 0.05, -tr * 0.4); g.lineTo(tr * 0.05, tr * 0.4); g.closePath(); g.fill();
+  }
 }
 const NO_UP = {};
 function drawTank(t, alpha, g) {
@@ -2045,6 +2790,7 @@ function drawTank(t, alpha, g) {
   g.fillStyle = c.body; rrect(g, hx + 1.5, hy + 1.5, hw - 3, hh - 3, 3); g.fill();
   g.globalAlpha = alpha * 0.75; g.fillStyle = c.hi; g.fillRect(hx + hw - 8.5, hy + 3, 4, hh - 6); g.globalAlpha = alpha;
   g.fillStyle = c.dk; for (let k = 0; k < 3; k++) g.fillRect(hx + 3.5 + k * 3.2, hy + 4, 1.6, hh - 8);
+  if (t.type === 'player' && s.shape !== 'std') hullMarks(g, s, c, hx, hy, hw, hh, alpha);
   g.strokeStyle = 'rgba(0,0,0,.55)'; g.lineWidth = 1.3; rrect(g, -L / 2, -W / 2, L, W, 4); g.stroke();
   if (U.armor) { // Zırh plakası: one skirt plate per level along each track, front first
     const sw = (L - 6) / 5, ph = tw * 0.8;
@@ -2062,11 +2808,21 @@ function drawTank(t, alpha, g) {
     g.fillStyle = '#d9d3c1'; rrect(g, bx, by, 6.4, 6.4, 1.5); g.fill();
     g.fillStyle = '#3fa63c'; g.fillRect(bx + 2.5, by + 1, 1.4, 4.4); g.fillRect(bx + 1, by + 2.5, 4.4, 1.4);
   }
-  const fl = t.flash > 0 ? Math.min(1, t.flash * 10) * 0.8 : 0;
+  let fl = t.flash > 0 ? Math.min(1, t.flash * 10) * 0.8 : 0;
+  if (t.evoT > 0) fl = Math.max(fl, clamp(t.evoT / 0.7, 0, 1) * 0.9); // transformation flash
   if (fl) { g.globalAlpha = alpha * fl; g.fillStyle = '#fff'; rrect(g, -L / 2, -W / 2, L, W, 4); g.fill(); g.globalAlpha = alpha; }
   g.rotate(t.turret - t.angle);
   const rec = t.recoil * 4.5;
-  if (s.triple) { for (const a of [-0.2, 0.2, 0]) { g.save(); g.rotate(a); barrel(s, rec, c, g); g.restore(); } }
+  if (s.muzzles) { // player tanks: one barrel per muzzle (the same list fireTank shoots from)
+    const heat = s.tr && s.tr.heatUp ? (t.overheatT > 0 ? 1 : t.heat) : 0;
+    if (s.shape === 'twin') { const o0 = s.muzzles[0].off; g.fillStyle = c.dk; g.fillRect(s.tR * 0.4 - rec, o0 - 1, 4.5, 2 - 2 * o0); } // bridge between the two barrels
+    for (const mz of s.muzzles) { g.save(); g.translate(0, mz.off || 0); g.rotate(mz.ang || 0); barrel(s, rec, c, g, heat, mz.len); g.restore(); }
+    if (heat > 0.3 && t.overheatT > 0 && fxScale === 1) { // overheated: additive glow on the muzzle
+      g.globalCompositeOperation = 'lighter'; g.globalAlpha = alpha * (0.5 + 0.35 * Math.sin(G.time * 20)); const gs = 30;
+      for (const mz of s.muzzles) g.drawImage(SPR.fire, s.barrel - rec - gs / 2, (mz.off || 0) - gs / 2, gs, gs);
+      g.globalCompositeOperation = 'source-over'; g.globalAlpha = alpha;
+    }
+  } else if (s.triple) { for (const a of [-0.2, 0.2, 0]) { g.save(); g.rotate(a); barrel(s, rec, c, g); g.restore(); } }
   else if (s.twin) { const off = s.twinOff || s.bW * 0.62; for (const yo of [-1, 1]) { g.save(); g.translate(0, yo * off); barrel(s, rec, c, g); g.restore(); } }
   else barrel(s, rec, c, g);
   if (t.type === 'boss' && t.chargeT > 0) { // Komutan telegraph: the three muzzles heat up over 0.45 s before the triple shot
@@ -2100,7 +2856,7 @@ function drawTank(t, alpha, g) {
     g.globalAlpha = alpha * (0.6 + 0.4 * Math.sin(G.time * 6)); g.fillStyle = '#3fe0c5'; g.beginPath(); g.arc(tx, ty, 1.8, 0, TAU); g.fill(); g.globalAlpha = alpha;
   }
   g.fillStyle = c.acc;
-  if (t.type === 'player') { g.beginPath(); g.moveTo(tr * 0.6, 0); g.lineTo(tr * 0.05, -tr * 0.4); g.lineTo(tr * 0.05, tr * 0.4); g.closePath(); g.fill(); }
+  if (t.type === 'player') turretMarks(g, s, c, tr);
   else if (s.smart) {
     // Avcı: spinning radar bar over the hatch and a blinking sensor light
     const ra = G.time * 5 + t.id, rl = tr * 0.55, hx2 = -tr * 0.35, hy2 = tr * 0.28;
@@ -2173,8 +2929,31 @@ function bush(c, r, th) {
   for (let k = 0; k < 5; k++) { const px = x + 8 + rng() * (T - 16) + sw * 1.4, py = y + 5 + rng() * (T - 18), rr = 1.6 + rng() * 2.4; ctx.moveTo(px + rr, py); ctx.arc(px, py, rr, 0, TAU); }
   ctx.fill();
 }
+// Tank-specific effects drawn under the shells (world space)
+function drawTankFx() {
+  const p = G.player;
+  burnFx(); // D1: burning enemies glow
+  for (const e of G.enemies) { // Ikiz stun: a spinning ring of sparks over the tank
+    if (!(e.stunT > 0) || e.dead || !onScreen(e.x, e.y, 60)) continue;
+    const a0 = G.time * 9 + e.id, r = e.r + 5;
+    ctx.fillStyle = '#ffe27a'; ctx.strokeStyle = 'rgba(40,28,6,.8)'; ctx.lineWidth = 1;
+    for (let k = 0; k < 4; k++) { const a = a0 + k * TAU / 4; ctx.beginPath(); ctx.arc(e.x + Math.cos(a) * r, e.y + Math.sin(a) * r * 0.8 - 6, 2.6, 0, TAU); ctx.fill(); ctx.stroke(); }
+  }
+  if (!p || !p.alive) return;
+  if (p.evoT > 0) { // transformation: a white ring spreading from the tank
+    const k = 1 - p.evoT / 0.7, r = 18 + 70 * k;
+    ctx.globalAlpha = (1 - k) * 0.9; ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 3 * (1 - k) + 1; ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, TAU); ctx.stroke(); ctx.globalAlpha = 1;
+  }
+  if (G.phase !== 'fight') return;
+  switch (G.tank) {
+    case 'alev': flameFx(p); break; // D1: flame cone
+    case 'rayli': TT_rayli.fx(p); break;
+    case 'obus': TT_obus.fx(p); break;
+    default: break;
+  }
+}
 function drawShield(p) {
-  const t = G.buffs.shield; if (t < 1.6 && ((t * 10) | 0) % 2 === 0) return;
+  const t = G.buffs.shield > 0 ? G.buffs.shield : 9; if (t < 1.6 && ((t * 10) | 0) % 2 === 0) return; // 9: the 1 s transformation shield does not blink
   const r = p.r + 10 + Math.sin(G.time * 8) * 1.2;
   ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.45; ctx.drawImage(SPR.blue, p.x - r * 1.5, p.y - r * 1.5, r * 3, r * 3);
   ctx.globalCompositeOperation = 'source-over';
@@ -2201,21 +2980,24 @@ const LOOK = {
   enemy: { trail: 'rgba(255,128,80,.55)', core: '#ffd0b0', glow: 'fire' },
   pierce: { trail: 'rgba(255,111,174,.62)', core: '#ffe2ef', glow: 'pu_pierce' },
   blast: { trail: 'rgba(255,150,70,.62)', core: '#ffd08a', glow: 'fire' },
-  bounce: { trail: 'rgba(160,215,255,.62)', core: '#e9f6ff', glow: 'blue' }
+  bounce: { trail: 'rgba(160,215,255,.62)', core: '#e9f6ff', glow: 'blue' },
+  rail: { trail: 'rgba(126,240,255,.7)', core: '#f2feff', glow: 'blue' }
 };
 function drawBullets() {
   if (!G.bullets.length) return;
   ctx.lineCap = 'round';
   for (const b of G.bullets) {
+    if (b.lob) continue;
     const lk = LOOK[b.look] || LOOK.player, sp = Math.hypot(b.vx, b.vy) || 1, ux = b.vx / sp, uy = b.vy / sp, tl = b.big ? 22 : 16;
     ctx.strokeStyle = lk.trail; ctx.lineWidth = b.r * 1.5;
     ctx.beginPath(); ctx.moveTo(b.x - ux * tl, b.y - uy * tl); ctx.lineTo(b.x, b.y); ctx.stroke();
   }
   ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.6;
-  for (const b of G.bullets) { const gs = b.r * 6; ctx.drawImage(SPR[(LOOK[b.look] || LOOK.player).glow], b.x - gs / 2, b.y - gs / 2, gs, gs); }
+  for (const b of G.bullets) { if (b.lob) continue; const gs = b.r * 6; ctx.drawImage(SPR[(LOOK[b.look] || LOOK.player).glow], b.x - gs / 2, b.y - gs / 2, gs, gs); }
   ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
   ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(0,0,0,.45)';
-  for (const b of G.bullets) { ctx.fillStyle = (LOOK[b.look] || LOOK.player).core; ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, TAU); ctx.fill(); ctx.stroke(); }
+  for (const b of G.bullets) { if (b.lob) continue; ctx.fillStyle = (LOOK[b.look] || LOOK.player).core; ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, TAU); ctx.fill(); ctx.stroke(); }
+  for (const b of G.bullets) if (b.lob) TT_obus.draw(b);
 }
 // Avcı's aiming light: a dashed mint line that brightens just before it fires, so the player gets a moment to react
 function drawLocks() {
@@ -2414,11 +3196,29 @@ function autopilot(dt) {
   bot.t -= dt;
   if (target) {
     bot.aim = Math.atan2(target.y - p.y, target.x - p.x); bot.fire = !bot.hold;
-    if (bot.t <= 0) { const a = bot.aim + rand(-1.3, 1.3); bot.mx = Math.cos(a); bot.my = Math.sin(a); bot.t = rand(0.4, 1.2); }
+    const range = TANKS[G.tank].botRange;
+    if (range) { // tanks with a preferred distance: short range closes in then strafes, long range keeps its distance (Standart keeps the random walk below)
+      const d = Math.sqrt(best); bot.dist = d;
+      if (bot.t <= 0) {
+        let a;
+        if (Math.random() < 0.2) a = rand(0, TAU); // now and then a random turn gets the bot out of corners
+        else if (d > range * 1.15) a = bot.aim;
+        else if (d < range * 0.7) a = bot.aim + Math.PI;
+        else { bot.sd = Math.random() < 0.5 ? 1 : -1; a = bot.aim + bot.sd * Math.PI / 2; }
+        bot.mx = Math.cos(a); bot.my = Math.sin(a); bot.t = rand(0.35, 0.9);
+      }
+    } else if (bot.t <= 0) { const a = bot.aim + rand(-1.3, 1.3); bot.mx = Math.cos(a); bot.my = Math.sin(a); bot.t = rand(0.4, 1.2); }
   } else {
-    bot.fire = false; bot.aim = null;
+    bot.fire = false; bot.aim = null; bot.dist = 0;
     if (bot.t <= 0) { const a = rand(0, TAU); bot.mx = Math.cos(a); bot.my = Math.sin(a); bot.t = rand(0.5, 1.5); }
   }
+}
+// the bot's answer on an evolution screen: bot.tank = a tank id, a function (ids) => id, or 'random' (a random offered tank)
+function botPick() {
+  const bt = bot.tank;
+  if (typeof bt === 'function') { const r = bt(upChoices.slice()); if (upChoices.includes(r)) return r; }
+  else if (typeof bt === 'string' && upChoices.includes(bt)) return bt;
+  return pick(upChoices);
 }
 if (DEBUG) {
   window.__tank = {
@@ -2428,13 +3228,14 @@ if (DEBUG) {
       return { state: G.state, phase: G.phase, wave: G.wave, score: G.score, kills: G.kills, hp: G.player ? Math.round(G.player.hp) : null,
         enemies: G.enemies.length, queue: G.queue.length, portals: G.portals.length, parts: parts.length, bullets: G.bullets.length,
         decals: G.map ? G.map.decals.length : 0, shots: G.shots, hits: G.hits, boss: !!G.boss,
-        maxHp: G.player ? G.player.maxHp : null, up: Object.assign({}, G.up), buffs: BUFFS.filter(k => G.buffs[k] > 0) };
+        maxHp: G.player ? G.player.maxHp : null, up: Object.assign({}, G.up), buffs: BUFFS.filter(k => G.buffs[k] > 0),
+        tank: G.tank, heat: G.player ? +G.player.heat.toFixed(2) : 0 };
     },
     sim(sec, god) {
       bot.on = true; G.god = !!god;
       const n = Math.round(sec * 60);
       for (let i = 0; i < n && G.state === 'play'; i++) {
-        if (G.phase === 'upgrade') chooseUpgrade(pick(upChoices));
+        if (G.phase === 'upgrade') { if (G.upMode === 'evo') { chooseUpgrade(botPick()); finishEvo(); } else chooseUpgrade(pick(upChoices)); }
         autopilot(1 / 60); update(1 / 60);
       }
       bot.on = false; G.god = false;
@@ -2442,7 +3243,7 @@ if (DEBUG) {
     },
     killAll() { for (const e of G.enemies) killEnemy(e); G.queue.length = 0; G.portals.length = 0; },
     dbg, sticks, wave(w) { G.wave = w - 1; nextWave(); },
-    choices: () => upChoices.slice(), choose: chooseUpgrade, showUpgrades, waveCleared, playerSpec, bossHp, SPECS,
+    choices: () => upChoices.slice(), choose(k) { chooseUpgrade(k); finishEvo(); }, chooseRaw: chooseUpgrade, finishEvo, showUpgrades, waveCleared, playerSpec, bossHp, SPECS,
     setUp(o) { G.up = Object.assign({}, o); refreshPlayer(); },
     give(kind) { const p = G.player; applyPickup({ kind, x: p.x, y: p.y }); },
     fire() { fireTank(G.player); },
@@ -2456,6 +3257,25 @@ if (DEBUG) {
       for (const [c, r] of bushes || []) m.t[r * n + c] = BUSH;
       m.decals.length = 0; m.flowDirty = true; buildLayer(m); buildMini(m);
     },
+    /* -- A: tanks -- */
+    TANKS, tanks: () => TANK_IDS.slice(), tank: () => G.tank, evoDue, needTier, tankShells, tankRange, heat: () => (G.player ? G.player.heat : 0),
+    // setTank: switch the tank at once (camera zoom included), keeping the workshop cards; botTank: the bot's evolution pick; noEvo: switch the debt rule off (baseline probes)
+    setTank(id) {
+      if (!TANKS[id]) throw new Error('unknown tank ' + id);
+      G.tank = id; refreshPlayer(); const p = G.player; p.heat = 0; p.overheatT = 0; p.pushT = 0; p.cool = 0;
+      view.zoomK = TANKS[id].zoom; view.scale = view.base * view.zoomK; return id;
+    },
+    botTank(v) { bot.tank = v; },
+    noEvo(v) { G.noEvo = !!v; },
+    /* -- D2 -- */
+    rayLaser: (x, y, a) => TT_rayli.laser(x, y, a), lobArea: () => TT_obus.area(G.player.spec), lobTarget: () => TT_obus.target(G.player, G.player.spec),
+    /* -- B: synergies -- */
+    syn: () => synList().map(sy => sy.id), SYN, SYN_K, synFlags, synDmg, synTaken, synRegen, splashFor, synBadgeHTML,
+    /* -- C: nuke -- */
+    nuke() { const n = G.nuke; return { meter: +n.meter.toFixed(4), ready: nukeReady(), warnT: +n.warnT.toFixed(3), used: n.used, flashT: n.flashT, onScreen: nukeOnScreen().length, bot: !!bot.nuke }; },
+    nukeCharge(f) { G.nuke.meter = clamp(+f, 0, 1); return this.nuke(); },
+    nukeFire() { return nukeFire(true); },
+    botNuke(on) { bot.nuke = !!on; },
     hold(v) { bot.hold = !!v; },
     step(sec) { const n = Math.round(sec * 60); for (let i = 0; i < n && G.state === 'play'; i++) update(1 / 60); return this.info(); },
     drop(kind, dx, dy) { const p = G.player; dropPickup(p.x + (dx || 0), p.y + (dy || 0), kind); }
@@ -2475,7 +3295,8 @@ const hot = window.claude && window.claude.hot;
 if (hot && typeof hot.snapshot === 'function') {
   try {
     hot.snapshot(() => ({ run: (G.state === 'play' || G.state === 'paused') && G.player && G.player.alive
-      ? { wave: G.wave, score: G.score, hp: Math.round(G.player.hp), kills: G.kills, shots: G.shots, hits: G.hits, ups: Object.assign({}, G.up) } : null }));
+      ? { wave: G.wave, score: G.score, hp: Math.round(G.player.hp), kills: G.kills, shots: G.shots, hits: G.hits, ups: Object.assign({}, G.up), tank: G.tank,
+        nuke: nukeSave() } : null }));
   } catch (e) { /* ignore */ }
 }
 function boot(data) {
