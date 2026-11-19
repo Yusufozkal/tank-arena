@@ -1,6 +1,6 @@
 # Yol haritası
 
-Durum (19 Kasım 2026): **1.3 yayında.** Sıradaki iş 1.4; kullanıcı onaylamadan başlama.
+Durum (19 Kasım 2026): **1.3 yayında.** 1.4 onaylandı, yapılıyor.
 
 ## Kullanıcının koyduğu ilkeler
 
@@ -28,19 +28,47 @@ Kullanıcı "yeni tanklar dursun şimdilik, 1.3'ün işlerini yap" dedi; 1.3 yen
 - Önerilen ek fikirler: Tamirci (grubun arkasında durup onarır), Taşıyıcı (dron salar, diep.io havası, 1.4'e yakışır), Mayıncı, Hayalet (termal görür), Koçbaşı, Bölünen.
 - Kullanıcı "şu an çok olur" dedi. Önerim ilk etapta iki tane: **Bombacı** ve **Tamirci** (yapması kolay, telefonda ayırt edilir, birbirini tamamlar). Topçu, Kalkanlı ve Taşıyıcı sonraya. Kullanıcı henüz seçmedi.
 
-## 1.4 – Tank evrimi ve nükleer bomba
+## 1.4 – Tank evrimi, birleşimler ve nükleer bomba (onaylandı, 19 Kasım 2026)
 
-Oyuna Standart tankla başlanır, Komutan yendikçe seçim açılır:
+Oyuna Standart tankla başlanır; Komutan yenilince tank seçimi atölye kartları gibi gelir:
 
-- **5. dalga:** İkiz (iki namlu) · Keskin Nişancı (uzun menzil, güçlü, yavaş) · Makineli (çok hızlı, saçılır)
-- **10. dalga:** seçilen dal ikiye ayrılır
-  - İkiz → Üçlü (yelpaze) ya da Çift Yön (arkaya da ateş eder)
-  - Keskin Nişancı → Raylı Top (her şeyi deler) ya da Obüs (duvar üstünden, alan hasarı)
-  - Makineli → Alev Topu (kısa menzil, sürekli) ya da Şarapnel (saçma)
+- **5. dalga:** İkiz · Keskin Nişancı · Makineli
+- **10. dalga:** seçilen dal ikiye ayrılır: İkiz → Üçlü ya da Çift Yön; Keskin Nişancı → Raylı Top ya da Obüs; Makineli → Alev Topu ya da Şarapnel.
 
-Toplam 10 tank (diep.io'da 54 normal tank var; bilerek az). Atölye kartları diep.io'daki istatistik puanları gibi kalır (zırh, hasar, hız…); **Çift namlu kartı kalkar**, çünkü artık bir tank. Tanklar parayla değil oyun içinde açılır, sıralamada herkes eşit başlar. Gerekirse sonra 20. dalgada üçüncü kademe.
+Toplam 10 tank (diep.io'da 54 normal tank var; bilerek az). Tanklar parayla değil oyun içinde açılır, sıralamada herkes eşit başlar. Gerekirse sonra 20. dalgada üçüncü kademe.
 
-**Nükleer bomba:** düşman öldürdükçe dolan sayaç; dolunca düğme yanar, kısa uyarıdan sonra ekrandaki bütün düşmanlar yok olur, Komutan canının dörtte birini kaybeder. Yaklaşık 3 dalgada bir dolacak şekilde ayarlanır.
+Her tankın tek imza özelliği var; hepsi kendiliğinden çalışır, yeni düğme yok:
+
+- **İkiz, çift darbe:** iki mermisi aynı tanka birlikte isabet ederse tank yarım saniye sersemler.
+- **Keskin Nişancı, uzak görüş:** kamera geri çekilir, daha geniş alan görünür; uzun menzil, güçlü, yavaş.
+- **Makineli, ısınma:** sürekli ateşte ateş hızı artar; çok ısınırsa namlu kızarır ve 1,5 sn soğur (ısı namlunun renginden görünür).
+- **Üçlü, delici orta mermi:** yelpazenin ortadaki mermisi bir tankı delip arkasındakine gider.
+- **Çift Yön, itici arka namlu:** arkaya da ateş eder; ateş ederken tank ileri hızlanır.
+- **Raylı Top, lazer çizgisi:** merminin gideceği yol görünür; tuğlayı ve tankı deler.
+- **Obüs, mesafe ayarı:** nişan çubuğu ne kadar itilirse mermi o kadar uzağa, duvarın üstünden düşer; düşeceği yer işaretlenir (bilgisayarda imlecin olduğu yere).
+- **Alev Topu, alev perdesi:** kısa menzilli sürekli alev; önündeki düşman mermilerini yakar, vurduğu tank birkaç saniye yanar.
+- **Şarapnel, geri itme:** saçma atar; yakından vurduğu tankları geri iter.
+
+Tank değişince 1 sn kalkan ve dönüşüm efekti; her tankın kendine özgü görünüşü var (namlu sayısı ve şekli).
+
+Atölye kartları diep.io'daki istatistik puanları gibi kalır (zırh, hasar, hız…). **Çift namlu kartı kalkar**, çünkü artık İkiz tankı var; ateş gücü hesabı ve denge yeniden ayarlanır.
+
+### Birleşimler
+
+Kullanıcının fikri: iki parça birlikte takılınca yeni bir etki açılır. ("Kart birleşimi" daha önce vazgeçilenlerdeydi; kullanıcı geri aldı.)
+
+1. **Sekme + Patlayıcı mermi = Seken patlama:** çelikten seken mermi ilk isabetinde daha geniş patlar. Bazen düşmana vurmak için duvara nişan almak en iyi hamle olur.
+2. **Turbo motor + Onarım robotu = Hareketli onarım:** birkaç saniye hareket edip hasar almazsan onarım hızlanır.
+3. **Büyük kalibre + Uzun namlu = Uzak vuruş:** mermi uzağa gittikçe sert vurur, en fazla +%40.
+4. **Termal kamera + Büyük kalibre = Pusu:** seni görmeyen ya da çalıdaki düşmana ilk isabet çift hasar.
+5. **Zırh plakası + Otomatik yükleyici = Kale:** durup ateş ederken alınan hasar %25 azalır.
+6. **Mıknatıs + Uzun etki = Zincir:** güçlendirme alınca etkin olan diğerleri 3 sn uzar.
+
+Atölye, kartın elindeki hangi parçayla birleşebileceğini gösterir: birleşiyorsa rozet ("Birleşim: Seken patlama"), henüz olmayan bir parçayla birleşiyorsa soluk ipucu ("Sekme ile birleşir"). Açılınca "BİRLEŞİM AÇILDI" yazısı; duraklatma ekranında açık birleşimler, Rehber'de hepsi. Etkiler ölçülü tutulur ve botla ayarlanır, çünkü birleşimler kart seçiminin etkisini yeniden büyütür. İleride tank + kart birleşimleri olabilir (örneğin Obüs + Patlayıcı mermi).
+
+### Nükleer bomba
+
+Düşman öldürdükçe dolan sayaç; dolunca düğme yanar, kısa bir uyarıdan sonra ekrandaki bütün düşmanlar yok olur, Komutan canının dörtte birini kaybeder. Yaklaşık 3 dalgada bir dolacak şekilde ayarlanır.
 
 ## 1.5 – Hesap, sıralama, para (çevrimiçi)
 
@@ -70,7 +98,7 @@ Toplam 10 tank (diep.io'da 54 normal tank var; bilerek az). Atölye kartları di
 
 ## Vazgeçilenler
 
-Dört farklı boss, oyun başında tank seçimi (yerine evrim), aktif yetenek, kart birleşimi, elit düşmanlar, zorluk seçenekleri.
+Dört farklı boss, oyun başında tank seçimi (yerine evrim), aktif yetenek, elit düşmanlar, zorluk seçenekleri.
 
 ## Bekleyen küçük işler
 
