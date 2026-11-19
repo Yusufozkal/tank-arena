@@ -9,6 +9,15 @@ Kullanıcıyla Türkçe konuş. Oyunun bütün arayüz metinleri Türkçedir; ko
 - Tek kaynak `game/index.html`: canvas + WebAudio, tek HTML dosyası, framework ve npm yok. Site ve APK bu dosyadan üretilir.
 - Yol haritası ve kullanıcının verdiği kararlar `docs/ROADMAP.md` içinde. Yeni işe başlamadan önce oku.
 
+## Çalışma biçimi
+
+Kullanıcının isteği (19 Kasım 2026): işin çoğunu alt ajanlar yapar, ana oturum kodu elle düzenlemez.
+
+- Ana oturum işi planlar ve böler, ajanlara ayrıntılı görev verir, dönen değişiklikleri ve raporları okuyup kontrol eder. Bulduğu sorunu kendisi düzeltmez, ajana geri gönderir.
+- Model: tasarım isteyen kod ve denge işleri Sonnet, dar tanımlı işler ve bağımsız son kontrol Haiku.
+- Aynı anda çalışan ajanlar ayrı git worktree'lerinde çalışır (hepsi aynı `game/index.html` dosyasına dokunur) ve testleri ayrı portta koşar: `TANK_TEST_PORT=8800 python3 tests/...`.
+- Ajanlar kendi dallarında commit eder, push etmez. Birleştirme ve yayın da bir ajana verilebilir; push kararı ana oturumundur.
+
 ## Klasörler
 
 | Yol | Ne |
