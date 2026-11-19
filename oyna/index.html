@@ -85,6 +85,39 @@ button:focus-visible{outline:2px solid var(--bone);outline-offset:2px}
 #mini{display:block;width:92px;height:92px;border:1px solid var(--line);border-radius:3px;background:rgba(0,0,0,.3)}
 @media (max-width:400px){.score .lbl{display:none}}
 @media (min-width:760px){#mini{width:128px;height:128px}}
+/* Phones: every HUD piece stays, packed tighter so more of the arena shows */
+@media (max-width:520px),(max-height:520px){
+  #hud .hud-top{top:calc(var(--st) + 6px);left:calc(var(--sl) + 6px);right:calc(var(--sr) + 6px);gap:6px}
+  #hud .col,#hud .row{gap:4px}
+  #hud .lbl{font-size:12px}
+  #hud .armor{height:32px;gap:6px;padding:0 8px}
+  #hud .armor .num{font-size:15px;min-width:26px}
+  #hud .bar{height:7px;min-width:36px}
+  #hud .wave{display:flex;align-items:center;gap:7px;height:28px;padding:0 9px;min-width:0}
+  #hud .wave-t{font-size:16px}
+  #hud .wave-s{margin-top:0;font-size:12px;white-space:nowrap}
+  #hud .bossbar{margin-top:0;gap:5px;font-size:12px}
+  #hud .bossbar .bar{min-width:52px;height:6px}
+  #hud .buffs{gap:4px}
+  #hud .buff{height:24px;gap:4px;padding:0 6px}
+  #hud .buff svg{width:14px;height:14px}
+  #hud .buff .bn{display:none}
+  #hud .buff i{width:18px}
+  #hud .score{height:32px;gap:6px;padding:0 8px}
+  #hud .score b{font-size:16px}
+  #hud .ibtn{position:relative;width:32px;height:32px}
+  #hud .ibtn::after{content:"";position:absolute;top:-6px;bottom:-6px;left:-2px;right:-2px} /* keeps a thumb-sized hit area */
+  #hud .ibtn svg{width:16px;height:16px}
+  #mini{width:64px;height:64px}
+}
+/* Landscape phones: armour, wave and power-ups share one line; the minimap sits beside the buttons */
+@media (max-height:520px) and (min-aspect-ratio:1/1){
+  #hud .col.left{flex:0 1 auto;flex-direction:row;flex-wrap:wrap;align-items:flex-start}
+  #hud .armor{width:172px}
+  #hud .wave{height:32px}
+  #hud .buffs{padding-top:4px}
+  #hud .col.right{flex-direction:row-reverse;align-items:flex-start}
+}
 
 /* banner + hint */
 #banner{position:fixed;left:16px;right:16px;top:27%;z-index:6;text-align:center;pointer-events:none;opacity:0;transform:translateY(10px) scale(.98);transition:opacity .25s ease,transform .5s cubic-bezier(.2,.9,.2,1)}
@@ -309,7 +342,7 @@ button:focus-visible{outline:2px solid var(--bone);outline-offset:2px}
       </div>
     </div>
     <button type="button" class="btn primary" id="btnSettingsBack">TAMAM</button>
-    <p class="version">Tank Arena 1.2</p>
+    <p class="version">Tank Arena 1.2.1</p>
   </section>
 </div>
 

@@ -105,8 +105,13 @@
  ],
  "redirects": [
   {
+   "source": "/TankArena-1.2.1.apk",
+   "destination": "https://github.com/Yusufozkal/tank-arena/raw/main/TankArena-1.2.1.apk",
+   "permanent": false
+  },
+  {
    "source": "/TankArena-1.2.apk",
-   "destination": "https://github.com/Yusufozkal/tank-arena/raw/main/TankArena-1.2.apk",
+   "destination": "https://github.com/Yusufozkal/tank-arena/raw/main/TankArena-1.2.1.apk",
    "permanent": false
   }
  ]
