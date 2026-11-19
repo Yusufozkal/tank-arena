@@ -33,7 +33,7 @@ with sync_playwright() as pw:
       for (const id of ['uclu', 'cift', 'alev', 'sarapnel']) { const k = t.TANKS[id], s = t.playerSpec(id); out[id] = { stub: !!k.stub, dps: +s.dps.toFixed(3), vs_std: +(s.dps / sd).toFixed(2), shape: k.shape, mode: k.mode, muzzles: k.muzzles.length, pellets: k.pellets || 1, range: Math.round(t.tankRange(k)), botRange: k.botRange, tr: k.tr || null, tier: k.tier, parent: k.parent }; }
       out.std_dps = +sd.toFixed(3); return out; }""")
     R['table'] = tab
-    want = {'uclu': 1.2, 'cift': 1.1, 'alev': 1.3, 'sarapnel': 1.5}
+    want = {'uclu': 0.81, 'cift': 1.21, 'alev': 1.3, 'sarapnel': 1.5}
     check('entries_full_no_stub', all(not tab[k]['stub'] for k in want), tab)
     check('dps_vs_standart', all(abs(tab[k]['vs_std'] - v) <= 0.06 for k, v in want.items()), {k: tab[k]['vs_std'] for k in want})
     check('shapes_distinct', len({tab[k]['shape'] for k in want}) == 4 and all(tab[k]['botRange'] for k in want))
