@@ -30,7 +30,7 @@ with sync_playwright() as pw:
       out.ratioR = +(out.rayli.dps / out.std.dps).toFixed(3); out.ratioO = +(out.obus.dps / out.std.dps).toFixed(3); return out; }""")
     R['table'] = tab
     check('no_stub', not tab['rayli']['stub'] and not tab['obus']['stub'])
-    check('dps_ratio', abs(tab['ratioR'] - 1.25) < 0.03 and abs(tab['ratioO'] - 1.1) < 0.03, tab)
+    check('dps_ratio', abs(tab['ratioR'] - 0.92) < 0.03 and abs(tab['ratioO'] - 1.31) < 0.03, tab)
     check('modes', tab['rayli']['mode'] == 'shell' and tab['obus']['mode'] == 'lob' and tab['rayli']['shape'] == 'rail' and tab['obus']['shape'] == 'obus')
 
     # ---------- Rayli: pierce, steel, laser ----------
@@ -85,7 +85,7 @@ with sync_playwright() as pw:
       out.steelStays = m.t[10 * n + 13] === 2; out.dmg = b.dmg; out.Dd = Math.hypot(D.x - tx, D.y - ty); return out; }"""
     lob = ev(LOB, [{}, None])
     R['obus_lob'] = lob
-    check('obus_is_lob', lob['lob'] and not lob['pierce'] and lob['bounce'] == 0 and abs(lob['R'] - 60) < 0.01, lob)
+    check('obus_is_lob', lob['lob'] and not lob['pierce'] and lob['bounce'] == 0 and abs(lob['R'] - 70) < 0.01, lob)
     check('obus_lands_behind_wall', lob['landed'] and lob['steelStays'] and abs(lob['tx'] - (10.5 + 6) * 48) < 1 and lob['hpA'] < 100 and lob['hpD'] < 100, lob)
     check('obus_flies_over_tank', lob['hpB'] == 100 and lob['hpC'] == 100 and lob['hmax'] > 0.9, lob)
     check('obus_falloff', lob['hpD'] < lob['hpA'] and abs((100 - lob['hpD']) - lob['dmg']) < 0.01 and (100 - lob['hpA']) > 0.5 * lob['dmg'] - 1e-6, lob)
@@ -101,18 +101,18 @@ with sync_playwright() as pw:
       out.drops = es.map(e => +(100 - e.hp).toFixed(3)); out.dmg = b.dmg; return out; }""")
     R['obus_falloff'] = fall
     d0, d30, d58 = fall['drops']
-    check('obus_falloff_numbers', abs(d0 - fall['dmg']) < 0.01 and abs(d30 - fall['dmg'] * 0.75) < 0.01 and abs(d58 - fall['dmg'] * (1 - 0.5 * 58 / 60)) < 0.01, fall)
+    check('obus_falloff_numbers', abs(d0 - fall['dmg']) < 0.01 and abs(d30 - fall['dmg'] * (1 - 0.5 * 30 / fall['R'])) < 0.01 and abs(d58 - fall['dmg'] * (1 - 0.5 * 58 / fall['R'])) < 0.01, fall)
 
     blast = ev("""([lv]) => { const t = __tank, G = t.G, p = G.player, T = 48; (""" + SETUP + """)(['obus', lv ? { blast: lv } : {}]);
-      const tx = p.x + 6 * T, ty = p.y, R = t.lobArea(), e = t.spawn('basic', tx, ty); e.hp = e.maxHp = 100; const d = 60 + e.r + 6; e.y = ty + d;
+      const tx = p.x + 6 * T, ty = p.y, R = t.lobArea(), e = t.spawn('basic', tx, ty); e.hp = e.maxHp = 100; const d = 70 + e.r + 6; e.y = ty + d;
       t.fire(); const b = G.bullets[0]; for (let i = 0; i < 90 && !b.dead; i++) t.stepBullets(1 / 60);
       return { R, hit: e.hp < 100, d }; }""", [0])
     blast1 = ev(blast if False else """([lv]) => { const t = __tank, G = t.G, p = G.player, T = 48; (""" + SETUP + """)(['obus', lv ? { blast: lv } : {}]);
-      const tx = p.x + 6 * T, ty = p.y, R = t.lobArea(), e = t.spawn('basic', tx, ty); e.hp = e.maxHp = 100; const d = 60 + e.r + 6; e.y = ty + d;
+      const tx = p.x + 6 * T, ty = p.y, R = t.lobArea(), e = t.spawn('basic', tx, ty); e.hp = e.maxHp = 100; const d = 70 + e.r + 6; e.y = ty + d;
       t.fire(); const b = G.bullets[0]; for (let i = 0; i < 90 && !b.dead; i++) t.stepBullets(1 / 60);
       return { R, hit: e.hp < 100, d }; }""", [2])
     R['obus_blast'] = [blast, blast1]
-    check('obus_patlayici_enlarges', abs(blast['R'] - 60) < 0.01 and not blast['hit'] and abs(blast1['R'] - 90) < 0.01 and blast1['hit'], [blast, blast1])
+    check('obus_patlayici_enlarges', abs(blast['R'] - 70) < 0.01 and not blast['hit'] and abs(blast1['R'] - 105) < 0.01 and blast1['hit'], [blast, blast1])
 
     # Delici / Sekme do nothing; Uzak vuruş and Seken patlama flags are off for a lob; Pusu works
     flags = ev("""() => { const t = __tank, G = t.G, p = G.player; (""" + SETUP + """)(['obus', { caliber: 1, barrel: 1, ricochet: 1, blast: 1, thermal: 1 }]);

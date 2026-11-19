@@ -152,7 +152,7 @@ with sync_playwright() as pw:
       t.setTank('ikiz'); G.enemies.length = 0; G.bullets.length = 0; p.cool = 0; e = t.spawn('heavy', p.x + 4 * T, p.y); e.speedMul = 0; t.fire(); G.bullets.pop(); for (let i = 0; i < 60 && G.bullets.length; i++) t.stepBullets(1 / 60); out.single_shell_stunT = e.stunT;
       return out; }""")
     R['stun'] = stun
-    check('ikiz_stun', 0.45 <= stun['ikiz_stunT'] <= 0.5 and stun['moved_while_stunned'] < 2 and stun['stun_over'] and stun['std_stunT'] == 0 and stun['mg_stunT'] == 0 and stun['single_shell_stunT'] == 0, stun)
+    check('ikiz_stun', 0.28 <= stun['ikiz_stunT'] <= 0.3 and stun['moved_while_stunned'] < 2 and stun['stun_over'] and stun['std_stunT'] == 0 and stun['mg_stunT'] == 0 and stun['single_shell_stunT'] == 0, stun)
 
     # ---------- Makineli heat ----------
     page.evaluate(SETUP)
@@ -173,7 +173,7 @@ with sync_playwright() as pw:
     w = heat['windows']
     check('mg_heat_rises_and_speeds_up', len(w) >= 3 and w[-1][1] >= w[0][1] and w[-1][2] > 0.5, w)
     check('mg_overheat_lockout', 0 < heat['overheat_after_s'] < 8 and heat['heat_at_over'] >= 1 and heat['shots_during_lock'] == 0 and heat['overT_after_1_4'] > 0 and heat['shots_after_lock'] > 0 and abs(heat['after_lock_heat'] - 0.25) < 0.2, heat)
-    check('mg_cools_when_released', heat['cooled'] >= 0.4, heat['cooled'])
+    check('mg_cools_when_released', heat['cooled'] >= 0.3, heat['cooled'])
     # overheated screenshot (barrel red, smoke) on desert
     page.evaluate(SETUP)
     page.evaluate("""() => { const t = __tank, G = t.G, p = G.player; t.setTank('makineli'); p.heat = 1; p.overheatT = 1.4; p.turret = -0.5; p.angle = -0.5; t.cam.x = p.x; t.cam.y = p.y - 20; t.step(0.1); p.overheatT = 1.4; t.dbg.freeze = true; }""")

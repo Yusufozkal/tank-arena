@@ -98,3 +98,76 @@ Dört hedef de tutuyor: hiçbir dalga oyunların %25'ini bitirmiyor (en kötü %
 
 ### Not: bot insan değil
 Bot tek hedefe ateş eden, rastgele yürüyen basit bir pilot; mermiden kaçmaz, siper kullanmaz, kartları kendi kuralıyla seçer. Geç dalgalarda düşmanların çoğu daha ateş etmeden ölüyor; insan oyuncu daha az ateş gücüyle ama kaçarak oynar. Mutlak sayılar (ortalama 18,8 dalga gibi) insanda farklı çıkar, 40 oyunluk örnekte ortalama yaklaşık ±2,5 dalga oynar. Bu sayılar yön gösterir, hüküm değildir; asıl ayar gerçek oyuncu verisiyle yapılmalı.
+
+## 1.4 sonuçları (19 Kasım 2026)
+
+Yöntem: 10 tank, nükleer bomba açık (bot, ekranda en az 3 düşman ya da Komutan varken kullanır), en fazla 40 dalga, tohumlu rastgelelik (`balance_probe.py survive <strateji> 40 <n> all on <tohum>`; koşu i, `all` ile tank i mod 10'u hedefler: std, ikiz, nisanci, makineli, uclu, cift, rayli, obus, alev, sarapnel). Son ölçüm: 250 oyun rastgele kart (tank başına ~25) + 100 oyun önce saldırı (tank başına 10), iki işlem paralel, toplam ~10 dk. Ara turlar 100 + 100 oyunluk `exp` koşularıydı (bellekte sabit değiştirerek). `pressure` modunda 20 oyun, 30 dalga. Bir tank kimliği o tankı hedefleyen koşudur; tier 1 hedefi 10. dalgada evrilmeden kalır, böylece tier 1 ölçülür. `std` hiç evrilmez; yalnızca 1.3 referansıdır (gerçek oyunda evrim akışı bunu imkânsız kılar).
+
+### Oyun nerede bitiyor
+| Oyunun bittiği dalga | 1–4 | 5 (ilk Komutan) | 6–9 | 10 | 11–39 | 40'a ulaştı |
+|---|---|---|---|---|---|---|
+| Rastgele kart (250) | 0 | 16 | 57 | 7 | 134 | 36 |
+| Önce saldırı (100) | 0 | 2 | 23 | 2 | 71 | 2 |
+
+| | Ortalama bitiş | Ortanca | 40'a ulaşan | En çok oyun bitiren dalga |
+|---|---|---|---|---|
+| Rastgele | 18,1 | 13 | 36/250 (%14) | 9. dalga, %11 |
+| Önce saldırı | 14,6 | 13 | 2/100 (%2) | 13. dalga, %13 |
+| Hepsi | 17,1 | 13 | 38/350 (%11) | 1–4. dalgalar 0/350 |
+
+Komutan dalgalarında ölüm %4 (1051 dalga), diğer dalgalarda %5,5. Ölçüm gürültüsü büyük: oyunlar ya 6–13'te biter ya 40'a gider (iki tepeli dağılım), tank başına 25–36 oyunda ortalama yaklaşık ±3 dalga oynar.
+
+### Tank başına (survive, nükleer açık)
+| Tank | Oyun | Ortalama bitiş | Ortanca | 40'a ulaşan | En kötü dalga |
+|---|---|---|---|---|---|
+| Standart (referans) | 36 | 15,2 | 11 | %8 | 8 (%19) |
+| İkiz | 36 | 17,6 | 13 | %8 | 11 (%17) |
+| Keskin Nişancı | 36 | 15,0 | 13 | %6 | 13 (%14) |
+| Makineli | 36 | 18,5 | 13,5 | %11 | 13 (%14) |
+| Üçlü | 36 | 19,9 | 12 | %22 | 9 (%17) |
+| Çift Yön | 34 | 15,9 | 12,5 | %12 | 13 (%18) |
+| Raylı Top | 34 | 19,5 | 13 | %24 | 9 (%15) |
+| Obüs | 34 | 15,9 | 13,5 | %0 | 8 (%18) |
+| Alev Topu | 34 | 14,0 | 9,5 | %0 | 9 (%18) |
+| Şarapnel | 34 | 19,5 | 15,5 | %18 | 14 (%12) |
+
+Baskın tank denetimi (grup ortalamasının ±3 dalga ya da ±%20'si): tier 1 grup ortalaması 17,0, sınır ±3,4, hepsi içinde; tier 2 grup ortalaması 17,5, sınır ±3,5, hepsi içinde (Üçlü 19,9 ve Raylı 19,5 en üstte, Alev 14,0 en altta). Standart (15,2) tier 1 ortalamasının (17,0) altında, evrim hafif yarar sağlıyor. `balance_report.py` denetimi artık Standart'ı ayrı karşılaştırıyor (eskiden tier 1 grubuna katıp Keskin Nişancı'yı yanlış "dışarıda" gösteriyordu).
+
+### Nükleer bomba
+Dalga başına 0,28 kullanım (hedef ~0,33): 1–9. dalgalarda 0,23–0,24, 10–19'da 0,33–0,36, sonrasında 0,30–0,33. Erken dalgalarda bot kaç düşman görünce basacağını bekliyor (en az 3); küçük dalgalarda bomba dolu bekliyor. Komutan dalgalarında 0,26. Bomba Komutan'ı öldürmüyor (`NUKE_BOSS_CUT`), Komutan dalgalarında ölüm oranı diğerlerinden düşük kaldı.
+
+### Geç dalgalar hâlâ vuruyor (`pressure`, 20 oyun, dalga başına alınan hasar)
+| Dalgalar | 1–4 | 6–10 | 11–20 | 21–30 |
+|---|---|---|---|---|
+| Rastgele | 12,2 | 47,0 | 59,0 | 59,1 |
+
+31–40 `pressure` ile ölçülmedi (süre); `survive` koşularında 40'a ulaşanlarda 31–40. dalga hasarı düşük kalıyor (rapor tablosu).
+
+### Birleşimler
+Birleşimler ayrı ölçülmedi: bot kartları kendi önceliğiyle seçiyor, birleşim kasıtlı aramıyor; `SYN_K` değişmedi. Testler (`check_syn.py`) etkilerin çalıştığını doğruluyor; kart seçimi etkisini büyütüp büyütmediği gerçek oyuncu verisiyle bakılmalı.
+
+### Değişen sabitler (tank sabitleri önceki ajandan, düşman ve bomba bu turdan; eski -> yeni)
+Önceki ajan (kimse Standart'a dokunmadı):
+- İkiz `dmg` 0,58 -> 0,42 (önce 0,46, bu turda 0,42): çift mermi baskındı; sersemletme süresi `tr.stun` 0,5 -> 0,3, yeni `tr.stunCd` 1,5 (sersemlik bitince 1,5 sn yeniden sersemletmez; boss/tank sürekli kilitlenmesin). Metin: "0,3 sn" (blurb, ROADMAP).
+- Keskin Nişancı `hpMul` 0,9 -> 1, `speedMul` 0,85 -> 0,9, `dmg` 3 -> 1,9 (önce 2, bu turda 1,9), `cool` 0,9 -> 0,43, `botRange` 560 -> 250: yavaş ve iri atış yerine daha sık ve hafif atış; bot uzaktan vurup tank ölçeğinden fazla kazanıyordu.
+- Makineli `dmg` 0,55 -> 0,95 (önce 0,9, bu turda 0,95), `tr.heatUp` 0,05 -> 0,04: yetersizdi (ısınma zaten ateş hızını artırıyor).
+- Üçlü `dmg` 0,4 -> 0,27 (önce 0,36, bu turda 0,27): delici orta mermi ve üç mermi yakında çok fazla vuruyordu; %56 40'a ulaşıyordu.
+- Çift Yön `dmg` 0,61 -> 0,67.
+- Raylı Top `hpMul` 0,9 -> 0,95, `speedMul` 0,85 -> 0,9, `dmg` 4,5 -> 2,6 (önce 3, bu turda 2,6), `cool` 1,08 -> 0,85, `botRange` 520 -> 300.
+- Obüs `dmg` 4 -> 3,5 (önce 3,2, bu turda 3,5), `cool` 1,09 -> 0,8, `tr.area` 60 -> 70, `botRange` 400 -> 300: bot Obüs'ü hafife alıyordu.
+- Şarapnel `dmg` 0,36 -> 0,36 (önceki ajan 0,4'e çıkarmıştı, bu turda 0,36'ya geri alındı: üst gruptaydı).
+- Alev Topu ve SYN_K değişmedi.
+
+Bu tur (düşman ve bomba):
+- `NUKE_WAVES` 3 -> 2,5: bomba ~0,25 yerine ~0,28 kullanım/dalga; hedef 0,33'e yetmedi, küçük dalgalarda bot beklediği için (bkz. aşağı).
+- `waveMods` `hp`: 25. dalgadan sonra `+0,01 / dalga` -> 20. dalgadan sonra `+0,09 / dalga` (w40'ta can çarpanı x1,75 + 1,8 = x3,55): 40'a ulaşan oyunlar çok fazla ve geç dalgalarda hasar neredeyse sıfırdı; nükleer bomba ve kartlar geç dalgayı hasarsız geçiriyordu. Tank sayıları tek başına yetmezdi: geç dalgadaki gücü kartlar ve bomba veriyor, tankın payı küçük.
+- `waveMods` `dmg`: 25. dalgadan sonra ek `+0,04 / dalga` (aynı neden; tek başına etkisi küçük).
+
+### Testler
+Eski sabitleri yazan testler güncellendi: `check_tanks.py` (İkiz sersemlik 0,3 sn, Makineli soğuma eşiği 0,3), `check_tier2_d1.py` (Üçlü dps oranı 0,81, Çift Yön 1,21), `check_tier2_d2.py` (Raylı 0,92, Obüs 1,31 dps oranı; Obüs alanı 70, Patlayıcı ile 105).
+
+### Hedefler
+Tutanlar: hiçbir dalga %25'i bitirmiyor (en kötü %13), 1–4. dalgalar 0/350, ortalama 17,1, geç dalgalar hasar veriyor (21–30'da 59), baskın tank yok. Tutmayanlar: 40'a ulaşma rastgelede %14 (hedef ~%10; hepsi birlikte %11). Nükleer 0,28 (hedef ~0,33). Standart tank ölçümlerde 1.3'ten daha uzun gidiyor (rastgele %8 ulaşma, ortalama 15,2): bomba onu da güçlendirdi.
+
+### Not: bot insan değil
+1.3 notları geçerli. Ek olarak: bot bombayı yalnızca ekranda ≥3 düşman varken ya da Komutan canlıyken basıyor, insan stratejik tutar. Bot Obüs'ün mesafe ayarını ve Raylı Top'un lazerini insan gibi kullanamaz, Alev Topu'nu ise yakın dövüşte fazla iyi kullanır; tank sıralaması yön gösterir, hüküm değildir. Ölçüm gürültüsü (25–36 oyun) ±3 dalga; ince ayar için yeterli değil.
