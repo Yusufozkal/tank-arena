@@ -50,8 +50,8 @@ with sync_playwright() as p:
     R['meter_after_normal_kill'] = page.evaluate('__tank.nuke().meter'); assert R['meter_after_normal_kill'] > 0, 'a normal kill must fill the meter'
 
     # 4. boss: -25 percent, never dies, enrage still triggers, off-screen boss also takes it
-    page.evaluate("(() => { const t = __tank, G = t.G; G.enemies.length = 0; G.queue.length = 0; })()")
-    R['boss'] = page.evaluate("""() => { const t = __tank, G = t.G, p = G.player, out = {}; const b = t.spawn('boss', p.x + 110, p.y - 170); const mx = b.maxHp; t.nukeCharge(1); t.nukeFire(); t.step(1.5);
+    page.evaluate("(() => { const t = __tank, G = t.G; G.enemies.length = 0; G.queue.length = 0; G.phase = 'fight'; G.phaseT = 0; })()")  # step 3's killAll emptied the wave: back to the fight phase
+    R['boss'] = page.evaluate("""() => { const t = __tank, G = t.G, p = G.player, out = {}; const b = t.spawn('boss', p.x + 110, p.y - 170); G.phase = 'fight'; const mx = b.maxHp; t.nukeCharge(1); t.nukeFire(); t.step(1.5);
       out.frac = +(b.hp / mx).toFixed(3); out.dead = !!b.dead; out.enraged = !!b.enraged;
       b.hp = mx * 0.52; t.nukeCharge(1); t.nukeFire(); t.step(1.5); out.frac2 = +(b.hp / mx).toFixed(3); out.dead2 = !!b.dead; out.enraged2 = !!b.enraged;
       b.hp = 3; t.nukeCharge(1); t.nukeFire(); t.step(1.5); out.hpLow = +b.hp.toFixed(2); out.dead3 = !!b.dead; return out; }""")
