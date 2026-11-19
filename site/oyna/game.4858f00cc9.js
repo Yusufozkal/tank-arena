@@ -3125,8 +3125,9 @@ function stickVis(st, gx, gy, isAim, label) {
   ctx.fillStyle = isAim ? (firing ? 'rgba(242,193,78,.8)' : 'rgba(242,193,78,.38)') : (active ? 'rgba(95,180,221,.6)' : 'rgba(95,180,221,.38)');
   ctx.fill();
   if (!active) {
-    ctx.globalAlpha = 0.75; ctx.font = `600 14px ${UI_FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillStyle = '#efe7d2'; ctx.fillText(label, ox, oy + R + 14);
+    ctx.globalAlpha = 0.9; ctx.font = `600 14px ${UI_FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.lineJoin = 'round'; ctx.lineWidth = 3.6; ctx.strokeStyle = XH_HALO; ctx.strokeText(label, ox, oy + R + 14); // dark halo like the crosshair: readable on sand, snow and steel crates
+    ctx.fillStyle = '#f6f0de'; ctx.fillText(label, ox, oy + R + 14);
   }
   ctx.globalAlpha = 1;
 }
