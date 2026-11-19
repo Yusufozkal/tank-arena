@@ -9,7 +9,8 @@ from PIL import Image
 OUT = str(TMP / (sys.argv[1] if len(sys.argv) > 1 else 'crosshair'))   # output image prefix
 ROOT = str(GAME_DIR)
 os.makedirs(TMP, exist_ok=True)
-srv = http.server.ThreadingHTTPServer(('127.0.0.1', 8790), functools.partial(http.server.SimpleHTTPRequestHandler, directory=ROOT))
+PORT = int(os.environ.get('TANK_TEST_PORT', '8766')) + 24   # 8790 by default
+srv = http.server.ThreadingHTTPServer(('127.0.0.1', PORT), functools.partial(http.server.SimpleHTTPRequestHandler, directory=ROOT))
 srv.RequestHandlerClass.log_message = lambda *a: None
 threading.Thread(target=srv.serve_forever, daemon=True).start()
 
@@ -18,7 +19,7 @@ with sync_playwright() as p:
     pg = b.new_page(viewport={'width': 1280, 'height': 800})
     pg.route('**/*', lambda r: r.abort() if 'fonts.g' in r.request.url else r.continue_())
     errs = []; pg.on('pageerror', lambda e: errs.append(str(e)))
-    pg.goto('http://127.0.0.1:8790/index.html#debug'); pg.wait_for_timeout(600)
+    pg.goto(f'http://127.0.0.1:{PORT}/index.html#debug'); pg.wait_for_timeout(600)
     pg.mouse.move(600, 380); pg.mouse.move(640, 400, steps=4)
     pg.evaluate('__tank.startGame()'); pg.wait_for_timeout(300)
     tiles = []

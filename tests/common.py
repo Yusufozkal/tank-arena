@@ -1,6 +1,6 @@
 """Shared harness for the browser checks.
 
-Serves game/ on http://127.0.0.1:8766, answers Google Fonts requests from tests/fonts (no network needed),
+Serves game/ on http://127.0.0.1:8766 (or $TANK_TEST_PORT, so parallel runs don't collide), answers Google Fonts requests from tests/fonts (no network needed),
 collects console errors in `errors`, and writes screenshots under .tmp/shots.
 The game exposes its debug API as window.__tank when the URL contains #debug (see the end of game/index.html).
 
@@ -18,7 +18,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'tools'))
 from paths import FONTS_CSS, FONTS_DIR, GAME_DIR, REPO, TMP  # noqa: E402,F401
 from playwright.sync_api import sync_playwright  # noqa: E402,F401
 
-PORT = 8766
+PORT = int(os.environ.get('TANK_TEST_PORT', '8766'))
 URL = f'http://127.0.0.1:{PORT}/index.html#debug'
 OUT = str(TMP / 'shots')
 os.makedirs(OUT, exist_ok=True)
