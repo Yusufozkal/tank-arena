@@ -662,10 +662,17 @@ TANKS.cift = { name: 'Çift Yön', tier: 2, parent: 'ikiz', kids: [], traitName:
   hpMul: 1, speedMul: 1, turnMul: 1, dmg: 0.61, cool: 0.3, bSpeed: 660, bR: 3.8, bW: 5, life: 2.4, barrel: 26, shape: 'duo', zoom: 1, mode: 'shell', kick: 0,
   muzzles: [{ off: 0, ang: 0 }, { off: 0, ang: Math.PI, rear: true, dmgK: 0.8, len: 21 }], tr: { push: 0.6, pushK: 0.3, impulse: 70 }, botRange: 300, // D1: dps 1.1 x Standart (1.8 shells of 0.61 per 0.3 s)
   col: { body: '#35b07a', dk: '#1d6c48', hi: '#86e0b4', acc: '#fff0a0' } };
-stubTank('rayli', 'nisanci', { name: 'Raylı Top', tier: 2, parent: 'nisanci', traitName: 'Lazer çizgisi', blurb: 'Merminin gideceği yol görünür; tuğlayı ve tankı deler.',
-  col: { body: '#3578d8', dk: '#1b4687', hi: '#86b4f4', acc: '#7ef0ff' } });
-stubTank('obus', 'nisanci', { name: 'Obüs', tier: 2, parent: 'nisanci', traitName: 'Mesafe ayarı', blurb: 'Mermi duvarın üstünden düşer; nişan çubuğu ne kadar itilirse o kadar uzağa gider.',
-  col: { body: '#6f7f35', dk: '#414c1c', hi: '#a9ba6a', acc: '#ffd24a' } });
+// D2 (Keskin Nisanci branch): full entries, same table as above. dps vs Standart (3.33): rayli 4.5 / 1.08 = 4.17 (x1.25), obus 4 / 1.09 = 3.67 (x1.1, per target in the blast)
+TANKS.rayli = { name: 'Raylı Top', tier: 2, parent: 'nisanci', kids: [], traitName: 'Lazer çizgisi',
+  blurb: 'Lazer çizgisi merminin yolunu gösterir; hızlı mermi tuğlayı ve tankı deler, çeliği delemez (Sekme varsa seker).',
+  hpMul: 0.9, speedMul: 0.85, turnMul: 0.9, dmg: 4.5, cool: 1.08, bSpeed: 1100, bR: 3.8, bW: 4.2, life: 1.3, barrel: 42, shape: 'rail', zoom: 0.82, mode: 'shell',
+  muzzles: [{ off: 0, ang: 0 }], tr: { pierce: true, zap: true }, botRange: 520,
+  col: { body: '#3578d8', dk: '#1b4687', hi: '#86b4f4', acc: '#7ef0ff' } };
+TANKS.obus = { name: 'Obüs', tier: 2, parent: 'nisanci', kids: [], traitName: 'Mesafe ayarı',
+  blurb: 'Nişan çubuğu ne kadar itilirse mermi o kadar uzağa, duvarın üstünden düşer ve alanda patlar.',
+  hpMul: 1, speedMul: 0.8, turnMul: 0.9, dmg: 4, cool: 1.09, bSpeed: 380, bR: 5.2, bW: 9.5, life: 3, barrel: 24, shape: 'obus', zoom: 0.8, mode: 'lob', range: 12 * T, kick: 1,
+  muzzles: [{ off: 0, ang: 0 }], tr: { area: 60, edge: 0.5, blastK: 0.25, vFly: 380, tMin: 0.35, minD: 2.5, maxD: 12, hgt: 34 }, botRange: 400,
+  col: { body: '#6f7f35', dk: '#414c1c', hi: '#a9ba6a', acc: '#ffd24a' } };
 TANKS.alev = { name: 'Alev Topu', tier: 2, parent: 'makineli', kids: [], traitName: 'Alev perdesi', blurb: 'Kısa menzilli sürekli alev (2,6 kare); düşman mermilerini yakar, vurduğu tank 3 sn yanar. Komutan yarı hızda yanar.',
   hpMul: 1, speedMul: 1, turnMul: 1, dmg: 0.87, cool: 0.2, bSpeed: 600, bR: 4, bW: 7, life: 0.2, range: 125, barrel: 22, shape: 'flame', zoom: 1, mode: 'flame',
   muzzles: [{ off: 0, ang: 0 }], tr: { range: 125, half: 0.3, direct: 0.65, burnK: 0.35, burn: 3, bossK: 0.5 }, botRange: 140, // D1: dps 1.3 x Standart at range (65% direct, 35% burn)
@@ -890,6 +897,7 @@ const Sound = (() => {
     evolve() { if (!ok('ev', 400)) return; const t = ac.currentTime; nz(t, 0.5, 400, 3000, 0.16, 'bandpass', 1); [196, 294, 392, 587].forEach((f, i) => tn(t + 0.05 + i * 0.09, 0.3, f, f * 1.02, 0.14, 'sawtooth')); },
     jet() { if (!ok('jt', 500)) return; const t = ac.currentTime; nz(t, 1.3, 300, 2600, 0.24, 'bandpass', 0.9); nz(t + 0.3, 1.1, 2400, 220, 0.18, 'lowpass'); },
     freeze() { if (!ok('fz', 300)) return; const t = ac.currentTime; [1568, 2093, 2637].forEach((f, i) => tn(t + i * 0.05, 0.5, f, f * 0.98, 0.06, 'sine')); nz(t, 0.4, 7000, 3000, 0.08, 'highpass'); },
+    zap() { if (!ok('zp', 60)) return; const t = ac.currentTime; tn(t, 0.16, 2400, 380, 0.22, 'sawtooth'); tn(t, 0.1, 5200, 1400, 0.1, 'square'); nz(t, 0.14, 6000, 900, 0.18, 'bandpass', 1.2); tn(t + 0.02, 0.22, 140, 60, 0.3, 'sine'); },
     cloak() { if (!ok('ck', 300)) return; const t = ac.currentTime; tn(t, 0.35, 600, 200, 0.1, 'sine'); nz(t, 0.3, 3000, 600, 0.08, 'bandpass', 1); },
     flame() { if (!ok('fl', 100)) return; const t = ac.currentTime; nz(t, 0.16, 900, 380, 0.2, 'bandpass', 0.7); tn(t, 0.14, 85, 60, 0.1, 'sawtooth'); },
     bounce(v) { if (!ok('bc', 40)) return; tn(ac.currentTime, 0.07, 2600, 1700, 0.09 * v, 'triangle'); },
@@ -1389,8 +1397,8 @@ function fireTank(t) {
   const muz = s.muzzles || (s.triple ? M_TRIPLE : M_ONE), fan = isP && G.buffs.triple > 0 ? FAN : NOFAN, np = isP ? (s.pellets | 0) || 1 : 1;
   const vol = isP ? ++t.volId : 0, volN = muz.length * fan.length * np; // volley id: shells of one volley share it (Ikiz stun)
   const big = !!s.big || s.bR >= 5.5, bl = isP ? upL('blast') : 0, splash = bl ? { r: bl > 1 ? 46 : 32, k: bl > 1 ? 0.75 : 0.5 } : null;
-  const pierce = isP && G.buffs.pierce > 0, bounce = isP ? upL('ricochet') : 0;
-  const look = !isP ? 'enemy' : pierce ? 'pierce' : splash ? 'blast' : bounce ? 'bounce' : 'player';
+  const rail = isP && !!(s.tr && s.tr.pierce), pierce = isP && (G.buffs.pierce > 0 || rail), bounce = isP ? upL('ricochet') : 0;
+  const look = !isP ? 'enemy' : rail ? 'rail' : pierce ? 'pierce' : splash ? 'blast' : bounce ? 'bounce' : 'player';
   for (const mz of muz) {
     const base = t.turret + (mz.ang || 0), o = mz.off || 0, mlen = mz.len || s.barrel;
     for (const f of fan) for (let q = 0; q < np; q++) {
@@ -1420,7 +1428,7 @@ function fireTank(t) {
   const kick = s.kick === undefined ? 1.4 : s.kick;
   if (kick) moveTank(t, -ct * kick, -st * kick);
   t.lastShot = G.time;
-  Sound.shoot(isP, big, isP ? 1 : volAt(t.x, t.y));
+  if (isP && s.tr && s.tr.zap) Sound.zap(); else Sound.shoot(isP, big, isP ? 1 : volAt(t.x, t.y)); // D2: Rayli has its own zap
 }
 /* ===== TANK TRAITS ===== */
 // Owner: package A (tank traits); D1/D2 append. Every tank-specific spot is a `switch` marked `// D1:` (Uclu, Cift, Alev, Sarapnel) or `// D2:` (Rayli, Obus)
@@ -1435,7 +1443,7 @@ const TT = {
       if (t.heat >= 1) { t.overheatT = tr.cd; Sound.metal(1); }
     }
     switch (s.mode) {
-      // D2: case 'lob': return TT_obus.fire(t, ctx);  (Obus: a lob shell to t.aimDist)
+      case 'lob': return TT_obus.fire(t, ctx);
       case 'flame': return true; // D1: Alev Topu: the cone is ticked in playerTick, no shells
       default: return false;
     }
@@ -1473,7 +1481,7 @@ const TT = {
     if (k >= 1) {
       b.dead = true;
       switch (L.kind) {
-        // D2: case 'obus': explode at (L.tx, L.ty), area damage r 60, bricks in reach take one hit, scorch decal
+        case 'obus': TT_obus.land(b, L); break;
         default: break;
       }
     }
@@ -1574,6 +1582,98 @@ function sarapnelHit(b, e) {
   e.kvx += b.vx / sp * tr.kb / m; e.kvy += b.vy / sp * tr.kb / m;
   const v = Math.hypot(e.kvx, e.kvy), cap = tr.kbMax / m; if (v > cap) { e.kvx *= cap / v; e.kvy *= cap / v; }
 }
+/* -- rayli -- */
+// Rayli Top (D2): a fast shell with pierce (fireTank sets it from tr.pierce; steel stops it unless Sekme is owned, see updateBullets) and a laser line showing its path
+const TT_rayli = {
+  // DDA over the tile grid from (x0, y0) along angle a: the first steel tile (or the world edge, which the map reports as steel) ends the line. Bricks and tanks do not.
+  laser(x0, y0, a, maxLen) {
+    const m = G.map, dx = Math.cos(a), dy = Math.sin(a), lim = maxLen || 4000;
+    let c = Math.floor(x0 / T), r = Math.floor(y0 / T);
+    if (m.get(c, r) === STEEL) return { x: x0, y: y0, steel: true, len: 0 };
+    const sx = dx > 0 ? 1 : -1, sy = dy > 0 ? 1 : -1, tDx = dx !== 0 ? Math.abs(T / dx) : Infinity, tDy = dy !== 0 ? Math.abs(T / dy) : Infinity;
+    let tMx = dx > 0 ? ((c + 1) * T - x0) / dx : dx < 0 ? (c * T - x0) / dx : Infinity, tMy = dy > 0 ? ((r + 1) * T - y0) / dy : dy < 0 ? (r * T - y0) / dy : Infinity;
+    for (let i = 0; i < 400; i++) {
+      let t;
+      if (tMx < tMy) { t = tMx; tMx += tDx; c += sx; } else { t = tMy; tMy += tDy; r += sy; }
+      if (t >= lim) return { x: x0 + dx * lim, y: y0 + dy * lim, steel: false, len: lim };
+      if (m.get(c, r) === STEEL) return { x: x0 + dx * t, y: y0 + dy * t, steel: true, len: t };
+    }
+    return { x: x0 + dx * lim, y: y0 + dy * lim, steel: false, len: lim };
+  },
+  fx(p) {
+    const s = p.spec, ca = Math.cos(p.turret), sa = Math.sin(p.turret), x0 = p.x + ca * (s.barrel + 1), y0 = p.y + sa * (s.barrel + 1);
+    const L = this.laser(x0, y0, p.turret), pulse = 0.78 + 0.22 * Math.sin(G.time * 14);
+    ctx.lineCap = 'butt';
+    ctx.strokeStyle = 'rgba(10,28,52,.38)'; ctx.lineWidth = 3.6; ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(L.x, L.y); ctx.stroke(); // dark rim: reads on sand and snow
+    if (fxScale === 1) { ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.16 * pulse; ctx.strokeStyle = '#7ef0ff'; ctx.lineWidth = 7; ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(L.x, L.y); ctx.stroke(); ctx.globalCompositeOperation = 'source-over'; }
+    ctx.globalAlpha = 0.9 * pulse; ctx.strokeStyle = '#46e4ff'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(L.x, L.y); ctx.stroke();
+    ctx.globalAlpha = 1; ctx.fillStyle = '#e8fdff'; ctx.strokeStyle = 'rgba(10,28,52,.8)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(L.x, L.y, L.steel ? 3.4 : 2.4, 0, TAU); ctx.fill(); ctx.stroke(); // end mark
+  }
+};
+
+/* -- obus -- */
+// Obus (D2): mode 'lob'. The shell is thrown to p.aimDist along the turret, flies above everything (TT.bulletStep moves it) and lands with area damage.
+const TT_obus = {
+  area(s) { return s.tr.area * (1 + s.tr.blastK * upL('blast')); }, // Patlayici mermi: +25% per level. Delici and Sekme do nothing for a lob
+  target(t, s) { // where the next shell will land
+    const tr = s.tr, D = clamp(t.aimDist, tr.minD * T, tr.maxD * T), n = G.map.n, ca = Math.cos(t.turret), sa = Math.sin(t.turret);
+    return { x: clamp(t.x + ca * D, T * 0.5, (n - 0.5) * T), y: clamp(t.y + sa * D, T * 0.5, (n - 0.5) * T) };
+  },
+  fire(t, ctx) {
+    const s = ctx.s, tr = s.tr, ca = Math.cos(t.turret), sa = Math.sin(t.turret), sx = t.x + ca * s.barrel, sy = t.y + sa * s.barrel, g = this.target(t, s);
+    const dist = Math.hypot(g.x - sx, g.y - sy), T0 = Math.max(tr.tMin, dist / tr.vFly), ang = Math.atan2(g.y - sy, g.x - sx);
+    const b = { x: sx, y: sy, vx: Math.cos(ang) * tr.vFly, vy: Math.sin(ang) * tr.vFly, r: s.bR, owner: 0, dmg: s.dmg, life: T0 + 1, big: !!s.big, dead: false,
+      pierce: false, bounce: 0, splash: null, look: 'lob', hits: null, bricks: null, sx, sy, dist: 0, bounced: false, vol: ++t.volId, volN: 1, pn: 0, h: 0,
+      lob: { sx, sy, tx: g.x, ty: g.y, t: 0, T: T0, kind: 'obus', R: this.area(s) } };
+    synFlags(b); b.bb = false; b.far = false; // Seken patlama / Uzak vuruş do not apply to a lob; Pusu (b.ambush) does, through synDmg
+    G.bullets.push(b); G.shots++;
+    t.recoil = 1; moveTank(t, -ca * s.kick, -sa * s.kick); t.lastShot = G.time;
+    addPart('fire', sx + ca * 4, sy + sa * 4, ca * 60, sa * 60, 0.1, 20, 40, 0);
+    for (let k = 0, nk = Math.max(2, Math.round(5 * fxScale)); k < nk; k++) addPart('smoke', sx + ca * 6, sy + sa * 6, ca * rand(30, 90) + rand(-18, 18), sa * rand(30, 90) + rand(-18, 18), rand(0.5, 0.9), rand(11, 17), 30, 3);
+    Sound.shoot(true, true, 1); Sound.pop(1);
+    return true;
+  },
+  land(b, L) { // area damage (full at the centre, tr.edge at the rim), bricks in reach take one hit, scorch decal, explosion
+    const tr = TANKS.obus.tr, R = L.R, x = L.tx, y = L.ty, m = G.map;
+    explode(x, y, 0.85 * R / 60);
+    addPart('ring', x, y, 0, 0, 0.35, 8, (R - 8) / 0.35, 0, '255,210,90');
+    let any = false;
+    for (const e of G.enemies) {
+      if (e.dead) continue;
+      const d = Math.hypot(e.x - x, e.y - y); if (d >= R + e.r) continue;
+      any = true; hurtEnemy(e, b.dmg * (1 - (1 - tr.edge) * clamp(d / R, 0, 1)) * synDmg(b, e), e.x, e.y, Math.atan2(e.y - y, e.x - x));
+    }
+    if (any) G.hits++;
+    const pseudo = { vx: 0, vy: 0, big: b.big };
+    for (let r = Math.floor((y - R) / T); r <= Math.floor((y + R) / T); r++) for (let c = Math.floor((x - R) / T); c <= Math.floor((x + R) / T); c++) {
+      if (m.get(c, r) !== BRICK) continue;
+      const nx = clamp(x, c * T, c * T + T), ny = clamp(y, r * T, r * T + T);
+      if ((nx - x) * (nx - x) + (ny - y) * (ny - y) <= R * R) hitTile(pseudo, c * T + T / 2, r * T + T / 2);
+    }
+    addDecals(m, [{ k: 'scorch', x, y, r: R * 0.8 }]);
+  },
+  ring(x, y, R, a, k) { // a landing mark: a dashed yellow ring with a dark rim and a cross; k (0..1) shrinks an inner ring for shells in flight
+    ctx.setLineDash([]); ctx.globalAlpha = a; ctx.fillStyle = 'rgba(255,210,74,.14)'; ctx.beginPath(); ctx.arc(x, y, R, 0, TAU); ctx.fill();
+    ctx.strokeStyle = 'rgba(30,22,6,.6)'; ctx.lineWidth = 4.4; ctx.beginPath(); ctx.arc(x, y, R, 0, TAU); ctx.stroke();
+    ctx.strokeStyle = '#ffd24a'; ctx.lineWidth = 2.2; ctx.setLineDash([9, 6]); ctx.lineDashOffset = -G.time * 24; ctx.beginPath(); ctx.arc(x, y, R, 0, TAU); ctx.stroke(); ctx.setLineDash([]);
+    ctx.strokeStyle = 'rgba(30,22,6,.6)'; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(x - 8, y); ctx.lineTo(x + 8, y); ctx.moveTo(x, y - 8); ctx.lineTo(x, y + 8); ctx.stroke();
+    ctx.strokeStyle = '#fff2b0'; ctx.lineWidth = 1.8; ctx.beginPath(); ctx.moveTo(x - 8, y); ctx.lineTo(x + 8, y); ctx.moveTo(x, y - 8); ctx.lineTo(x, y + 8); ctx.stroke();
+    if (k !== undefined) { ctx.strokeStyle = '#fff2b0'; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.arc(x, y, R * (1 - k), 0, TAU); ctx.stroke(); }
+    ctx.globalAlpha = 1;
+  },
+  fx(p) {
+    const s = p.spec, g = this.target(p, s);
+    for (const b of G.bullets) if (b.lob && !b.dead) this.ring(b.lob.tx, b.lob.ty, b.lob.R, 0.55, clamp(b.lob.t / b.lob.T, 0, 1));
+    this.ring(g.x, g.y, this.area(s), 0.95);
+  },
+  draw(b) { // in flight: a ground shadow, then the shell lifted by its arc height and drawn bigger (the 3 passes of drawBullets skip lobs)
+    const h = b.h || 0, hy = b.y - h * TANKS.obus.tr.hgt, rr = b.r * (1 + 0.9 * h);
+    ctx.fillStyle = 'rgba(0,0,0,.34)'; ctx.beginPath(); ctx.ellipse(b.x, b.y + 2, b.r * (1.5 - 0.35 * h), b.r * (1.5 - 0.35 * h) * 0.6, 0, 0, TAU); ctx.fill();
+    ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.55; const gs = rr * 6; ctx.drawImage(SPR.fire, b.x - gs / 2, hy - gs / 2, gs, gs); ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
+    ctx.fillStyle = '#ffd89a'; ctx.strokeStyle = 'rgba(40,24,6,.85)'; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.arc(b.x, hy, rr, 0, TAU); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#8a5a1c'; ctx.beginPath(); ctx.arc(b.x - rr * 0.25, hy + rr * 0.25, rr * 0.45, 0, TAU); ctx.fill();
+  }
+};
 // Enemy status effects, once per frame per enemy before its AI. Returns true while the tank is stunned (it stands still and holds fire, like Dondurucu).
 // stunT: Ikiz.   kvx/kvy: knockback velocity (px/s, divided by mass where it is set), decays quickly.   burnT/burnDps: Alev Topu burn, ticks every 0.25 s.
 function tickStatus(e, dt) {
@@ -3063,7 +3163,24 @@ function barrel(s, rec, c, g, heat, len0) {
       g.fillStyle = c.acc; g.fillRect(x0 + len - 4.4, -bW * 1.1, 1.4, bW * 2.2);
       break;
     }
-    // D2: case 'rayli' (long thin barrel with coil rings), case 'obus' (short fat barrel with collar)
+    case 'rail': { // Rayli Top: a long thin barrel with glowing coil rings and a small emitter at the tip
+      g.fillStyle = '#1f1d19'; g.fillRect(x0, -bW / 2 - 0.8, len, bW + 1.6);
+      g.fillStyle = dk; g.fillRect(x0, -bW / 2, len, bW);
+      g.fillStyle = 'rgba(255,255,255,.2)'; g.fillRect(x0, -bW / 2 + 0.7, len, 1);
+      for (let k = 0; k < 4; k++) { const cx = x0 + 6 + k * (len - 16) / 3.4; g.fillStyle = '#1f1d19'; g.fillRect(cx - 0.4, -bW / 2 - 2.9, 3.8, bW + 5.8); g.fillStyle = c.acc; g.fillRect(cx + 0.4, -bW / 2 - 2.2, 2.2, bW + 4.4); }
+      g.fillStyle = '#1f1d19'; g.fillRect(x0 + len - 3.5, -bW / 2 - 1.6, 3.5, bW + 3.2);
+      g.fillStyle = c.acc; g.fillRect(x0 + len - 2.2, -1, 2.2, 2);
+      break;
+    }
+    case 'obus': { // Obus: a short fat barrel with a wide collar and a heavy muzzle ring
+      g.fillStyle = '#1f1d19'; g.fillRect(x0, -bW / 2 - 1.2, len, bW + 2.4);
+      g.fillStyle = dk; g.fillRect(x0, -bW / 2, len, bW);
+      g.fillStyle = 'rgba(255,255,255,.2)'; g.fillRect(x0, -bW / 2 + 1, len, 1.4);
+      const cx = x0 + len * 0.42; g.fillStyle = '#1f1d19'; g.fillRect(cx - 0.8, -bW / 2 - 4.2, 6.6, bW + 8.4); g.fillStyle = c.acc; g.fillRect(cx + 0.6, -bW / 2 - 3.2, 3.8, bW + 6.4);
+      g.fillStyle = '#1f1d19'; g.fillRect(x0 + len - 5, -bW / 2 - 2.4, 5, bW + 4.8);
+      g.fillStyle = '#0d0c0a'; g.fillRect(x0 + len - 2.2, -bW / 2 + 2, 2.2, bW - 4);
+      break;
+    }
     default: // std and twin (one thin barrel per muzzle): the original look
       g.fillStyle = dk; g.fillRect(x0, -bW / 2, len, bW);
       g.fillStyle = 'rgba(255,255,255,.16)'; g.fillRect(x0, -bW / 2 + 1, len, 1.2);
@@ -3081,7 +3198,8 @@ function hullMarks(g, s, c, hx, hy, hw, hh, alpha) {
     case 'duo': g.fillRect(hx + 4, hy + hh / 2 - 0.9, hw - 8, 1.8); for (const sg of [-1, 1]) { const x = sg > 0 ? hx + hw - 3 : hx + 3; g.beginPath(); g.moveTo(x, hy + hh / 2); g.lineTo(x - sg * 4.5, hy + hh / 2 - 3.6); g.lineTo(x - sg * 4.5, hy + hh / 2 + 3.6); g.closePath(); g.fill(); } break; // arrow pointing both ways
     case 'flame': for (let k = 0; k < 2; k++) { const x = hx + 2.5 + k * 5.2; g.beginPath(); g.moveTo(x, hy + hh - 3); g.quadraticCurveTo(x + 4, hy + hh / 2 + 1, x + 1.5, hy + 3); g.quadraticCurveTo(x + 1.5, hy + hh / 2, x - 1.8, hy + hh - 3); g.closePath(); g.fill(); } break; // two flame tongues
     case 'bell': for (let k = 0; k < 3; k++) { const x = hx + 2.5 + k * 3.4; g.beginPath(); g.moveTo(x, hy + hh - 2.5); g.lineTo(x + 2, hy + hh - 2.5); g.lineTo(x + 5.5, hy + 2.5); g.lineTo(x + 3.5, hy + 2.5); g.closePath(); g.fill(); } break; // hazard slashes
-    // D2: tier-2 hull marks (rayli, obus)
+    case 'rail': g.fillRect(hx + 2, hy + 1, hw - 6, 1.5); g.fillRect(hx + 2, hy + hh - 2.5, hw - 6, 1.5); g.beginPath(); g.moveTo(hx + hw - 9, hy + hh / 2 - 3); g.lineTo(hx + hw - 4, hy + hh / 2); g.lineTo(hx + hw - 9, hy + hh / 2 + 3); g.closePath(); g.fill(); break; // cyan side rails and a forward arrow
+    case 'obus': for (const yy of [hy + 3, hy + hh - 6]) for (let k = 0; k < 3; k++) g.fillRect(hx + 3 + k * 4.4, yy, 3, 3); break; // yellow ammo-crate squares on the rear deck
   }
   g.globalAlpha = alpha;
 }
@@ -3098,6 +3216,14 @@ function turretMarks(g, s, c, tr) {
     case 'duo': g.beginPath(); g.moveTo(tr * 0.7, 0); g.lineTo(tr * 0.2, -tr * 0.3); g.lineTo(tr * 0.2, tr * 0.3); g.closePath(); g.fill(); g.beginPath(); g.moveTo(-tr * 0.75, 0); g.lineTo(-tr * 0.25, -tr * 0.3); g.lineTo(-tr * 0.25, tr * 0.3); g.closePath(); g.fill(); break; // front and rear arrow
     case 'flame': g.beginPath(); g.arc(tr * 0.2, 0, tr * 0.38, 0, TAU); g.fill(); g.fillStyle = c.dk; g.beginPath(); g.arc(tr * 0.2, 0, tr * 0.18, 0, TAU); g.fill(); break; // fuel cap
     case 'bell': g.lineWidth = 2; g.strokeStyle = c.acc; g.beginPath(); g.arc(tr * 0.1, 0, tr * 0.42, 0, TAU); g.stroke(); g.fillRect(tr * 0.04, -tr * 0.1, tr * 0.12, tr * 0.2); break; // ring sight
+    case 'rail': // power coil box on the turret: two cyan bars with a dark gap, plus a glowing node
+      g.fillStyle = '#1f1d19'; rrect(g, -tr * 0.6, -tr * 0.46, tr * 1.25, tr * 0.92, 2); g.fill();
+      g.fillStyle = c.acc; g.fillRect(-tr * 0.46, -tr * 0.34, tr * 0.38, tr * 0.68); g.fillRect(tr * 0.12, -tr * 0.34, tr * 0.38, tr * 0.68);
+      break;
+    case 'obus': // round hatch with a yellow ring
+      g.fillStyle = '#1f1d19'; g.beginPath(); g.arc(-tr * 0.2, 0, tr * 0.55, 0, TAU); g.fill();
+      g.strokeStyle = c.acc; g.lineWidth = 2; g.beginPath(); g.arc(-tr * 0.2, 0, tr * 0.38, 0, TAU); g.stroke();
+      break;
     default: g.beginPath(); g.moveTo(tr * 0.6, 0); g.lineTo(tr * 0.05, -tr * 0.4); g.lineTo(tr * 0.05, tr * 0.4); g.closePath(); g.fill();
   }
 }
@@ -3277,8 +3403,9 @@ function drawTankFx() {
   }
   if (G.phase !== 'fight') return;
   switch (G.tank) {
-    // D2: case 'rayli': laser line along the shell path (DDA to the world edge or a steel tile); case 'obus': landing ring at p + dir * p.aimDist and at every lob in flight
     case 'alev': flameFx(p); break; // D1: flame cone
+    case 'rayli': TT_rayli.fx(p); break;
+    case 'obus': TT_obus.fx(p); break;
     default: break;
   }
 }
@@ -3310,21 +3437,24 @@ const LOOK = {
   enemy: { trail: 'rgba(255,128,80,.55)', core: '#ffd0b0', glow: 'fire' },
   pierce: { trail: 'rgba(255,111,174,.62)', core: '#ffe2ef', glow: 'pu_pierce' },
   blast: { trail: 'rgba(255,150,70,.62)', core: '#ffd08a', glow: 'fire' },
-  bounce: { trail: 'rgba(160,215,255,.62)', core: '#e9f6ff', glow: 'blue' }
+  bounce: { trail: 'rgba(160,215,255,.62)', core: '#e9f6ff', glow: 'blue' },
+  rail: { trail: 'rgba(126,240,255,.7)', core: '#f2feff', glow: 'blue' }
 };
 function drawBullets() {
   if (!G.bullets.length) return;
   ctx.lineCap = 'round';
   for (const b of G.bullets) {
+    if (b.lob) continue;
     const lk = LOOK[b.look] || LOOK.player, sp = Math.hypot(b.vx, b.vy) || 1, ux = b.vx / sp, uy = b.vy / sp, tl = b.big ? 22 : 16;
     ctx.strokeStyle = lk.trail; ctx.lineWidth = b.r * 1.5;
     ctx.beginPath(); ctx.moveTo(b.x - ux * tl, b.y - uy * tl); ctx.lineTo(b.x, b.y); ctx.stroke();
   }
   ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.6;
-  for (const b of G.bullets) { const gs = b.r * 6; ctx.drawImage(SPR[(LOOK[b.look] || LOOK.player).glow], b.x - gs / 2, b.y - gs / 2, gs, gs); }
+  for (const b of G.bullets) { if (b.lob) continue; const gs = b.r * 6; ctx.drawImage(SPR[(LOOK[b.look] || LOOK.player).glow], b.x - gs / 2, b.y - gs / 2, gs, gs); }
   ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
   ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(0,0,0,.45)';
-  for (const b of G.bullets) { ctx.fillStyle = (LOOK[b.look] || LOOK.player).core; ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, TAU); ctx.fill(); ctx.stroke(); }
+  for (const b of G.bullets) { if (b.lob) continue; ctx.fillStyle = (LOOK[b.look] || LOOK.player).core; ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, TAU); ctx.fill(); ctx.stroke(); }
+  for (const b of G.bullets) if (b.lob) TT_obus.draw(b);
 }
 // Avcı's aiming light: a dashed mint line that brightens just before it fires, so the player gets a moment to react
 function drawLocks() {
@@ -3594,6 +3724,8 @@ if (DEBUG) {
     },
     botTank(v) { bot.tank = v; },
     noEvo(v) { G.noEvo = !!v; },
+    /* -- D2 -- */
+    rayLaser: (x, y, a) => TT_rayli.laser(x, y, a), lobArea: () => TT_obus.area(G.player.spec), lobTarget: () => TT_obus.target(G.player, G.player.spec),
     /* -- B: synergies -- */
     syn: () => synList().map(sy => sy.id), SYN, SYN_K, synFlags, synDmg, synTaken, synRegen, splashFor, synBadgeHTML,
     /* -- C: nuke -- */
