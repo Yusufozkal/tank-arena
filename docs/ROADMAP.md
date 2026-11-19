@@ -27,6 +27,7 @@ Kullanıcı "yeni tanklar dursun şimdilik, 1.3'ün işlerini yap" dedi; 1.3 yen
 - Planlanan: **Topçu** (duvar üstünden atar, düşeceği yer 1 sn önce işaretlenir), **Kalkanlı** (önden vurulmaz; yandan, arkadan, sekme ya da patlayıcı mermiyle), **Bombacı** (gelip yanında patlar; uzaktan vurulursa çevresine zarar verir).
 - Önerilen ek fikirler: Tamirci (grubun arkasında durup onarır), Taşıyıcı (dron salar, diep.io havası, 1.4'e yakışır), Mayıncı, Hayalet (termal görür), Koçbaşı, Bölünen.
 - Kullanıcı "şu an çok olur" dedi. Önerim ilk etapta iki tane: **Bombacı** ve **Tamirci** (yapması kolay, telefonda ayırt edilir, birbirini tamamlar). Topçu, Kalkanlı ve Taşıyıcı sonraya. Kullanıcı henüz seçmedi.
+- Kullanıcı 19 Kasım 2026'da 1.4'ü, 1.4 denge geçişinde eklenen geç dalga can artışıyla yayına almayı onayladı (`waveMods`, `hp`: 20. dalgadan sonra dalga başına +0,09; 40. dalgada ×3,55, 1.3'te ×1,9); bu artış "dalgalar yeni tür ve görevle zorlaşsın, can şişirmeyle değil" ilkesine ters (bkz. `docs/BALANCE.md`). Yeni düşmanlar gelince bu can artışı geri çekilecek ya da azaltılacak ve denge `tests/balance_probe.py` + `tests/balance_report.py` ile yeniden ölçülecek.
 
 ## 1.4 – Tank evrimi, birleşimler ve nükleer bomba (yayında, 19 Kasım 2026)
 
