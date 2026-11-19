@@ -33,7 +33,7 @@ Node yalnızca `tools/extract_gamedata.js` için gerekir. APK için Android SDK 
 ## Komutlar
 
 ```
-node tools/extract_gamedata.js                     # PU / UPS / DIFF tabloları değişince (tanıtım sayfası verisi)
+node tools/extract_gamedata.js                     # PU / UPS tabloları değişince (tanıtım sayfası verisi)
 SITE_URL=https://tank-arena-taupe.vercel.app python3 tools/build_site.py
 python3 tools/assets.py                            # tank çizimi ya da tools/raw ekran görüntüleri değişince; sonra build_site
 python3 tools/capture_site.py                      # tools/raw ekran görüntülerini yeniden çeker
@@ -44,7 +44,7 @@ python3 tests/check_hud_mobile.py <etiket>         # telefonda üst gösterge ne
 python3 tests/check_hud_buttons.py
 python3 tests/check_crosshair.py                   # fare nişangâhı her harita temasında görünür mü
 python3 tests/stress.py
-python3 tests/balance_probe.py normal survive random 40 20 && python3 tests/balance_report.py
+python3 tests/balance_probe.py survive random 40 20 && python3 tests/balance_report.py
 
 android/build.sh                                   # APK; ANDROID_HOME ve imza anahtarı gerekir
 python3 tests/check_offline_apk.py                 # build.sh'den sonra: ağsız APK sürümü ve Android köprüsü
@@ -78,7 +78,7 @@ Ekran görüntüleri ve ölçüm sonuçları `.tmp/` altına yazılır (git'e gi
 
 ## Oyun kodunda yön bulma (`game/index.html`)
 
-- Veriler: `SPECS` (tank tipleri ve canları), `PU` (güçlendirmeler), `UPS` (atölye kartları), `DIFF` (zorluklar), `THEMES` (haritalar).
+- Veriler: `SPECS` (tank tipleri ve canları), `PU` (güçlendirmeler), `UPS` (atölye kartları), `RULES` (tek kural seti), `THEMES` (haritalar).
 - Akış: `startGame` → `nextWave` → `buildRoster(w)` + `waveMods(w)` (dalga zorluğu) → `waveCleared` → `rollUpgrades` / `chooseUpgrade` (atölye).
 - Oyuncu gücü: `playerSpec()`, `fireTank()`; hasar `hurtEnemy`, `damagePlayer`.
 - Döngü: `update(dt)` sabit 1/60 adım, `render()`; arayüz `updateHUD()`; fare `drawCrosshair()` + `syncAimCursor()`.

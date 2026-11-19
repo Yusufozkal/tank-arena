@@ -44,8 +44,8 @@ WAVE_JS = r"""
 }
 """
 
-def run(page, diff, mode, strategy, waves, label):
-    seed(page, {'difficulty': diff, 'effects': 'low', 'volume': 0})
+def run(page, mode, strategy, waves, label):
+    seed(page, {'effects': 'low', 'volume': 0})
     page.evaluate('__tank.startGame()')
     page.evaluate('() => { for (let i = 0; i < 40 && __tank.G.phase !== "intro"; i++) __tank.step(0.05); }')
     rows = []
@@ -57,16 +57,16 @@ def run(page, diff, mode, strategy, waves, label):
     return rows
 
 if __name__ == '__main__':
-    diff, mode, strategy, waves, runs = sys.argv[1], sys.argv[2], sys.argv[3], int(sys.argv[4]), int(sys.argv[5])
+    mode, strategy, waves, runs = sys.argv[1], sys.argv[2], int(sys.argv[3]), int(sys.argv[4])
     allruns = []
     with sync_playwright() as p:
         b = p.chromium.launch()
         ctx = new_ctx(b, 'probe', viewport={'width': 1280, 'height': 800})
         page = ctx.new_page()
         for i in range(runs):
-            allruns.append(run(page, diff, mode, strategy, waves, f'{strategy}{i}'))
+            allruns.append(run(page, mode, strategy, waves, f'{strategy}{i}'))
         b.close()
     (TMP / 'balance').mkdir(parents=True, exist_ok=True)
-    out = str(TMP / 'balance' / f'{diff}_{mode}_{strategy}.json')
+    out = str(TMP / 'balance' / f'{mode}_{strategy}.json')
     json.dump(allruns, open(out, 'w'))
     print('saved', out, 'waves reached per run:', [len(r) for r in allruns], 'ERRORS:', real_errors()[:3] or 'none')

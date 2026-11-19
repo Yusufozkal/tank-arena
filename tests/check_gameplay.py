@@ -1,4 +1,4 @@
-"""Broad gameplay check (desktop, phone, Android bridge): workshop cards, power-ups, shell types, difficulties,
+"""Broad gameplay check (desktop, phone, Android bridge): workshop cards, power-ups, shell types,
 rotation, a long autopilot run. Prints a JSON report to read through; screenshots go to .tmp/shots."""
 from common import *  # noqa: F401,F403
 
@@ -9,8 +9,9 @@ with sync_playwright() as p:
     ctx = new_ctx(b, 'desktop', viewport={'width': 1280, 'height': 800})
     page = ctx.new_page()
     seed(page)
-    R['diff_labels'] = page.eval_on_selector_all('#diffSeg button', 'bs => bs.map(b => b.textContent)')
-    R['diff_note'] = page.inner_text('#diffNote')
+    R['menu_no_difficulty'] = page.evaluate('() => !document.querySelector("#diffSeg, #diffNote, #lbDiff, #overDiff") && !/Zorluk|Talim|Cephe|Kıyamet/.test(document.body.innerText)')
+    R['menu_records'] = page.eval_on_selector_all('.records dd', 'ds => ds.map(d => d.textContent)')
+    assert R['menu_no_difficulty'] and len(R['menu_records']) == 4, 'menu still shows difficulty or records are missing'
     R['tag'] = page.inner_text('#menuPanel .tag')
     R['orient_row_hidden_on_web'] = page.eval_on_selector('#rowOrient', 'n => n.classList.contains("hidden")')
     page.click('#btnGuide'); page.wait_for_timeout(250)
