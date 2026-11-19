@@ -87,7 +87,7 @@ FOES = [
     ('fast', 'Keşif tankı', '1 isabet. Çok hızlıdır, üzerine doğru gelir.'),
     ('heavy', 'Ağır tank', '5 isabet. İri mermisi çok can yakar.'),
     ('hunter', 'Avcı', '3 isabet. Mermilerden kaçar, siper alır, seni kaybettiği yere ateş açar.'),
-    ('boss', 'Komutan', 'Her 5. dalgada gelir, üç namludan ateş eder.'),
+    ('boss', 'Komutan', 'Her 5. dalgada gelir, her gelişinde güçlenir. Ateş etmeden önce namluları parlar.'),
 ]
 foes = '\n'.join(f'<li class="foe-{k}"><img src="/img/tank-{k}.png" width="128" height="128" alt="" loading="lazy"><b>{n}</b><span>{t}</span></li>' for k, n, t in FOES)
 

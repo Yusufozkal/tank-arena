@@ -3,7 +3,7 @@
   "repair": {
    "name": "Tamir",
    "col": "#6fd46b",
-   "note": "+35 zırh"
+   "note": "+35 zırh, Uzun etki artırır"
   },
   "shield": {
    "name": "Kalkan",
@@ -99,14 +99,14 @@
    "name": "Otomatik yükleyici",
    "max": 5,
    "rare": false,
-   "brief": "Daha sık atış",
+   "brief": "+%18 ateş gücü, sık atış",
    "svg": "<path d=\"M4 20v-9a2 2 0 0 1 4 0v9zM10 20v-9a2 2 0 0 1 4 0v9zM16 20v-9a2 2 0 0 1 4 0v9zM4 16h4M10 16h4M16 16h4\"/>"
   },
   "caliber": {
    "name": "Büyük kalibre",
    "max": 4,
    "rare": false,
-   "brief": "+%25 hasar",
+   "brief": "+%25 ateş gücü, büyük mermi",
    "svg": "<path d=\"M7 21V10a5 5 0 0 1 10 0v11zM7 16h10\"/>"
   },
   "barrel": {
@@ -127,7 +127,7 @@
    "name": "Çift namlu",
    "max": 1,
    "rare": true,
-   "brief": "İki paralel mermi",
+   "brief": "+%100 ateş gücü, iki mermi",
    "svg": "<circle cx=\"7\" cy=\"12\" r=\"4\"/><path d=\"M11 9.5h10M11 14.5h10\"/>"
   },
   "ricochet": {
@@ -148,36 +148,22 @@
    "name": "Mıknatıs",
    "max": 2,
    "rare": false,
-   "brief": "Güçlendirmeleri çeker",
+   "brief": "Güçlendirmeleri çeker, daha sık düşer",
    "svg": "<path d=\"M4 3h5v9a3 3 0 0 0 6 0V3h5v9a8 8 0 0 1-16 0zM4 7h5M15 7h5\"/>"
   },
   "thermal": {
    "name": "Termal kamera",
    "max": 1,
    "rare": true,
-   "brief": "Çalıdakileri görür",
+   "brief": "Çalıdakileri görür, +%15 ateş gücü",
    "svg": "<path d=\"M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z\"/><circle cx=\"12\" cy=\"12\" r=\"3\"/>"
   },
   "boost": {
    "name": "Uzun etki",
    "max": 3,
    "rare": false,
-   "brief": "Güçlendirmeler uzar",
+   "brief": "Güçlendirmeler uzar, Tamir artar",
    "svg": "<path d=\"M6 3h12M6 21h12M7.5 3c0 4.5 3.5 6 3.5 9s-3.5 4.5-3.5 9M16.5 3c0 4.5-3.5 6-3.5 9s3.5 4.5 3.5 9\"/>"
-  }
- },
- "DIFF": {
-  "easy": {
-   "name": "Talim",
-   "note": "Isınma turu: daha az düşman, daha az hasar. Puanlar %25 düşük."
-  },
-  "normal": {
-   "name": "Cephe",
-   "note": "Asıl savaş burada. İlk kez oynuyorsan buradan başla."
-  },
-  "hard": {
-   "name": "Kıyamet",
-   "note": "Kalabalık ve keskin nişancı düşmanlar, Avcı erken gelir. Puanlar %50 fazla."
   }
  }
 }

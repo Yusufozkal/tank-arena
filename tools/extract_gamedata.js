@@ -22,4 +22,4 @@ for (const k in T.PU) out.PU[k] = { name: T.PU[k].name, col: T.PU[k].col, note: 
 for (const k in T.UPS) if (!T.UPS[k].extra) out.UPS[k] = { name: T.UPS[k].name, max: T.UPS[k].max, rare: !!T.UPS[k].rare, brief: T.UPS[k].brief, svg: T.UPS[k].svg };
 
 fs.writeFileSync(path.join(__dirname, 'gamedata.json'), JSON.stringify(out, null, 1));
-console.log('gamedata.json:', Object.keys(out.PU).length, 'power-ups,', Object.keys(out.UPS).length, 'cards,');
+console.log('gamedata.json:', Object.keys(out.PU).length, 'power-ups,', Object.keys(out.UPS).length, 'cards');

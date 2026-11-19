@@ -344,7 +344,7 @@ button:focus-visible{outline:2px solid var(--bone);outline-offset:2px}
       <li><canvas data-tank="fast" aria-hidden="true"></canvas><div><b>Keşif tankı</b><span>1 isabet. Çok hızlıdır, üzerine doğru gelir.</span></div></li>
       <li><canvas data-tank="heavy" aria-hidden="true"></canvas><div><b>Ağır tank</b><span>5 isabet. Çift namlulu, iri mermisi çok can yakar.</span></div></li>
       <li><canvas data-tank="hunter" aria-hidden="true"></canvas><div><b>Avcı</b><span>3 isabet. Mermilerden kaçar, siperden ateş eder, seni kaybettiği yere ateş açar. Ateş etmeden önce yeşil hedef ışığı yakar.</span></div></li>
-      <li><canvas data-tank="boss" aria-hidden="true"></canvas><div><b>Komutan</b><span>34 isabet. Her 5. dalgada gelir, üç namludan ateş eder.</span></div></li>
+      <li><canvas data-tank="boss" aria-hidden="true"></canvas><div><b>Komutan</b><span>Her 5. dalgada gelir: ilk gelişinde 22 isabet, sonra her gelişinde 12 fazla. Üç namludan ateş etmeden önce namluları parlar.</span></div></li>
     </ul>
     <h3 class="gh">GÜÇLENDİRMELER</h3>
     <ul class="pus" id="guidePus" aria-label="Güçlendirmeler"></ul>
@@ -535,10 +535,10 @@ const UPS = {
   engine: { name: 'Turbo motor', max: 4, brief: '+%10 hız',
     svg: '<path d="M4 5l7 7-7 7M13 5l7 7-7 7"/>',
     desc: L => `Sürüş hızı +%10${tot(L, '+%' + 10 * L)}` },
-  loader: { name: 'Otomatik yükleyici', max: 5, brief: '+%18 atış hızı, ateş gücü',
+  loader: { name: 'Otomatik yükleyici', max: 5, brief: '+%18 ateş gücü, sık atış',
     svg: '<path d="M4 20v-9a2 2 0 0 1 4 0v9zM10 20v-9a2 2 0 0 1 4 0v9zM16 20v-9a2 2 0 0 1 4 0v9zM4 16h4M10 16h4M16 16h4"/>',
     desc: L => `Atış hızı +%18${tot(L, '+%' + 18 * L)}. ${fpLine('loader', L)}` },
-  caliber: { name: 'Büyük kalibre', max: 4, brief: 'Büyük mermi, ateş gücü',
+  caliber: { name: 'Büyük kalibre', max: 4, brief: '+%25 ateş gücü, büyük mermi',
     svg: '<path d="M7 21V10a5 5 0 0 1 10 0v11zM7 16h10"/>',
     desc: L => `Büyük mermi${L === 2 ? ', tuğlaya çift hasar' : ''}. ${fpLine('caliber', L)}` },
   barrel: { name: 'Uzun namlu', max: 3, brief: 'Hızlı mermi, uzun menzil',
@@ -547,7 +547,7 @@ const UPS = {
   repair: { name: 'Onarım robotu', max: 3, brief: 'Zırhı kendisi onarır',
     svg: '<rect x="5" y="8" width="14" height="11" rx="2"/><path d="M12 8V5M9 19v2.5M15 19v2.5"/><circle cx="12" cy="4" r="1.3"/>' + DOT(9.5, 13) + DOT(14.5, 13),
     desc: L => `2 sn hasar almazsan saniyede ${dec(0.5 * L)} zırh onarır` },
-  twin: { name: 'Çift namlu', max: 1, rare: true, brief: 'İki mermi, ateş gücü ×2',
+  twin: { name: 'Çift namlu', max: 1, rare: true, brief: '+%100 ateş gücü, iki mermi',
     svg: '<circle cx="7" cy="12" r="4"/><path d="M11 9.5h10M11 14.5h10"/>',
     desc: L => `Her atışta iki mermi. ${fpLine('twin', L)}` },
   ricochet: { name: 'Sekme', max: 2, rare: true, brief: 'Çelikten seker',
@@ -556,15 +556,15 @@ const UPS = {
   blast: { name: 'Patlayıcı mermi', max: 2, rare: true, brief: 'Alan hasarı',
     svg: '<path d="M12 2L14 7.5 19 5 16.5 10 22 12 16.5 14 19 19 14 16.5 12 22 10 16.5 5 19 7.5 14 2 12 7.5 10 5 5 10 7.5Z"/>',
     desc: L => L === 1 ? 'Mermi isabette patlar, yakındaki tanklara %50 hasar verir' : 'Patlama büyür, yakındaki tanklara %75 hasar' },
-  magnet: { name: 'Mıknatıs', max: 2, brief: 'Çeker, daha çok düşer',
+  magnet: { name: 'Mıknatıs', max: 2, brief: 'Güçlendirmeleri çeker, daha sık düşer',
     svg: '<path d="M4 3h5v9a3 3 0 0 0 6 0V3h5v9a8 8 0 0 1-16 0zM4 7h5M15 7h5"/>',
     desc: L => `Güçlendirmeleri ${2 + 2 * L} kare öteden çeker, düşme şansı +%${25 * L}` },
   thermal: { name: 'Termal kamera', max: 1, rare: true, brief: 'Çalıdakileri görür, +%15 ateş gücü',
     svg: '<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
     desc: L => `Çalıdaki düşmanları görür, nişan onları da seçer. ${fpLine('thermal', L)}` },
-  boost: { name: 'Uzun etki', max: 3, brief: 'Uzun süre, güçlü tamir',
+  boost: { name: 'Uzun etki', max: 3, brief: 'Güçlendirmeler uzar, Tamir artar',
     svg: '<path d="M6 3h12M6 21h12M7.5 3c0 4.5 3.5 6 3.5 9s-3.5 4.5-3.5 9M16.5 3c0 4.5-3.5 6-3.5 9s3.5 4.5 3.5 9"/>',
-    desc: L => `Güçlendirme süresi +%25${tot(L, '+%' + 25 * L)}, Tamir ${25 + 10 * L} zırh` },
+    desc: L => `Güçlendirme süresi +%25${tot(L, '+%' + 25 * L)}, Tamir ${35 + 10 * L} zırh` },
   // extra cards: never levelled, only offered when they matter or the pool runs dry
   fix: { name: 'Acil onarım', max: 99, extra: true,
     svg: '<circle cx="12" cy="12" r="9"/><path d="M12 7.5v9M7.5 12h9"/>',
@@ -1603,7 +1603,7 @@ function updateEnemy(e, dt) {
   if (e.type === 'boss') e.chargeT = e.canSee && p.alive && e.cool < 0.55 ? e.chargeT + dt : 0; // Komutan's barrels glow while charging
   if (aim !== null) {
     e.turret = turnTo(e.turret, aim, s.tTurn * dt);
-    if (may && e.cool <= 0 && Math.abs(angDiff(e.turret, aim)) < 0.07 && (e.type !== 'boss' || e.chargeT >= 0.45)) {
+    if (may && e.cool <= 0 && Math.abs(angDiff(e.turret, aim)) < 0.07 && (e.type !== 'boss' || !e.canSee || e.chargeT >= 0.45)) {
       fireTank(e); e.cool = s.cool * e.coolMul * rand(0.85, 1.25); e.aimErr = rand(-G.mods.err, G.mods.err);
       if (e.type === 'boss') e.chargeT = 0;
     }
@@ -2009,7 +2009,7 @@ function chooseUpgrade(k) {
   let label;
   if (k === 'fix') { p.hp = p.maxHp; label = 'Zırh tam'; }
   else if (k === 'bounty') { const pts = bountyPts(); G.score += pts; label = '+' + fmt(pts) + ' puan'; }
-  else if (k === 'prep') { { const d = 10 * (1 + 0.25 * upL('boost')); for (const b of ['shield', 'rapid']) { G.buffs[b] = d; G.buffMax[b] = d; } } label = 'Kalkan ve seri atış hazır'; }
+  else if (k === 'prep') { const d = 10 * (1 + 0.25 * upL('boost')); for (const b of ['shield', 'rapid']) { G.buffs[b] = d; G.buffMax[b] = d; } label = 'Kalkan ve seri atış hazır'; }
   else {
     G.up[k] = Math.min(u.max, upL(k) + 1); refreshPlayer();
     if (k === 'armor') p.hp = Math.min(p.maxHp, p.hp + 20);
@@ -2466,14 +2466,14 @@ function drawTank(t, alpha, g) {
     for (const a of [-0.2, 0, 0.2]) {
       const x = Math.cos(a) * tipX, y = Math.sin(a) * tipX;
       g.globalAlpha = alpha;
-      if (fxScale === 1) {
-        g.fillStyle = `rgba(40,12,6,${(0.6 * k).toFixed(2)})`; g.beginPath(); g.arc(x, y, 5.4, 0, TAU); g.fill(); // darker rim keeps the glow readable on bright sand and snow
-        g.globalCompositeOperation = 'lighter'; const gs = 12 + 18 * k; g.globalAlpha = alpha * (0.35 + 0.65 * k);
+      g.fillStyle = `rgba(40,12,6,${(0.65 * k).toFixed(2)})`; g.beginPath(); g.arc(x, y, 4.5 + 3 * k, 0, TAU); g.fill(); // darker rim keeps the glow readable on bright sand and snow
+      if (fxScale === 1) { // the additive halo is skipped with low effects; the hot dot below still shows the charge
+        g.globalCompositeOperation = 'lighter'; const gs = 16 + 32 * k; g.globalAlpha = alpha * (0.35 + 0.65 * k);
         g.drawImage(SPR.fire, x - gs / 2, y - gs / 2, gs, gs);
         g.globalCompositeOperation = 'source-over';
       }
       g.globalAlpha = alpha * (0.5 + 0.5 * k);
-      g.fillStyle = k < 1 ? '#e2661f' : '#fff4d0'; g.beginPath(); g.arc(x, y, 2.6 + 1.4 * k, 0, TAU); g.fill(); // low effects: solid hot dot only
+      g.fillStyle = k < 1 ? '#f0782a' : '#fff4d0'; g.beginPath(); g.arc(x, y, 3 + 2.2 * k, 0, TAU); g.fill();
     }
     g.globalAlpha = alpha;
   }
