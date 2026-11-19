@@ -37,6 +37,27 @@ print(f"  {'':8s}" + ''.join(f'{g:>7s}' for g in GROUPS))
 for strat, c in by_strat.items():
     print(f'  {strat:8s}' + ''.join(f'{c[g]:7d}' for g in GROUPS))
 
+print('\nEnd-wave summary (a run that reaches the cap counts as the cap):')
+allw = []
+for f in files:
+    strat = f.stem.split('_', 1)[1]
+    runs = json.load(open(f))
+    ends = [r[-1]['wave'] for r in runs]
+    allw += ends
+    cap = max(len(r) for r in runs)
+    reach = sum(1 for r in runs if not r[-1]['dead'])
+    ec = collections.Counter(r[-1]['wave'] for r in runs if r[-1]['dead'])
+    w, c = ec.most_common(1)[0] if ec else (0, 0)
+    print(f'  {strat:8s} runs {len(runs):3d}  mean {st.mean(ends):5.1f}  median {st.median(ends):5.1f}  reach cap {reach}/{len(runs)} ({100*reach/len(runs):.0f}%)'
+          f'  worst wave {w} ends {c}/{len(runs)} ({100*c/len(runs):.0f}%)')
+print(f'  all      mean {st.mean(allw):5.1f}  median {st.median(allw):5.1f}')
+ends1_4 = sum(1 for f in files for r in json.load(open(f)) if r[-1]['dead'] and r[-1]['wave'] < 5)
+print(f'  waves 1-4 end {ends1_4}/{len(allw)} runs')
+for f in sorted(DIR.glob('pressure_*.json')):
+    rows = [x for r in json.load(open(f)) for x in r]
+    print(f'  {f.stem}: damage per wave, mean by band: ' + '  '.join(
+        f"{lo}-{hi}: {st.mean(x['dmg'] for x in rows if lo <= x['wave'] <= hi):.1f}" for lo, hi in ((1, 4), (5, 10), (11, 20), (21, 30), (31, 40)) if any(lo <= x['wave'] <= hi for x in rows)))
+
 print('\nRuns that reach the cap, per wave band (non-boss waves): fight seconds, damage taken, player dps, enemy hp in the wave')
 for strat, rows in survivors.items():
     for lo, hi in ((1, 4), (6, 9), (11, 14), (16, 19), (21, 29), (31, 40)):

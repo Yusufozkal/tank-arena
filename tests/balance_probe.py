@@ -4,21 +4,22 @@ mode 'pressure': armour is refilled every 0.25 s so the run never ends; we recor
 mode 'survive' : a normal run; we record the wave where the tank dies.
 strategy 'random' picks workshop cards at random, 'offense' always takes the strongest damage card on offer.
 
-Usage: python3 tests/balance_probe.py <easy|normal|hard> <survive|pressure> <random|offense> <max waves> <runs>
-e.g.   python3 tests/balance_probe.py normal survive random 40 20   (~20 s; results in .tmp/balance/)
+Usage: python3 tests/balance_probe.py <survive|pressure> <random|offense> <max waves> <runs>
+e.g.   python3 tests/balance_probe.py survive random 40 20   (~20 s; results in .tmp/balance/)
 Then:  python3 tests/balance_report.py
-HP below must match the enemy hp values in SPECS in game/index.html.
+Enemy hp comes from the real SPECS / bossHp exposed on window.__tank.
 """
 import json, sys
 from common import *  # noqa: F401,F403
 
 WAVE_JS = r"""
 ([mode, strategy, maxT]) => {
-  const t = __tank, G = t.G, HP = { basic: 2, fast: 1, heavy: 5, boss: 34, hunter: 3 };
+  const t = __tank, G = t.G;
   const PRI = ['twin', 'caliber', 'loader', 'blast', 'ricochet', 'armor', 'repair', 'barrel', 'engine', 'boost', 'magnet', 'thermal', 'prep', 'fix', 'bounty'];
   const w = G.wave, sp = t.playerSpec(), up = Object.assign({}, G.up);
   const roster = G.queue.slice().concat(G.enemies.map(e => e.type));
-  const ehp = roster.reduce((s, ty) => s + (HP[ty] || 0), 0) * G.mods.hp;
+  // real enemy hp: SPECS * mods.hp; the boss ignores mods.hp and uses bossHp(w)
+  const ehp = roster.reduce((s, ty) => s + (ty === 'boss' ? t.bossHp(w) : t.SPECS[ty].hp * G.mods.hp), 0);
   const out = { wave: w, dps: +(sp.dmg * (sp.twin ? 2 : 1) / sp.cool).toFixed(2), shell: +sp.dmg.toFixed(2), cool: +sp.cool.toFixed(3), twin: sp.twin,
     ehp: +ehp.toFixed(1), n: roster.length, mix: roster.reduce((m, ty) => (m[ty] = (m[ty] || 0) + 1, m), {}), hpMul: +G.mods.hp.toFixed(2),
     eCool: +G.mods.cool.toFixed(2), eErr: +G.mods.err.toFixed(3), maxHp: G.player.maxHp, up };

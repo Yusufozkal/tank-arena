@@ -344,7 +344,7 @@ button:focus-visible{outline:2px solid var(--bone);outline-offset:2px}
       <li><canvas data-tank="fast" aria-hidden="true"></canvas><div><b>Keşif tankı</b><span>1 isabet. Çok hızlıdır, üzerine doğru gelir.</span></div></li>
       <li><canvas data-tank="heavy" aria-hidden="true"></canvas><div><b>Ağır tank</b><span>5 isabet. Çift namlulu, iri mermisi çok can yakar.</span></div></li>
       <li><canvas data-tank="hunter" aria-hidden="true"></canvas><div><b>Avcı</b><span>3 isabet. Mermilerden kaçar, siperden ateş eder, seni kaybettiği yere ateş açar. Ateş etmeden önce yeşil hedef ışığı yakar.</span></div></li>
-      <li><canvas data-tank="boss" aria-hidden="true"></canvas><div><b>Komutan</b><span>Her 5. dalgada gelir: ilk gelişinde 22 isabet, sonra her gelişinde 12 fazla. Üç namludan ateş etmeden önce namluları parlar.</span></div></li>
+      <li><canvas data-tank="boss" aria-hidden="true"></canvas><div><b>Komutan</b><span>Her 5. dalgada gelir: ilk gelişinde 16 isabet, sonra her gelişinde 12 fazla. Üç namludan ateş etmeden önce namluları parlar.</span></div></li>
     </ul>
     <h3 class="gh">GÜÇLENDİRMELER</h3>
     <ul class="pus" id="guidePus" aria-label="Güçlendirmeler"></ul>
@@ -489,7 +489,7 @@ const SPECS = {
     col: { body: '#6c4fa3', dk: '#432f6b', hi: '#9d84d1', acc: '#7ef0d0' } }
 };
 
-const BOSS_HP0 = 22, BOSS_HP_STEP = 12; // Komutan: weaker on its first visit (wave 5), tougher on every later visit
+const BOSS_HP0 = 16, BOSS_HP_STEP = 12; // Komutan: weaker on its first visit (wave 5), tougher on every later visit
 const bossHp = w => BOSS_HP0 + BOSS_HP_STEP * (Math.max(1, Math.floor(w / 5)) - 1);
 
 const PU = {
@@ -581,7 +581,7 @@ const ICON_ON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5v5h3
 const ICON_OFF = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z"/><path d="M16 9.5l5 5M21 9.5l-5 5"/></svg>';
 
 /* ================= rules, settings, records ================= */
-const RULES = { dmg: 1, cool: 1, err: 1, count: 1, alive: 0, hunterFrom: 4, dodge: 0.65, score: 1, heal: 25, hpGrow: 0.06 };
+const RULES = { dmg: 1, cool: 1, err: 1, count: 1, alive: 0, hunterFrom: 4, dodge: 0.65, score: 1, heal: 25, hpGrow: 0.04 };
 const SET_DEFAULTS = { volume: 80, lastVolume: 80, vibration: true, shake: true, aimAssist: true, minimap: true, stickSize: 'm', swapSticks: false, effects: 'high', orientation: 'auto' };
 const SET = (() => {
   const saved = store.get('tankArena.settings', null);
@@ -1328,7 +1328,7 @@ function killEnemy(e) {
     showBanner('KOMUTAN İMHA EDİLDİ', '+' + fmt(pts) + ' puan', 1.9);
     ['repair', 'shield', pick(['triple', 'rapid', 'pierce', 'freeze', 'air'])].forEach((k, i) => dropPickup(e.x + Math.cos(i * 2.1) * 26, e.y + Math.sin(i * 2.1) * 26, k, e.x, e.y));
     vibrate([40, 30, 80]);
-  } else if (Math.random() < s.drop * (1 + 0.25 * upL('magnet'))) dropPickup(e.x, e.y);
+  } else if (Math.random() < s.drop * G.mods.drop * (1 + 0.25 * upL('magnet'))) dropPickup(e.x, e.y);
 }
 function damagePlayer(b) {
   const p = G.player;
@@ -1484,30 +1484,39 @@ function updateBullets(dt) {
 }
 
 /* ================= enemies ================= */
+// Enemy pressure. Early waves (1-10) are the old ramp; after that nothing gets more HP, only sharper:
+// fire rate, aim, lead, speed and damage keep creeping up slowly, and buildRoster adds heavies / Avcı / tanks alive at once.
 function waveMods(w) {
-  const D = G.D;
-  return { speed: 1 + Math.min(0.3, (w - 1) * 0.03), cool: Math.max(0.6, 1 - (w - 1) * 0.045) * D.cool,
-    err: Math.max(0.035, 0.13 - (w - 1) * 0.012) * D.err, lead: Math.min(0.85, (w - 1) * 0.14), dmg: D.dmg,
-    hp: 1 + Math.max(0, w - 6) * D.hpGrow };
+  const D = G.D, late = Math.max(0, w - 10);
+  const err0 = Math.max(0.035, 0.13 - (w - 1) * 0.012);
+  return { speed: 1 + Math.min(0.3, (w - 1) * 0.03) + Math.min(0.3, late * 0.015), cool: Math.max(0.35, 1 - 0.035 * Math.min(9, w - 1) - 0.009 * late) * D.cool,
+    err: Math.max(0.012, err0 - Math.max(0, w - 9) * 0.0008) * D.err,
+    lead: Math.min(0.85, (w - 1) * 0.14) + Math.min(0.15, Math.max(0, w - 7) * 0.01),
+    dmg: D.dmg * (1 + Math.min(0.6, Math.max(0, w - 13) * 0.02)),
+    dodge: Math.min(0.85, D.dodge + late * 0.01), // Avcı sidesteps more of the player's shells as waves go on
+    drop: Math.max(0.5, 1 - late * 0.02), // supplies thin out: fewer power-ups (shields!) from late-wave wrecks
+    pace: Math.max(0.25, 1 - late * 0.015 - Math.max(0, w - 25) * 0.02), // spawn interval factor: reinforcements arrive faster in late waves
+    hp: 1 + Math.min(0.75, Math.max(0, w - 6) * D.hpGrow) + Math.max(0, w - 25) * 0.01 };
 }
 function buildRoster(w) {
   const D = G.D, list = [];
   if (w % 5 === 0) {
-    const esc = 2 + Math.floor(w / 5);
+    const esc = 1 + Math.floor(w / 5);
     for (let i = 0; i < esc; i++) list.push(i % 2 ? 'fast' : 'basic');
     if (w >= 10) list[list.length - 1] = 'hunter';
+    if (w >= 20) { list[0] = 'heavy'; list[2] = 'hunter'; }
     list.splice(1, 0, 'boss');
-    return { list, maxAlive: 3 + Math.min(2, Math.floor(w / 10)) + D.alive };
+    return { list, maxAlive: 3 + Math.min(5, Math.floor(w / 8)) + D.alive };
   }
-  const total = clamp(Math.round((3 + w + Math.floor(w / 2)) * D.count), 3, 24);
-  const pf = w >= 2 ? Math.min(0.32, 0.12 + 0.03 * w) : 0, ph = w >= 3 ? Math.min(0.3, 0.08 + 0.025 * w) : 0;
-  const pu = w >= D.hunterFrom ? Math.min(0.22, 0.07 + 0.025 * (w - D.hunterFrom)) : 0;
+  const total = clamp(Math.round((3 + w + Math.floor(w / 2)) * D.count), 3, 24 + Math.floor(Math.max(0, w - 20) / 2));
+  const pf = w >= 2 ? Math.min(0.28, 0.12 + 0.03 * w) - Math.max(0, w - 20) * 0.005 : 0, ph = w >= 3 ? Math.min(0.45, 0.08 + 0.025 * w) : 0;
+  const pu = w >= D.hunterFrom ? Math.min(0.35, 0.07 + 0.025 * (w - D.hunterFrom)) : 0;
   for (let i = 0; i < total; i++) { const r = Math.random(); list.push(r < ph ? 'heavy' : r < ph + pf ? 'fast' : r < ph + pf + pu ? 'hunter' : 'basic'); }
   shuffle(list);
   if (w === 2 && !list.includes('fast')) list[1] = 'fast';
   if (w === 3 && !list.includes('heavy')) list[2] = 'heavy';
   if (w === D.hunterFrom && !list.includes('hunter')) list[Math.min(3, list.length - 1)] = 'hunter';
-  return { list, maxAlive: Math.min(6, 2 + Math.ceil(w / 2)) + D.alive };
+  return { list, maxAlive: Math.min(6, 2 + Math.ceil(w / 2)) + (w > 12 ? Math.min(6, 1 + Math.floor((w - 13) / 5)) : 0) + D.alive };
 }
 function chooseSpawn() {
   const p = G.player, m = G.map;
@@ -1516,15 +1525,20 @@ function chooseSpawn() {
   if (!c.length) c = free.filter(s => dist2(s.x, s.y, p.x, p.y) > (T * 3) * (T * 3));
   if (!c.length) return null;
   const off = c.filter(s => !onScreen(s.x, s.y, T));
-  return pick(off.length ? off : c);
+  const pool = off.length ? off : c;
+  // late waves: reinforcements come out of the nearest hatches instead of any hatch
+  if (G.wave > 20) pool.sort((a, b) => dist2(a.x, a.y, p.x, p.y) - dist2(b.x, b.y, p.x, p.y));
+  return G.wave > 20 ? pool[Math.floor(Math.random() * Math.min(3, pool.length))] : pick(pool);
 }
 function spawnEnemy(type, x, y) {
   const e = makeTank(type, x, y), p = G.player;
   const a = Math.atan2(p.y - y, p.x - x);
   e.angle = Math.round(a / (Math.PI / 2)) * (Math.PI / 2); e.turret = a;
-  e.cool = rand(0.9, 1.7); e.speedMul = G.mods.speed; e.coolMul = G.mods.cool; e.aimErr = rand(-G.mods.err, G.mods.err);
+  e.cool = rand(0.9, 1.7) * G.mods.cool; e.speedMul = G.mods.speed; e.coolMul = G.mods.cool; e.aimErr = rand(-G.mods.err, G.mods.err);
   if (G.mods.hp > 1) e.hp = e.maxHp = Math.max(1, Math.round(e.spec.hp * G.mods.hp)); // later waves bring tougher tanks
-  if (type === 'boss') e.hp = e.maxHp = bossHp(G.wave); // Komutan ignores mods.hp: its HP grows per visit instead
+  if (type === 'boss') { // Komutan ignores mods.hp: its HP grows per visit instead, and it fires slower on its first visits (x1.6, x1.3, ...)
+    e.hp = e.maxHp = bossHp(G.wave); e.coolMul *= 1 + 0.6 / Math.floor(G.wave / 5);
+  }
   G.enemies.push(e);
   if (type === 'hunter' && !store.get('tankArena.seenHunter', false)) {
     store.set('tankArena.seenHunter', true);
@@ -1538,7 +1552,7 @@ function updateSpawns(dt) {
   G.spawnTimer -= dt;
   if (G.queue.length && G.enemies.length + G.portals.length < G.maxAlive && G.spawnTimer <= 0) {
     const sp = chooseSpawn();
-    if (sp) { G.portals.push({ x: sp.x, y: sp.y, t: 0, dur: 1.15, type: G.queue.shift(), done: false }); G.spawnTimer = rand(0.7, 1.5); Sound.spawn(volAt(sp.x, sp.y)); }
+    if (sp) { G.portals.push({ x: sp.x, y: sp.y, t: 0, dur: 1.15, type: G.queue.shift(), done: false }); G.spawnTimer = rand(0.7, 1.5) * G.mods.pace; Sound.spawn(volAt(sp.x, sp.y)); }
     else G.spawnTimer = 0.25;
   }
   const p = G.player;
@@ -1625,7 +1639,7 @@ function checkDodge(e) {
     if (!b.seenBy) b.seenBy = [];
     if (b.seenBy.includes(e.id)) continue;
     b.seenBy.push(e.id);
-    if (Math.random() > G.D.dodge) continue;
+    if (Math.random() > G.mods.dodge) continue;
     const sp = Math.sqrt(v2), nx = -b.vy / sp, ny = b.vx / sp, side = cx * nx + cy * ny;
     for (const sg of side > 0 ? [-1, 1] : [1, -1]) {
       if (blocksTank(m.at(e.x + nx * sg * (e.r + 30), e.y + ny * sg * (e.r + 30)))) continue;
@@ -1949,7 +1963,7 @@ function nextWave() {
 }
 function waveCleared() {
   G.phase = 'cleared'; G.phaseT = 0;
-  const bonus = Math.round(100 * G.wave * G.D.score), p = G.player, heal = Math.min(G.D.heal, p.maxHp - p.hp);
+  const bonus = Math.round(100 * G.wave * G.D.score), p = G.player, heal = Math.min(Math.max(8, G.D.heal - Math.max(0, G.wave - 10)), p.maxHp - p.hp); // field repairs shrink after wave 10 (25 -> 8)
   G.score += bonus; p.hp += heal;
   G.bullets = G.bullets.filter(b => b.owner === 0);
   showBanner('DALGA TEMİZLENDİ', '+' + fmt(bonus) + ' bonus' + (heal >= 1 ? ', +' + Math.round(heal) + ' zırh' : ''), 2.3);
@@ -2834,7 +2848,7 @@ if (DEBUG) {
     },
     killAll() { for (const e of G.enemies) killEnemy(e); G.queue.length = 0; G.portals.length = 0; },
     dbg, sticks, wave(w) { G.wave = w - 1; nextWave(); },
-    choices: () => upChoices.slice(), choose: chooseUpgrade, showUpgrades, waveCleared, playerSpec, bossHp,
+    choices: () => upChoices.slice(), choose: chooseUpgrade, showUpgrades, waveCleared, playerSpec, bossHp, SPECS,
     setUp(o) { G.up = Object.assign({}, o); refreshPlayer(); },
     give(kind) { const p = G.player; applyPickup({ kind, x: p.x, y: p.y }); },
     fire() { fireTank(G.player); },
