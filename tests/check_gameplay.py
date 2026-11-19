@@ -2,14 +2,13 @@
 rotation, a long autopilot run. Prints a JSON report to read through; screenshots go to .tmp/shots."""
 from common import *  # noqa: F401,F403
 
-# ---- package A changes this block (twin becomes a tank in 1.4) ----
-# Every `twin` card reference of this check lives here. The JS snippets below use @@TOKENS@@ that A() expands,
-# so package A edits only these constants. Today they reproduce the 1.3 text exactly.
-TWIN_RARES = "'twin','ricochet','blast','thermal'"   # rare-card list in the boss-wave check
-TWIN_KEYS = "'armor','engine','loader','caliber','barrel','repair','twin','ricochet','blast','magnet','thermal','boost'"  # maxed pool
-TWIN_SPEC = ", barrel: s.barrel, twin: s.twin"                          # extra field in maxed_spec
-TWIN_SHOOT = "t.setUp({ twin: 1 }); out.twin = shoot();"  # shell-type sample
-TWIN_FULL = "twin: 1, "                               # twin level in the visual-set upgrade mix
+# ---- twin block (1.4): the twin card became the Ikiz tank ----
+# The JS snippets below use @@TOKENS@@ that A() expands. The pool lists no longer contain 'twin'; the shell-type sample switches to the Ikiz tank.
+TWIN_RARES = "'ricochet','blast','thermal'"   # rare-card list in the boss-wave check
+TWIN_KEYS = "'armor','engine','loader','caliber','barrel','repair','ricochet','blast','magnet','thermal','boost'"  # maxed pool
+TWIN_SPEC = ", barrel: s.barrel, shells: s.muzzles.length, tank: s.tankId"                          # extra field in maxed_spec
+TWIN_SHOOT = "t.setTank('ikiz'); out.twin = shoot(); t.setTank('std');"  # shell-type sample: the Ikiz tank fires two shells
+TWIN_FULL = ""                                        # (no twin level in the visual-set upgrade mix)
 def A(js):
     for k, v in (('TWIN_RARES', TWIN_RARES), ('TWIN_KEYS', TWIN_KEYS), ('TWIN_SPEC', TWIN_SPEC), ('TWIN_SHOOT', TWIN_SHOOT), ('TWIN_FULL', TWIN_FULL)):
         js = js.replace('@@' + k + '@@', v)
@@ -68,6 +67,7 @@ with sync_playwright() as p:
     R['key2_choice'] = [second, page.evaluate("JSON.stringify(__tank.G.up)")]
 
     # ---- boss wave gives a rare, low armour gives a repair card ----
+    page.evaluate('__tank.noEvo(true)')  # wave 5 / 7 with the Standart tank would show the evolution screen (tests/check_tanks.py covers it)
     rare = page.evaluate(A("""() => { const t = __tank, G = t.G; let rares = 0, fixes = 0;
       for (let i = 0; i < 40; i++) { t.setUp({}); G.wave = 5; G.player.hp = 100; t.showUpgrades(); const c = t.choices(); if (c.some(k => [@@TWIN_RARES@@].includes(k))) rares++; }
       for (let i = 0; i < 20; i++) { G.wave = 3; G.player.hp = 20; t.showUpgrades(); if (t.choices().includes('fix')) fixes++; }
@@ -160,7 +160,8 @@ with sync_playwright() as p:
     page.screenshot(path=f'{OUT}/d_pause_chips.png')
     page.keyboard.press('p')
 
-    # ---- long autopilot run with automatic card picks ----
+    # ---- long autopilot run with automatic card picks (the bot also takes the tank evolutions at waves 5 and 10) ----
+    page.evaluate('__tank.noEvo(false)')
     run = page.evaluate("""() => { const t = __tank, G = t.G; t.startGame(null); t.sim(240, true); return t.info(); }""")
     R['long_run'] = {k: run[k] for k in ('state', 'wave', 'kills', 'score', 'maxHp', 'up', 'parts')}
     page.evaluate("() => { const G = __tank.G; G.god = false; __tank.gameOver(); }")
