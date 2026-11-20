@@ -90,7 +90,7 @@ function bossClearHazards() {
   G.tele.length = 0;
   G.bullets = G.bullets.filter(b => b.owner !== 1);
   if (G.mines) G.mines.length = 0;
-  for (const e of G.enemies) if (e.isBoss) { e.gen = null; e.atkId = ''; e.glow = 0; e.cool = Math.max(e.cool, 1); }
+  for (const e of G.enemies) if (e.isBoss) { e.gen = null; e.atkId = ''; e.glow = 0; e.cool = Math.max(e.cool, 1); if (e.def.onClear) e.def.onClear(e); }
 }
 const steelBetween = (x0, y0, x1, y1) => {
   const m = G.map, dx = x1 - x0, dy = y1 - y0, n = Math.ceil(Math.hypot(dx, dy) / 12);
@@ -107,6 +107,7 @@ function rayClip(x, y, a, max, margin) {
 /* ---- danger map for the autopilot: every active warning is a dangerous area ---- */
 function bossDanger(x, y, pad, react) { // react: seconds a warning must have been showing before it counts (the bot's reaction time)
   pad = pad || 0; const e = G.boss; if (!e || e.dead) return false;
+  if (e.def.danger && e.def.danger(e, x, y, pad)) return true; // per-boss hazards that are not telegraphs (sand strips)
   for (const tl of G.tele) {
     if (react && tl.t < react) continue;
     if (tl.kind === 'circle') { const rr = tl.r + pad; if (dist2(x, y, tl.x, tl.y) < rr * rr) return true; }
@@ -217,6 +218,7 @@ function updateBoss(e, dt, halted) {
   if (e.dead) return;
   const p = G.player;
   e.flash = Math.max(0, e.flash - dt); e.recoil = Math.max(0, e.recoil - dt * 6);
+  if (e.def.tick) e.def.tick(e, dt); // per-boss frame hook (Sarı Fırtına: sand strips, wind); runs in the intro and the death scene too
   if (G.phase === 'bossIntro') return; // the intro script drives the boss
   if (e.dying) { bossDeathTick(e, dt); return; }
   bossFx(e, dt);

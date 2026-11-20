@@ -1,6 +1,6 @@
 # Oyun kaynağı: modül haritası
 
-`game/index.html` **üretilir**; elle düzenleme. Kaynak `game/src/` içinde: `shell.html` (HTML, iki işaret satırı `/*@@CSS@@*/` ve `/*@@JS@@*/`), `style.css` ve sıralı JS modülleri `NN-ad.js` (araya girenler `NNa-ad.js`: `11a` ve `11b`, `15a`; `build_game.py` bunları `NN-` dosyalarından sonra, sonraki numaradan önce birleştirir). Hepsi tek `(() => { 'use strict'; ... })()` içine birleşir, yani modüller aynı kapsamı paylaşır: `import` yok, bir modüldeki üst düzey ad sonraki (ve çağrı anında önceki) modüllerden doğrudan kullanılır. Sıra önemlidir: `const` tanımları kullanılmadan önce çalışmalıdır.
+`game/index.html` **üretilir**; elle düzenleme. Kaynak `game/src/` içinde: `shell.html` (HTML, iki işaret satırı `/*@@CSS@@*/` ve `/*@@JS@@*/`), `style.css` ve sıralı JS modülleri `NN-ad.js` (araya girenler `NNa-ad.js`: `11a`, `11b`, `11c`, `15a`, `15b`; `build_game.py` bunları `NN-` dosyalarından sonra, sonraki numaradan önce birleştirir). Hepsi tek `(() => { 'use strict'; ... })()` içine birleşir, yani modüller aynı kapsamı paylaşır: `import` yok, bir modüldeki üst düzey ad sonraki (ve çağrı anında önceki) modüllerden doğrudan kullanılır. Sıra önemlidir: `const` tanımları kullanılmadan önce çalışmalıdır.
 
 ## Nasıl çalışılır
 
@@ -26,11 +26,13 @@
 | `11-enemies.js` | 278 | Dalga zorluğu `waveMods`, `buildRoster`, doğuş `spawnEnemy`, `updateEnemy`, kaçınma/siper, Avcı (zeki tank) `updateHunter` | 02, 07, 09 | `check_gameplay`, `balance_probe` |
 | `11a-boss-core.js` | ~370 | Boss altyapısı: `themeFor` (10 dalgalık bölgeler), `ARENAS`/`parseArena`/`loadArena` (21×21 metin haritası), boss tablosu `BOSS_DEFS`/`BOSS_ON`/`bossDefAt`, `spawnBoss`, `updateBoss` (evreler, parçalar, sersemleme, saldırı makinesi: generator'lar), uyarı sistemi `addTele`/`release`/`TELE_MIN`, `bossDanger` (bot için tehlike haritası), `bossClearHazards`, `bossHurt` (parça, +%50 sersem, `nukeOnBossDamage` kancası), hasar görünümü, ölüm sahnesi, giriş sahnesi `startBossStage`/`bossIntroTick` | 07, 09, 11 | `check_boss`, `boss_probe` |
 | `11b-boss-komutan.js` | ~130 | Komutan: saldırılar (`komTriple`, `komCharge`, `komMortar`, `komSalvo`, `komBombard`, `komPenta`, `komShock`), `BOSS_DEFS.komutan` (açılış dalgaları `unlocks`, kule parçası) | 11a | `check_boss`, `boss_probe` |
+| `11c-boss-sari.js` | ~200 | Sarı Fırtına: arena `ARENAS.kum` (Kum Çukuru), saldırılar (`sariShots` çevik atış, `sariRush` tek hücum, `sariCharge`/`sariDouble`/`sariTriple`), kum şeritleri, rüzgâr, `sariTick` (boss başına kare kancası), `BOSS_DEFS.sari`, kayıt `BOSS_ON[10] = 'sari'` | 11a | `check_sari`, `boss_probe` |
 | `12-input-player.js` | 166 | Girdi (`input`, `keys`, `mouse`, çubuklar, `autoTarget`), `bot` durum nesnesi, `updatePlayer`, afiş/ipucu (`showBanner`, `showHint`) | 05, 07 | `check_hud_buttons`, `check_crosshair` |
 | `13-flow.js` | 366 | Oyun akışı: `startGame`, `nextWave`, `waveCleared`, atölye (`rollUpgrades`, `chooseUpgrade`), evrim (`chooseTank`, `tankCardHTML`), `gameOver`, menü ve alt sayfalar, `applySettings`, `bindUI`, rehber, `pauseGame` | 02, 03, 11 | `check_gameplay`, `check_tanks` |
 | `14-update-hud.js` | 120 | `update(dt)` sabit adım, `updatePlay`, `updateCamera`, HUD `ui`, `updateHUD` | 09–13 | `check_hud_mobile`, `check_gameplay` |
 | `15-render-world.js` | 330 | `render()`, su/iz/portal çizimi, `barrel`, `hullMarks`, `turretMarks`, `drawTank`, `drawFrost`, `drawThermal` | 03, 05, 06 | `check_gameplay`, `stress` |
 | `15a-boss-render.js` | ~150 | `drawBoss`/`drawKomutan` (büyük Komutan), uyarı çizimi `drawTele` (çizgi, daire, halka), düşen parçalar `drawPieces` | 11a, 15 | `check_boss` |
+| `15b-render-sari.js` | ~130 | `drawSari` (ok biçimli gövde, egzozlar, kum hortumu `sariWhirl`), `drawSariGround` (kum şeritleri, rüzgâr okları) | 11c, 15a | `check_sari` |
 | `16-render-ui.js` | 291 | Hava saldırısı, çalılık, tank efektleri, `drawBullets`, `drawLocks`, `drawIndicators`, `drawCrosshair`/`syncAimCursor`, çubuklar, `drawVignette`, `drawMini` (mini harita) | 05, 15 | `check_crosshair`, `check_hud_mobile` |
 | `17-loop.js` | 13 | `frame(now)`: `update` + `render` + `requestAnimationFrame` | 14–16 | hepsi |
 | `18-bot.js` | ~95 | Otomatik pilot `autopilot(dt)`, boss etabı pilotu `bossAutopilot` (tehlike haritası `botDanger`, en yakın güvenli kare `botBfs`), evrim seçimi `botPick` (`bot` nesnesi 12'de) | 12, 13 | `balance_probe`, `stress` |
@@ -43,7 +45,7 @@ CSS `style.css` (telefon HUD'u `@media (max-width:520px),(max-height:520px)` blo
 
 - **Denge** (düşman canı, hız, dalga): `02-constants.js` (`SPECS`, `bossHp`, `firepower`, `UPS`, `PU`), `11-enemies.js` (`waveMods`, `buildRoster`), `04-platform.js` (`RULES`). Ölçüm: `balance_probe.py` + `balance_report.py`.
 - **Düşmanlar ve Avcı**: `11-enemies.js`; öldürme/hasar `09-combat-fx.js`.
-- **Boss etabı ve Komutan**: altyapı `11a-boss-core.js` (yeni boss = `BOSS_DEFS.<id>` + `BOSS_ON[dalga]` + `ARENAS.<ad>`), Komutan `11b-boss-komutan.js`, can tablosu `BOSS_HP_AT`/`bossHp` (02), çizim `15a-boss-render.js`, bot `bossAutopilot` (18), ölçüm `tests/boss_probe.py`, kontrol `tests/check_boss.py`.
+- **Boss etabı ve Komutan**: altyapı `11a-boss-core.js` (yeni boss = `BOSS_DEFS.<id>` + `BOSS_ON[dalga]` + `ARENAS.<ad>`; boss başına kancalar: `def.tick(e, dt)` her kare, `def.danger(e, x, y, pad)` bot tehlike haritası, `def.onClear(e)` tehlikeler silinince, `def.drawGround(e, ctx)` zemin katmanı), Komutan `11b-boss-komutan.js`, Sarı Fırtına `11c-boss-sari.js` + `15b-render-sari.js` (test `check_sari.py`), can tablosu `BOSS_HP_AT`/`bossHp` (02), çizim `15a-boss-render.js`, bot `bossAutopilot` (18), ölçüm `tests/boss_probe.py`, kontrol `tests/check_boss.py`.
 - **Çizim**: dünya `15-render-world.js`, mermi/nişangâh/mini harita `16-render-ui.js`, harita katmanı `06-map.js`, sprite önbelleği `04-platform.js`.
 - **Telefon HUD**: `style.css` medya bloğu, `shell.html` işaretleme, `updateHUD` (14), `measureHud`/`resize` (05). Test: `check_hud_mobile.py`, `check_hud_buttons.py`.
 - **Nükleer bomba**: `10-nuke-bullets.js` (`NUKE_*`); `nukeReset` ve `nukeSave` akışta (13/20). Test: `check_nuke.py`.
