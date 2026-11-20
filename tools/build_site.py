@@ -14,7 +14,7 @@ import paths as P  # noqa: E402
 SITE = str(P.SITE)
 D = json.load(open(P.TOOLS / 'gamedata.json', encoding='utf-8'))
 VERSION = P.app_version()  # android/AndroidManifest.xml versionName
-OLD_APKS = ['TankArena-1.2.apk', 'TankArena-1.2.1.apk', 'TankArena-1.3.apk']  # earlier file names; their links on this site now lead to the newest APK
+OLD_APKS = ['TankArena-1.2.apk', 'TankArena-1.2.1.apk', 'TankArena-1.3.apk', 'TankArena-1.4.apk']  # earlier file names; their links on this site now lead to the newest APK
 APK = f'TankArena-{VERSION}.apk'
 BASE = os.environ.get('SITE_URL', '').rstrip('/')  # absolute origin for link previews, filled in once the address is known
 REPO = 'https://github.com/Yusufozkal/tank-arena'

@@ -27,7 +27,7 @@ function rrectPath(g, x, y, w, h, r) { r = Math.min(r, w / 2, h / 2); g.moveTo(x
 function rrect(g, x, y, w, h, r) { g.beginPath(); rrectPath(g, x, y, w, h, r); }
 
 /* ================= constants ================= */
-const T = 48, MAP_N = 21, HALF = (MAP_N - 1) / 2;
+const T = 48, MAP_N = 25, HALF = (MAP_N - 1) / 2;
 const EMPTY = 0, BRICK = 1, STEEL = 2, WATER = 3, BUSH = 4, BRICK_HP = 3;
 const isWall = v => v === BRICK || v === STEEL;
 const blocksTank = v => v === BRICK || v === STEEL || v === WATER;
@@ -330,7 +330,7 @@ function synChipsHTML() { return synList().map(sy => `<span class="up-chip syn">
 function renderSynList(wrap, list) { const h = synChipsHTML(); $(list).innerHTML = h; $(wrap).classList.toggle('hidden', !h); }
 
 /* ================= rules, settings, records ================= */
-const RULES = { dmg: 1, cool: 1, err: 1, count: 1, alive: 0, hunterFrom: 4, dodge: 0.65, score: 1, heal: 25, hpGrow: 0.04 };
+const RULES = { dmg: 1, cool: 1, err: 1, count: 1.25, alive: 0, fastFrom: 4, heavyFrom: 7, hunterFrom: 12, maxAlive: 8, dodge: 0.65, score: 1, heal: 25, hpGrow: 0.04 };
 const SET_DEFAULTS = { volume: 80, lastVolume: 80, vibration: true, shake: true, aimAssist: true, minimap: true, stickSize: 'm', swapSticks: false, effects: 'high', orientation: 'auto' };
 const SET = (() => {
   const saved = store.get('tankArena.settings', null);
@@ -578,7 +578,7 @@ function generate() {
       for (const [x, y] of pts) { if (x <= 0 || y <= 0 || x >= n - 1 || y >= n - 1) continue; const i = y * n + x; if (!res[i]) t[i] = v; }
     };
     if (Math.random() < 0.35) { put(h - 2, h - 2, BRICK); put(h - 1, h - 2, BRICK); put(h - 2, h - 1, BRICK); }
-    const count = randInt(9, 13);
+    const count = randInt(13, 19); // ~1.44x the 21-tile count: same stamp density per area
     for (let k = 0; k < count; k++) {
       let x = Math.random() * STAMP_W, st = STAMPS[0];
       for (const s of STAMPS) { x -= s.w; if (x <= 0) { st = s; break; } }
@@ -1474,15 +1474,14 @@ function nukeWaveWeight(w) {
   const W = NUKE_WEIGHT;
   if (w % 5 === 0) {
     const list = [];
-    for (let i = 0, esc = 1 + Math.floor(w / 5); i < esc; i++) list.push(i % 2 ? 'fast' : 'basic');
-    if (w >= 10) list[list.length - 1] = 'hunter';
+    for (let i = 0, esc = 1 + Math.floor(w / 5); i < esc; i++) list.push(i % 2 && w >= G.D.fastFrom ? 'fast' : 'basic');
+    if (w >= Math.max(20, G.D.hunterFrom)) list[list.length - 1] = 'hunter';
     if (w >= 20) { list[0] = 'heavy'; list[2] = 'hunter'; }
     list.push('boss');
     return list.reduce((a, t) => a + W[t], 0);
   }
   const D = G.D, total = clamp(Math.round((3 + w + Math.floor(w / 2)) * D.count), 3, 24 + Math.floor(Math.max(0, w - 20) / 2));
-  const pf = w >= 2 ? Math.min(0.28, 0.12 + 0.03 * w) - Math.max(0, w - 20) * 0.005 : 0, ph = w >= 3 ? Math.min(0.45, 0.08 + 0.025 * w) : 0;
-  const pu = w >= D.hunterFrom ? Math.min(0.35, 0.07 + 0.025 * (w - D.hunterFrom)) : 0;
+  const { pf, ph, pu } = typeShares(w);
   return total * (ph * W.heavy + pf * W.fast + pu * W.hunter + Math.max(0, 1 - ph - pf - pu) * W.basic);
 }
 const nukeFresh = m => ({ meter: clamp(+m || 0, 0, 1), warnT: 0, flashT: -1e9, firing: false, used: 0, hinted: false });
@@ -1632,34 +1631,42 @@ function updateBullets(dt) {
 function waveMods(w) {
   const D = G.D, late = Math.max(0, w - 10);
   const err0 = Math.max(0.035, 0.13 - (w - 1) * 0.012);
-  return { speed: 1 + Math.min(0.3, (w - 1) * 0.03) + Math.min(0.3, late * 0.015), cool: Math.max(0.35, 1 - 0.035 * Math.min(9, w - 1) - 0.009 * late) * D.cool,
+  return { speed: 1 + Math.min(0.3, (w - 1) * 0.03) + Math.min(0.3, late * 0.015), cool: Math.max(0.35, 1 - 0.035 * Math.min(9, w - 1) - 0.013 * late) * D.cool,
     err: Math.max(0.012, err0 - Math.max(0, w - 9) * 0.0008) * D.err,
     lead: Math.min(0.85, (w - 1) * 0.14) + Math.min(0.15, Math.max(0, w - 7) * 0.01),
-    dmg: D.dmg * (1 + Math.min(0.6, Math.max(0, w - 13) * 0.02) + Math.max(0, w - 25) * 0.04),
+    dmg: D.dmg * (1 + Math.min(0.6, Math.max(0, w - 13) * 0.02) + Math.max(0, w - 25) * 0.07),
     dodge: Math.min(0.85, D.dodge + late * 0.01), // Avcı sidesteps more of the player's shells as waves go on
     drop: Math.max(0.5, 1 - late * 0.02), // supplies thin out: fewer power-ups (shields!) from late-wave wrecks
     pace: Math.max(0.25, 1 - late * 0.015 - Math.max(0, w - 25) * 0.02), // spawn interval factor: reinforcements arrive faster in late waves
     hp: 1 + Math.min(0.75, Math.max(0, w - 6) * D.hpGrow) + Math.max(0, w - 20) * 0.09 };
 }
+// Share of Hızlı / Ağır / Avcı among normal-wave tanks. Each type is absent before its first wave (RULES.fastFrom / heavyFrom / hunterFrom) and then grows slowly.
+function typeShares(w) {
+  const D = G.D;
+  return {
+    pf: w > D.fastFrom ? Math.min(0.28, 0.04 + 0.02 * (w - D.fastFrom)) - Math.max(0, w - 20) * 0.005 : 0,
+    ph: w > D.heavyFrom ? Math.min(0.45, 0.04 + 0.02 * (w - D.heavyFrom)) : 0,
+    pu: w > D.hunterFrom ? Math.min(0.35, 0.04 + 0.02 * (w - D.hunterFrom)) : 0 };
+}
 function buildRoster(w) {
   const D = G.D, list = [];
   if (w % 5 === 0) {
     const esc = 1 + Math.floor(w / 5);
-    for (let i = 0; i < esc; i++) list.push(i % 2 ? 'fast' : 'basic');
-    if (w >= 10) list[list.length - 1] = 'hunter';
+    for (let i = 0; i < esc; i++) list.push(i % 2 && w >= D.fastFrom ? 'fast' : 'basic');
+    if (w >= Math.max(20, D.hunterFrom)) list[list.length - 1] = 'hunter'; // escorts follow the same introduction schedule as normal waves
     if (w >= 20) { list[0] = 'heavy'; list[2] = 'hunter'; }
     list.splice(1, 0, 'boss');
-    return { list, maxAlive: 3 + Math.min(5, Math.floor(w / 8)) + D.alive };
+    return { list, maxAlive: Math.min(D.maxAlive, 3 + Math.min(5, Math.floor(w / 8)) + D.alive) };
   }
   const total = clamp(Math.round((3 + w + Math.floor(w / 2)) * D.count), 3, 24 + Math.floor(Math.max(0, w - 20) / 2));
-  const pf = w >= 2 ? Math.min(0.28, 0.12 + 0.03 * w) - Math.max(0, w - 20) * 0.005 : 0, ph = w >= 3 ? Math.min(0.45, 0.08 + 0.025 * w) : 0;
-  const pu = w >= D.hunterFrom ? Math.min(0.35, 0.07 + 0.025 * (w - D.hunterFrom)) : 0;
+  const { pf, ph, pu } = typeShares(w);
   for (let i = 0; i < total; i++) { const r = Math.random(); list.push(r < ph ? 'heavy' : r < ph + pf ? 'fast' : r < ph + pf + pu ? 'hunter' : 'basic'); }
   shuffle(list);
-  if (w === 2 && !list.includes('fast')) list[1] = 'fast';
-  if (w === 3 && !list.includes('heavy')) list[2] = 'heavy';
-  if (w === D.hunterFrom && !list.includes('hunter')) list[Math.min(3, list.length - 1)] = 'hunter';
-  return { list, maxAlive: Math.min(6, 2 + Math.ceil(w / 2)) + (w > 12 ? Math.min(6, 1 + Math.floor((w - 13) / 5)) : 0) + D.alive };
+  // a type's first wave: exactly one of it (the roster above has none yet), placed a little way into the wave
+  const first = w === D.fastFrom ? 'fast' : w === D.heavyFrom ? 'heavy' : w === D.hunterFrom ? 'hunter' : null;
+  if (first) list[Math.min(list.length - 1, 1 + Math.floor(Math.random() * 2))] = first;
+  const alive = Math.min(6, 2 + Math.ceil(w / 2)) + (w > 12 ? Math.min(6, 1 + Math.floor((w - 13) / 5)) : 0) + D.alive;
+  return { list, maxAlive: Math.min(D.maxAlive, alive) };
 }
 function chooseSpawn() {
   const p = G.player, m = G.map;
@@ -1673,6 +1680,10 @@ function chooseSpawn() {
   if (G.wave > 20) pool.sort((a, b) => dist2(a.x, a.y, p.x, p.y) - dist2(b.x, b.y, p.x, p.y));
   return G.wave > 20 ? pool[Math.floor(Math.random() * Math.min(3, pool.length))] : pick(pool);
 }
+const NEW_FOE = {
+  fast: ['tankArena.seenFast', 'Yeni düşman: Hızlı. Küçük ve çevik, hızla yaklaşır ama az dayanır.'],
+  heavy: ['tankArena.seenHeavy', 'Yeni düşman: Ağır. Yavaş ama çok sağlam, çift namlu ateş eder.'],
+  hunter: ['tankArena.seenHunter', 'Yeni düşman: Avcı. Mermilerden kaçar, siperden ateş eder; ateş etmeden önce yeşil hedef ışığı yakar.'] };
 function spawnEnemy(type, x, y) {
   const e = makeTank(type, x, y), p = G.player;
   const a = Math.atan2(p.y - y, p.x - x);
@@ -1683,10 +1694,8 @@ function spawnEnemy(type, x, y) {
     e.hp = e.maxHp = bossHp(G.wave); e.coolMul *= 1 + 0.6 / Math.max(1, Math.floor(G.wave / 5));
   }
   G.enemies.push(e);
-  if (type === 'hunter' && !store.get('tankArena.seenHunter', false)) {
-    store.set('tankArena.seenHunter', true);
-    showHint('Yeni düşman: Avcı. Mermilerden kaçar, siperden ateş eder; ateş etmeden önce yeşil hedef ışığı yakar.', 6);
-  }
+  const intro = NEW_FOE[type];
+  if (intro && !store.get(intro[0], false)) { store.set(intro[0], true); showHint(intro[1], 6); }
   for (let k = 0; k < 10; k++) { const an = rand(0, TAU), sp = rand(30, 90); addPart('dust', x, y, Math.cos(an) * sp, Math.sin(an) * sp, rand(0.5, 0.9), rand(16, 26), 26, 3); }
   addPart('ring', x, y, 0, 0, 0.4, 10, 120, 0, '224,83,58');
   if (type === 'boss') { G.boss = e; showBanner('KOMUTAN GELDİ', G.wave <= 5 ? 'Namluları parlayınca yana kaç' : 'Her gelişinde daha güçlü', 1.9); shake(6); }
