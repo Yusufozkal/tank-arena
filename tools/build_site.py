@@ -14,7 +14,7 @@ import paths as P  # noqa: E402
 SITE = str(P.SITE)
 D = json.load(open(P.TOOLS / 'gamedata.json', encoding='utf-8'))
 VERSION = P.app_version()  # android/AndroidManifest.xml versionName
-OLD_APKS = ['TankArena-1.2.apk', 'TankArena-1.2.1.apk', 'TankArena-1.3.apk', 'TankArena-1.4.apk', 'TankArena-1.4.1.apk', 'TankArena-1.5.apk', 'TankArena-1.5.1.apk', 'TankArena-1.5.2.apk']  # earlier file names; their links on this site now lead to the newest APK
+OLD_APKS = ['TankArena-1.2.apk', 'TankArena-1.2.1.apk', 'TankArena-1.3.apk', 'TankArena-1.4.apk', 'TankArena-1.4.1.apk', 'TankArena-1.5.apk', 'TankArena-1.5.1.apk', 'TankArena-1.5.2.apk', 'TankArena-1.5.3.apk']  # earlier file names; their links on this site now lead to the newest APK
 APK = f'TankArena-{VERSION}.apk'
 BASE = os.environ.get('SITE_URL', '').rstrip('/')  # absolute origin for link previews, filled in once the address is known
 REPO = 'https://github.com/Yusufozkal/tank-arena'
@@ -91,6 +91,7 @@ FOES = [
     ('boss-komutan', 'Komutan', 'boss', 'Ana boss. 5, 15, 25 ve 35. dalgada kendi arenasında gelir. Üç evresi ve komuta kulesi var, her gelişinde yeni saldırılar açar.'),
     ('boss-sari', 'Sarı Fırtına', 'boss', 'Keşif tankının boss\'u, 10. dalgada. Kırmızı çizgi boyunca hücum eder; çeliğe çarparsa sersemler.'),
     ('boss-demirkok', 'Demirkök', 'boss', 'Ağır tankın boss\'u, 20. dalgada Orman Kalesi\'nde. Yan taretleri ayaktayken gövdesi yarı hasar alır; son evrede kök salar.'),
+    ('boss-kapatici', 'Kapatıcı', 'boss', 'Yalnızca Serbest Mod\'da. Çok zeki ama hile yapmaz: gördüğünü ve duyduğunu bilir, kaçış yolunu keser, savaşta alışkanlığını öğrenir. Her saldırıdan sonra bir saniye tam hasar alır; 90. saniyeden sonra arena kapanır.'),
 ]
 foes = '\n'.join(f'<li class="foe-{c.split()[-1]}"><img src="/img/{k if k.startswith("boss-") else "tank-" + k}.png" width="128" height="128" alt="" loading="lazy"><b>{n}</b><span>{t}</span></li>' for k, n, c, t in FOES)
 
@@ -354,7 +355,7 @@ footer a{{text-underline-offset:3px}}
 <section id="tek-savas">
   <div class="wrap">
     <h2>Boss savaşları</h2>
-    <p class="lead">Boss dalgalarında oyun kendi etabına geçer: sahada yalnızca boss ve sen varsınız, arena boss'a göre tasarlanmıştır. Üstte büyük bir can çubuğu görünür. Boss saldırmadan önce uyarır; çelik bloklar seni korur. Yeterince vurursan boss'un paleti ve namlusu da kırılır.</p>
+    <p class="lead">Boss dalgalarında oyun kendi etabına geçer: sahada yalnızca boss ve sen varsınız, arena boss'a göre tasarlanmıştır. Üstte büyük bir can çubuğu görünür. Boss saldırmadan önce uyarır; çelik bloklar seni korur. Yeterince vurursan boss'un paleti ve namlusu da kırılır. Serbest Mod'da tankını, kartlarını ve hedefini kendin seçip istediğin bossla ya da dalgayla oynayabilirsin.</p>
     <div class="bossshot"><img src="/img/boss-phone.jpg" width="720" height="1558" alt="Sarı Fırtına boss savaşı: üstte büyük boss can çubuğu, sarı boss tankı ve mavi oyuncu tankı" loading="lazy"></div>
     <p class="lead">Herkes aynı kurallarla oynar, rekorlar tek listede tutulur.</p>
   </div>

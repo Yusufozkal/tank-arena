@@ -300,6 +300,64 @@ button:focus-visible{outline:2px solid var(--bone);outline-offset:2px}
 #btnNuke .nk-key{position:absolute;top:-6px;right:-6px;min-width:15px;height:15px;padding:0 3px;border-radius:3px;background:var(--bone);color:var(--on-signal);font-size:11px;font-weight:800;line-height:15px;text-align:center}
 @keyframes nkPulse{50%{box-shadow:0 0 0 2px rgba(21,24,15,.75),0 0 22px 7px rgba(242,193,78,.8)}}
 @media (prefers-reduced-motion:reduce){#btnNuke.ready{animation:none}}
+
+/* Serbest Mod: setup screen, end screen, HUD tag */
+#sbxTag,#hud.sbx #bossName::after{padding:1px 5px;border-radius:2px;background:var(--signal);color:var(--on-signal);font-family:var(--display);font-weight:800;font-size:10px;letter-spacing:.08em;line-height:1.3;white-space:nowrap}
+#sbxTag{display:none;margin-top:3px;width:fit-content}
+#hud.sbx #sbxTag{display:block}
+#hud.sbx #bossName::after{content:"SERBEST";margin-left:6px;vertical-align:2px}
+@media (max-width:520px),(max-height:520px){#hud.sbx .wave{flex-wrap:nowrap}#sbxTag{margin:0}}
+#sbxPanel{gap:10px;padding:14px 14px 14px;overflow:hidden;display:flex;flex-direction:column}
+#sbxPanel .title.sm{font-size:34px;line-height:.9}
+.sbx-l,.sbx-r{display:flex;flex-direction:column;gap:10px;min-height:0}
+.sbx-l{flex:none}
+.sbx-r{flex:1 1 auto}
+.sbx-sec{display:flex;flex-direction:column;gap:6px;min-height:0}
+.sbx-sec .field-lbl{font-size:14px;letter-spacing:.06em;text-transform:uppercase}
+.sbx-power{flex:1 1 auto}
+.sbx-tanks{display:grid;grid-template-columns:repeat(5,1fr);gap:4px}
+.sbx-tank{display:flex;flex-direction:column;align-items:center;gap:1px;padding:3px 1px 4px;border:1px solid var(--line);border-radius:3px;background:rgba(0,0,0,.2);color:var(--bone-2);font-size:11px;font-weight:600;line-height:1.05;text-align:center;min-width:0}
+.sbx-tank canvas{width:44px;height:44px}
+.sbx-tank span{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sbx-tank[aria-pressed="true"]{border-color:var(--signal);background:rgba(242,193,78,.14);color:var(--bone)}
+.sbx-chips{display:flex;flex-wrap:wrap;gap:4px}
+.sbx-chips button{padding:7px 10px 6px;border:1px solid var(--line);border-radius:3px;background:rgba(0,0,0,.2);font-size:16px;font-weight:600;line-height:1.1;color:var(--bone-2)}
+.sbx-chips button[aria-pressed="true"]{background:var(--bone);color:var(--on-signal);border-color:var(--bone)}
+.sbx-wave{display:flex;align-items:center;gap:8px;font-size:16px;font-weight:600;color:var(--bone-2)}
+.sbx-wave span{flex:1}
+.sbx-wave output{min-width:34px;text-align:center;font-family:var(--display);font-weight:800;font-size:26px;color:var(--bone);font-variant-numeric:tabular-nums}
+.sbx-step{width:44px;height:36px;border:1px solid var(--line);border-radius:3px;background:rgba(239,231,210,.08);font-size:24px;font-weight:700;line-height:1;touch-action:manipulation}
+.sbx-step:active{background:rgba(239,231,210,.2)}
+.sbx-note{font-size:15px;color:var(--bone-2);line-height:1.25}
+#sbxMaps button,#sbxPresets button{padding:8px 4px 7px;font-size:16px}
+.sbx-cards{flex:1 1 120px;min-height:96px;overflow-y:auto;overscroll-behavior:contain;touch-action:pan-y;display:grid;grid-template-columns:1fr 1fr;gap:4px;align-content:start}
+.sbx-card{display:grid;grid-template-columns:20px 1fr;grid-template-areas:"i n" "i p";column-gap:6px;align-items:center;padding:5px 6px;border:1px solid var(--line);border-radius:3px;background:rgba(0,0,0,.2);text-align:left;min-width:0}
+.sbx-card svg{grid-area:i;width:20px;height:20px;color:var(--bone-2)}
+.sbx-card .nm{grid-area:n;font-size:13px;font-weight:600;line-height:1.1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--bone-2)}
+.sbx-card .pips{grid-area:p;display:flex;gap:2px;margin-top:2px}
+.sbx-card .pips i{flex:1;max-width:14px;height:5px;border-radius:1px;background:rgba(239,231,210,.18)}
+.sbx-card .pips i.on{background:var(--signal)}
+.sbx-card.on{border-color:rgba(242,193,78,.5);background:rgba(242,193,78,.08)}
+.sbx-card.on .nm,.sbx-card.on svg{color:var(--bone)}
+.sbx-card.rare svg{color:var(--signal)}
+#sbxPanel .btn.primary{font-size:28px;padding:10px 16px 8px}
+#sbxPanel .btn.ghost{padding:9px 16px;font-size:17px}
+#sbxPanel .actions{flex-direction:row-reverse}
+#sbxPanel .actions .primary{flex:2}#sbxPanel .actions .ghost{flex:1}
+@media (min-aspect-ratio:1/1){
+  #sbxPanel{width:min(780px,100%);display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:stretch;padding:12px 14px}
+  #sbxPanel .title.sm{font-size:30px}
+  .sbx-tank canvas{width:38px;height:38px}
+  .sbx-tank{padding:2px 1px 3px}
+  .sbx-l{gap:7px}.sbx-r{gap:8px}
+}
+@media (max-height:420px){
+  .sbx-tank canvas{width:34px;height:34px}.sbx-tank{font-size:10px}
+  .sbx-chips button{padding:5px 8px 4px;font-size:15px}.sbx-step{height:30px}
+  #sbxMaps button,#sbxPresets button{padding:6px 4px 5px;font-size:15px}
+  #sbxPanel .btn.primary{font-size:24px;padding:7px 16px 5px}#sbxPanel .btn.ghost{padding:7px 16px}
+}
+@media (max-width:380px){.sbx-chips button{padding:6px 8px 5px;font-size:15px}}
 </style>
 </head>
 <body>
@@ -317,6 +375,7 @@ button:focus-visible{outline:2px solid var(--bone);outline-offset:2px}
       <div class="chip wave">
         <div class="wave-t" id="waveT">DALGA 1</div>
         <div class="wave-s" id="waveS">Hazırlan</div>
+        <span id="sbxTag" aria-hidden="true">SERBEST</span>
       </div>
     <div class="bosshp hidden" id="bossBar"><div class="bh-top"><span id="bossName">Komutan</span><b id="bossPct">100%</b></div><div class="bh-bar"><i id="bossLost"></i><i id="bossFill"></i><span id="bossMarks"></span></div></div>
       <div class="buffs" id="buffs"></div>
@@ -346,6 +405,7 @@ button:focus-visible{outline:2px solid var(--bone);outline-offset:2px}
     <p class="tag">Dalga dalga gelen düşman tanklarına karşı ayakta kal, her dalgadan sonra tankını yükselt.</p>
     <div class="actions">
       <button type="button" class="btn primary" id="btnStart">OYNA</button>
+      <button type="button" class="btn ghost" id="btnSandbox">Serbest Mod</button>
       <button type="button" class="btn ghost hidden" id="btnContinue">Kaldığın yerden devam et</button>
       <div class="row2">
         <button type="button" class="btn ghost" id="btnSettings">Ayarlar</button>
@@ -358,6 +418,31 @@ button:focus-visible{outline:2px solid var(--bone);outline-offset:2px}
       <div><dt>Toplam imha</dt><dd id="recKills">0</dd></div>
       <div><dt>Oynanan oyun</dt><dd id="recGames">0</dd></div>
     </dl>
+  </section>
+</div>
+
+<div id="sbx" class="screen hidden">
+  <section class="panel" id="sbxPanel" aria-label="Serbest Mod kurulumu">
+    <div class="sbx-l">
+      <h2 class="title sm">SERBEST MOD</h2>
+      <div class="sbx-sec"><span class="field-lbl">Tank</span><div class="sbx-tanks" id="sbxTanks"></div></div>
+      <div class="sbx-sec"><span class="field-lbl">Hedef</span><div class="sbx-chips" id="sbxTargets"></div>
+        <div class="sbx-wave" id="sbxWaveRow"><span>Dalga</span><button type="button" class="sbx-step" id="sbxMinus" aria-label="Dalgayı azalt">−</button><output id="sbxWaveN">8</output><button type="button" class="sbx-step" id="sbxPlus" aria-label="Dalgayı artır">+</button></div>
+        <p class="sbx-note hidden" id="sbxNote"></p>
+        <div class="seg" id="sbxMaps" role="group" aria-label="Harita"></div></div>
+    </div>
+    <div class="sbx-r">
+      <div class="sbx-sec sbx-power"><span class="field-lbl">Güç</span><div class="seg" id="sbxPresets" role="group" aria-label="Güç ayarı"></div><div class="sbx-cards" id="sbxCards"></div></div>
+      <div class="actions"><button type="button" class="btn primary" id="btnSbxGo">BAŞLA</button><button type="button" class="btn ghost" id="btnSbxBack">Geri</button></div>
+    </div>
+  </section>
+</div>
+
+<div id="sbxEnd" class="screen hidden">
+  <section class="panel" id="sbxEndPanel">
+    <h2 class="title sm" id="sbxEndTitle">TANKIN İMHA EDİLDİ</h2>
+    <p class="sbx-note" id="sbxEndSub"></p>
+    <div class="actions"><button type="button" class="btn primary" id="btnSbxAgain">TEKRAR</button><button type="button" class="btn ghost" id="btnSbxSetup">Kurulum</button></div>
   </section>
 </div>
 
@@ -383,7 +468,7 @@ button:focus-visible{outline:2px solid var(--bone);outline-offset:2px}
       </div>
     </div>
     <button type="button" class="btn primary" id="btnSettingsBack">TAMAM</button>
-    <p class="version">Tank Arena 1.5.3</p>
+    <p class="version">Tank Arena 1.5.4</p>
   </section>
 </div>
 
@@ -427,6 +512,7 @@ button:focus-visible{outline:2px solid var(--bone);outline-offset:2px}
       <li>Kendi mermin, sana gelen düşman mermisini havada patlatır.</li>
       <li>Tuğlalar üç isabette yıkılır, çelik bloklar hiç yıkılmaz.</li>
       <li>Avcı yalnızca yakından gelen mermiden kaçar: onu uzaktan vur.</li>
+      <li>Serbest Mod'da tankını, gücünü ve hedefini sen seçersin; rekora sayılmaz. Kapatıcı yalnızca orada çıkar.</li>
       <li>Delici mermi tuğlaların ve tankların içinden geçer, arkadaki düşmanı da vurur.</li>
       <li>Bosslar saldırmadan önce uyarır: parlayan namlu düz atış, kırmızı çizgi hücum, kırmızı daire havan, büyüyen halka şok dalgası demektir. Çelik seni korur.</li>
       <li>Düşmanı yeterince vurursan parçası bozulur: yandan paleti kırılır, önden namlusu tutukluk yapar, arkadan motoru yavaşlar; kısa süre sonra onarır.</li>
@@ -447,6 +533,7 @@ button:focus-visible{outline:2px solid var(--bone);outline-offset:2px}
         <button type="button" class="btn ghost" id="btnPauseSettings">Ayarlar</button>
         <button type="button" class="btn ghost" id="btnPauseGuide">Rehber</button>
       </div>
+      <button type="button" class="btn ghost hidden" id="btnPauseSbx">Kurulum</button>
       <button type="button" class="btn ghost" id="btnRestart">Yeniden başla</button>
       <button type="button" class="btn ghost" id="btnQuit">Ana menüye dön</button>
     </div>
@@ -481,6 +568,6 @@ button:focus-visible{outline:2px solid var(--bone);outline-offset:2px}
   </section>
 </div>
 
-<script src="/oyna/game.c42f4a5d3b.js"></script>
+<script src="/oyna/game.aa0b4fa14d.js"></script>
 </body>
 </html>

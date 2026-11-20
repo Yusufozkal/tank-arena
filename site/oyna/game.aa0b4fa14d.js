@@ -20,7 +20,7 @@ const seedOf = (c, r, s) => (Math.imul(c + 7, 73856093) ^ Math.imul(r + 13, 1934
 const fmt = n => Math.round(n).toLocaleString('tr-TR');
 const store = {
   get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
-  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* storage unavailable */ } }
+  set(k, v) { if (G.sandbox && k !== 'tankArena.settings') return; /* Serbest Mod writes nothing but settings (records, seen-hints) */ try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* storage unavailable */ } }
 };
 const vibrate = p => { if (!SET.vibration) return; try { if (navigator.vibrate) navigator.vibrate(p); } catch (e) { /* ignore */ } };
 function rrectPath(g, x, y, w, h, r) { r = Math.min(r, w / 2, h / 2); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); }
@@ -495,7 +495,7 @@ const G = {
   buffs: freshBuffs(), buffMax: freshBuffs(), bushHint: false, beaten: new Set(), resume: null, overFree: null,
   D: RULES, dodges: 0, covers: 0,
   up: {}, strikes: [], jet: null, airQ: 0, stage: null, tele: [], pieces: [], introGate: false, introSeen: false,
-  tank: 'std', upMode: 'cards', evoWait: 0, noEvo: false
+  tank: 'std', upMode: 'cards', evoWait: 0, noEvo: false, sandbox: false, sbx: null, sbxWin: false
 };
 const upL = k => G.up[k] | 0;
 const bountyPts = () => Math.round(250 * Math.max(1, G.wave) * G.D.score);
@@ -530,7 +530,7 @@ function resize() {
   readSafe(); sizeMini(); measureHud();
   if (G.map && Math.abs(layerRes(G.map) - G.map.res) / G.map.res > 0.2) buildLayer(G.map);
   if (G.state === 'menu' && G.map && G.player) { cam.x = G.map.w / 2; cam.y = G.map.h / 2; clampCam(); computeView(); placeMenuTank(); }
-  if (G.state === 'over') G.overFree = freeArea(el.overPanel);
+  if (G.state === 'over') G.overFree = freeArea(G.sandbox ? $('sbxEndPanel') : el.overPanel);
 }
 function clampCam() {
   const m = G.map; if (!m) return;
@@ -1775,11 +1775,11 @@ function patrolSpot(e) { // a free tile 6-18 tiles away, the map centre favoured
   }
   return best;
 }
-function sees(e, p, fov) { // sight check from e toward the player: range (hidden / stealth shorten it), cone around the turret, line of sight
+function sees(e, p, fov, cone) { // sight check from e toward the player: range (hidden / stealth shorten it), cone around the turret, line of sight
   const d = Math.hypot(p.x - e.x, p.y - e.y);
   const hid = G.map.at(p.x, p.y) === BUSH && G.time - p.lastShot > 1.2, rng = G.buffs.stealth > 0 ? T * 1.6 : hid ? T * 2.3 : T * (AWARE.sight + (fov || 0));
   if (d >= rng) return false;
-  if (!e.canSee && d > AWARE.near * T && Math.abs(angDiff(e.turret, Math.atan2(p.y - e.y, p.x - e.x))) > AWARE.cone / 2) return false;
+  if (!e.canSee && d > AWARE.near * T && Math.abs(angDiff(e.turret, Math.atan2(p.y - e.y, p.x - e.x))) > (cone || AWARE.cone) / 2) return false;
   return los(e.x, e.y, p.x, p.y);
 }
 function searchSpot(e) { // a free tile 2-6 tiles around the last-known spot: bushes and corners preferred, away from other searchers' goals
@@ -2293,7 +2293,7 @@ function parseArena(a) {
 function loadArena(key, theme) {
   const a = ARENAS[key], pa = parseArena(a);
   for (const [c, r] of a.gate || []) pa.t[r * pa.n + c] = BRICK;
-  const m = makeArena({ n: pa.n, t: pa.t, spawns: [] }, theme);
+  const m = makeArena({ n: pa.n, t: pa.t, spawns: [] }, a.theme || theme); // a.theme: an arena with its own floor (Kapanış)
   m.arena = key; m.frame = true; m.gate = a.gate || [];
   m.bossAt = { x: pa.boss.c * T + T / 2, y: pa.boss.r * T + T / 2 }; m.playerAt = { x: pa.player.c * T + T / 2, y: pa.player.r * T + T / 2 };
   return m;
@@ -2305,6 +2305,7 @@ function loadArena(key, theme) {
 const BOSS_DEFS = {};
 const BOSS_ON = { 10: 'komutan', 20: 'komutan', 30: 'komutan', 40: 'komutan' }; // boss wave (within the 40-wave cycle) -> def id; every 5th wave not listed is a Komutan
 const bossDefAt = w => {
+  if (G.forceBoss && BOSS_DEFS[G.forceBoss]) return BOSS_DEFS[G.forceBoss]; // debug / probes: start any BOSS_DEFS key (also sandboxOnly ones, which are never in BOSS_ON)
   if (w < 1 || w % 5) return null;
   const k = ((w - 1) % 40) + 1;
   return BOSS_DEFS[BOSS_ON[k] || 'komutan'] || null;
@@ -2332,7 +2333,7 @@ function addTele(e, o) { const tl = Object.assign({ t: 0, e, dur: TELE_MIN[o.kin
 function removeTele(tl) { const i = G.tele.indexOf(tl); if (i >= 0) G.tele.splice(i, 1); }
 function clearTele() { G.tele.length = 0; }
 function release(e, id, tl) { // the strike behind a telegraph happens now: log how long it was shown
-  e.log.push({ atk: id, kind: tl.kind, dur: +tl.t.toFixed(3), min: TELE_MIN[tl.kind] }); if (e.log.length > 300) e.log.shift();
+  e.log.push({ atk: id, kind: tl.kind, dur: +tl.t.toFixed(3), min: tl.min === undefined ? TELE_MIN[tl.kind] : tl.min }); // tl.min: a boss that shows a shorter warning on purpose (Kapatıcı's Kesin Atış 0.6 s) if (e.log.length > 300) e.log.shift();
 }
 // Hazards of the boss fight vanish: shells, pending telegraphed strikes, mines (used by phase changes, the death scene and the nuke)
 function bossClearHazards() {
@@ -2531,6 +2532,7 @@ function updateBoss(e, dt, halted) {
   if (halted) return; // stunned or frozen: neither moves nor attacks
   e.distP = Math.hypot(p.x - e.x, p.y - e.y);
   e.canSee = p.alive && los(e.x, e.y, p.x, p.y);
+  if (e.def.sense) e.def.sense(e, dt); // hook: a boss with fair senses replaces canSee with sight, hearing and a last-known spot (Kapatıcı)
   e.cool -= dt;
   e.unrT = p.alive && e.goalD > e.r + p.r + T ? (e.unrT || 0) + dt : 0; // the player stands where the hull cannot go (a pocket): after ~4 s startAttack prefers the arcing attacks (a.arc)
   e.healT = (e.healT === undefined ? 30 : e.healT) - dt; // a long fight: a worn-down player gets a Tamir kit now and then (not while one still lies around)
@@ -2541,8 +2543,8 @@ function updateBoss(e, dt, halted) {
     e.dt = dt; e.wait -= dt;
     if (e.wait <= 0) { const r = e.gen.next(); if (r.done) endAttack(e); else e.wait = r.value || 0; }
   } else {
-    if (e.cool <= 0 && p.alive) startAttack(e); else bossMove(e, dt, e.def.hold || 4.5);
-    if (!e.gen) { if (e.canSee) aimAtPlayer(e, dt); else e.turret = turnTo(e.turret, e.angle, e.spec.tTurn * 0.6 * dt); }
+    if (e.cool <= 0 && p.alive) startAttack(e); else if (e.def.move) e.def.move(e, dt); else bossMove(e, dt, e.def.hold || 4.5); // def.move: the boss's own brain (movement and turret)
+    if (!e.gen && !e.def.move) { if (e.canSee) aimAtPlayer(e, dt); else e.turret = turnTo(e.turret, e.angle, e.spec.tTurn * 0.6 * dt); }
   }
 }
 function startAttack(e) {
@@ -3470,6 +3472,375 @@ BOSS_DEFS.demirkok = {
   drawGround: (e, g) => drawDemirkokGround(e, g)
 };
 BOSS_ON[20] = 'demirkok';
+/* ================= Kapatıcı (docs/BOSSES.md section 7b) ================= */
+// Sandbox-only extra boss (Serbest Mod): never in BOSS_ON, so it never shows up in a normal run. A black angular tank with one long barrel, inspired by diep.io's Arena Closer.
+// Fair intelligence, no cheating: it only knows what it sees (sees() with a wider cone), hears (a shot within 9 tiles, big error) or feels (a hit tells it the direction), keeps a last-known
+// spot e.lk and searches around it (searchSpot reused); a player in a bush is invisible beyond ~2 tiles. Reaction: it needs KAP.react s of seeing before it fires (the Avcı needs about twice that).
+// It leads its aim with the player's velocity AND turning rate, side-steps shells it saw coming (never while attacking or in the open window), cuts off the escape route (stands on the side the
+// player keeps fleeing to) and learns within the fight: escape direction counts (kp.esc), long- vs short-range play (kp.far / kp.near) -> rushes snipers, backs off from brawlers.
+// Attacks: Kesin Atış, Sekme Atışı, Kesme Hamlesi, Havan (sweeps the bushes around the last-known spot), plus Kapanış (a timer: from 90 s the edge ring of steel moves in every 30 s, 2 s warning).
+// Open window: after each attack the barrel glows for KAP.open s: no side-step and full damage; otherwise the hull deflects half of the damage (def.hullMul).
+// State in e.kp. Hooks used from 11a: def.sense, def.move, def.flowGoal, def.tick, def.hullMul, def.danger, def.onClear, def.drawGround; bossDefAt `G.forceBoss`; ARENAS.kapanis.theme.
+const KAP_FLOOR = Object.assign({}, THEMES[3], { key: 'city', name: 'Kapanış', bg: '#050506', ground: '#222428', ground2: '#1c1e22', detail: '#16181b', detail2: '#30343a',
+  steel: '#6c717a', steelHi: '#9ba1ac', steelDk: '#393d44', shore: '#3a3d42', shadow: 'rgba(0,0,0,.5)', tread: '8,8,9', scorch: '0,0,0', dust: '88,88,94' });
+ARENAS.kapanis = { name: 'Kapanış', theme: KAP_FLOOR, rows: [ // steel blocks are 0 or >= 3 tiles apart and from the edge
+  '.....................',
+  '.....................',
+  '..........X..........',
+  '.....................',
+  '...SS...........SS...',
+  '...SS...........SS...',
+  '.....................',
+  '.......GG.....GG.....',
+  '.......G.......G.....',
+  '...SS....SSS....SS...',
+  '...SS....SSS....SS...',
+  '...SS....SSS....SS...',
+  '.....................',
+  '.....G.........G.....',
+  '.....GG.......GG.....',
+  '...SS...........SS...',
+  '...SS...........SS...',
+  '.....................',
+  '..........P..........',
+  '.....................',
+  '.....................'] };
+
+const KAP_SPEC = { speed: 230, turn: 4.4, tTurn: 4.8, len: 54, wid: 46, r: 27, tread: 10, tR: 15, barrel: 66, bW: 8, cool: 1, bSpeed: 430, dmg: 12, bR: 5.5, mass: 14, score: 4000,
+  col: { body: '#2a2b2f', dk: '#0b0b0d', hi: '#4d4f56', acc: '#e02828' } };
+const KAP = { hp: 1600, react: 0.25, fov: 3.5, cone: 3.5, open: 1.0, ringT: 90, ringEvery: 30, ringWarn: 2, rings: 4, dodgeP: 0.85, dodgeCd: 0.8,
+  dmgPrecise: 0.4, dmgBounce: 0.3, dmgRam: 0.3, dmgMortar: 0.3, hear: 1.6 }; // damage shares of the player's max HP; hear: hearing range factor against AWARE.hear
+
+/* ---- helpers ---- */
+const kapDmg = f => Math.max(1, Math.round(f * G.player.maxHp / ((G.mods && G.mods.dmg) || 1))); // bossDmg() multiplies by the wave's mods.dmg again: a share of max HP stays a share
+const kapRingOf = (m, x, y) => { const c = clamp(Math.floor(x / T), 0, m.n - 1), r = clamp(Math.floor(y / T), 0, m.n - 1); return Math.min(c, r, m.n - 1 - c, m.n - 1 - r); };
+// where the player will be in t seconds: his smoothed velocity turned by his smoothed turning rate (a circular arc), stopped by walls
+function kapPredict(e, t) {
+  const kp = e.kp, p = G.player, m = G.map, v = Math.hypot(kp.pvx, kp.pvy);
+  if (v < 12) return { x: p.x, y: p.y };
+  const h = Math.atan2(kp.pvy, kp.pvx), om = clamp(kp.om, -4, 4); let lx = p.x, ly = p.y;
+  for (let i = 1; i <= 6; i++) {
+    const s = t * i / 6, x = Math.abs(om) < 0.08 ? p.x + Math.cos(h) * v * s : p.x + v / om * (Math.sin(h + om * s) - Math.sin(h)), y = Math.abs(om) < 0.08 ? p.y + Math.sin(h) * v * s : p.y + v / om * (Math.cos(h) - Math.cos(h + om * s));
+    if (blocksTank(m.at(x, y))) break; lx = x; ly = y;
+  }
+  return { x: lx, y: ly };
+}
+// the spot it aims at: the led player while it sees him, otherwise the last-known spot (no lead)
+function kapTarget(e, t) { return e.canSee ? kapPredict(e, t) : (e.lk ? { x: e.lk.x, y: e.lk.y } : { x: e.x + Math.cos(e.turret) * 200, y: e.y + Math.sin(e.turret) * 200 }); }
+function kapAim(e, speed) {
+  let t = Math.hypot(G.player.x - e.x, G.player.y - e.y) / speed, q = kapTarget(e, t);
+  for (let i = 0; i < 3; i++) { q = kapTarget(e, t); t = Math.hypot(q.x - e.x, q.y - e.y) / speed; }
+  return Math.atan2(q.y - e.y, q.x - e.x);
+}
+const kapRay = (e, a, max) => { const m = G.map, ca = Math.cos(a), sa = Math.sin(a); for (let d = 12; d < max; d += 6) if (isWall(m.at(e.x + ca * d, e.y + sa * d))) return d; return max; };
+function kapEsc(kp) { // the direction the player has been fleeing in (world vector, length = how sure it is 0..1)
+  const E = kp.esc, p = G.player, e = G.boss; if (!e) return { x: 0, y: 0, m: 0 };
+  const lat = (E.R - E.L) / (E.R + E.L + 1), rad = (E.away - E.toward) / (E.away + E.toward + 1), ux = (p.x - e.x), uy = (p.y - e.y), ul = Math.hypot(ux, uy) || 1;
+  const x = (-uy / ul) * lat + (ux / ul) * rad, y = (ux / ul) * lat + (uy / ul) * rad, mm = Math.hypot(x, y);
+  return mm < 0.05 ? { x: 0, y: 0, m: 0 } : { x: x / mm, y: y / mm, m: Math.min(1, mm * (E.R + E.L + E.away + E.toward) / 2) };
+}
+const kapStyle = kp => { const n = kp.far + kp.near; if (n < 3) return 'mid'; const f = kp.far / n; return f > 0.62 ? 'sniper' : f < 0.38 ? 'brawler' : 'mid'; };
+const kapOpenNow = e => G.time < e.kp.openUntil;
+
+/* ---- senses and learning (def.sense, every frame while it can act) ---- */
+function kapSense(e, dt) {
+  const kp = e.kp, p = G.player, now = G.time;
+  if (!p.alive) { e.canSee = false; return; }
+  if (kp.px === undefined) { kp.px = p.x; kp.py = p.y; }
+  if (dt > 0) { // the player's smoothed velocity and turning rate (what its lead is built from)
+    const k = Math.min(1, dt * 8); kp.pvx += ((p.x - kp.px) / dt - kp.pvx) * k; kp.pvy += ((p.y - kp.py) / dt - kp.pvy) * k;
+    if (Math.hypot(kp.pvx, kp.pvy) > 40) { const h = Math.atan2(kp.pvy, kp.pvx); if (kp.hv) kp.om += (clamp(angDiff(kp.h, h) / dt, -6, 6) - kp.om) * Math.min(1, dt * 5); kp.h = h; kp.hv = true; } else { kp.hv = false; kp.om *= 0.9; }
+    kp.px = p.x; kp.py = p.y;
+  }
+  if (e.lookT > 0) e.lookT -= dt;
+  e.canSee = kp.vis; // sees() keeps a tank that already sees the player seeing him (no cone test): feed it its own memory, not the plain line of sight
+  const vis = sees(e, p, KAP.fov, KAP.cone); kp.vis = vis;
+  if (vis) { kp.seeT += dt; kp.unseen = 0; e.lk = { x: p.x, y: p.y, t: now }; kp.search = false; }
+  else {
+    kp.seeT = 0; kp.unseen += dt;
+    if (kp.heard !== p.lastShot && now - p.lastShot < 0.3 && Math.hypot(p.x - e.x, p.y - e.y) < AWARE.hear * KAP.hear * T) { kp.heard = p.lastShot; setLk(e, p.x, p.y, AWARE.hearErr); kp.search = false; } // a shot: a spot with a big error
+  }
+  e.canSee = vis && kp.seeT >= KAP.react;
+  if (!e.canSee) return;
+  // learning: where he runs while a warning is up; whether he shoots from far away or close by
+  if (G.tele.length && G.tele.some(t => t.e === e && t.t > 0.3)) {
+    const sp = Math.hypot(kp.pvx, kp.pvy);
+    if (sp > 45) {
+      const ux = (p.x - e.x), uy = (p.y - e.y), ul = Math.hypot(ux, uy) || 1, lat = (ux * kp.pvy - uy * kp.pvx) / ul / sp, rad = (ux * kp.pvx + uy * kp.pvy) / ul / sp, E = kp.esc;
+      if (lat > 0) E.R += lat * dt; else E.L -= lat * dt;
+      if (rad > 0) E.away += rad * dt; else E.toward -= rad * dt;
+    }
+  }
+  if (p.lastShot !== kp.shotSeen) { kp.shotSeen = p.lastShot; const d = Math.hypot(p.x - e.x, p.y - e.y); if (d > 7 * T) kp.far++; else if (d < 4.5 * T) kp.near++; }
+}
+
+/* ---- movement and turret (def.move): used whenever it is not in an attack ---- */
+function kapPickGoal(e) {
+  const kp = e.kp, p = G.player, m = G.map, n = m.n, now = G.time, fit = bossFitMap(e);
+  const c0 = clamp(Math.floor(e.x / T), 0, n - 1), r0 = clamp(Math.floor(e.y / T), 0, n - 1), reach = new Uint8Array(n * n), q = [r0 * n + c0]; reach[q[0]] = 1;
+  for (let h = 0; h < q.length; h++) { const i = q[h], c = i % n, r = (i - c) / n; for (const [dx, dy] of DIRS) { const x = c + dx, y = r + dy; if (x < 0 || y < 0 || x >= n || y >= n) continue; const j = y * n + x; if (reach[j] || !fit[j]) continue; reach[j] = 1; q.push(j); } }
+  if (!e.canSee) { // blind: walk to where he was last seen or heard, then sweep the surroundings (bushes first)
+    const lk = e.lk;
+    if (!lk || now - lk.t > 30) { if (!kp.patrol || dist2(kp.patrol.x, kp.patrol.y, e.x, e.y) < T * T) kp.patrol = patrolSpot(e); kp.goal = kp.patrol || kp.goal; kp.mode = 'patrol'; return; }
+    if (!kp.search) { kp.goal = { x: lk.x, y: lk.y }; kp.mode = 'lk'; if (Math.hypot(e.x - lk.x, e.y - lk.y) < 1.4 * T) { kp.search = true; kp.goal = null; } return; }
+    kp.mode = 'search';
+    if (!kp.goal || Math.hypot(e.x - kp.goal.x, e.y - kp.goal.y) < 1.1 * T) { const sp = searchSpot(e); if (sp) kp.goal = sp; kp.sn++; }
+    return;
+  }
+  const style = kapStyle(kp), D = (style === 'sniper' ? 3.6 : style === 'brawler' ? 9 : 6.5) * T, esc = kapEsc(kp), edge = kp.closed + 1 + (kp.warn ? 1 : 0);
+  kp.mode = style;
+  let best = null, bs = -1e9, cur = -1e9;
+  for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) {
+    const i = r * n + c; if (!reach[i]) continue;
+    const x = c * T + T / 2, y = r * T + T / 2, d = Math.hypot(x - p.x, y - p.y);
+    let sc = -Math.abs(d - D) / T + (los(x, y, p.x, p.y) ? 2.2 : -1.5) - Math.hypot(x - e.x, y - e.y) / T * 0.25 + Math.random() * 0.3;
+    if (esc.m > 0.15 && d > 0.5 * T) sc += ((x - p.x) * esc.x + (y - p.y) * esc.y) / d * 1.8 * esc.m; // cut off the route he keeps fleeing along
+    if (Math.min(c, r, n - 1 - c, n - 1 - r) < edge) sc -= kp.warn ? 12 : 3; // stay off the ring that is about to close
+    if (kp.goal && Math.abs(kp.goal.x - x) < 1 && Math.abs(kp.goal.y - y) < 1) cur = sc;
+    if (sc > bs) { bs = sc; best = { x, y }; }
+  }
+  if (best && (cur < -1e8 || bs > cur + 1)) kp.goal = best;
+}
+function kapCheckDodge(e) { // a player shell on course to hit: a quick side-step (it saw the shell, so it reacts; the roll is KAP.dodgeP)
+  const m = G.map, kp = e.kp;
+  for (const b of G.bullets) {
+    if (b.dead || b.owner !== 0 || b.lob) continue;
+    const v2 = b.vx * b.vx + b.vy * b.vy; if (!v2) continue;
+    const t = ((e.x - b.x) * b.vx + (e.y - b.y) * b.vy) / v2;
+    if (t < 0.06 || t > 0.55 || Math.hypot(b.x - e.x, b.y - e.y) > 8 * T || b.kapSeen) continue;
+    const cx = b.x + b.vx * t - e.x, cy = b.y + b.vy * t - e.y, hit = e.r + b.r + 8;
+    if (cx * cx + cy * cy > hit * hit) continue;
+    b.kapSeen = true;
+    if (Math.random() > KAP.dodgeP) continue;
+    const sp = Math.sqrt(v2), nx = -b.vy / sp, ny = b.vx / sp, side = cx * nx + cy * ny;
+    for (const sg of side > 0 ? [-1, 1] : [1, -1]) {
+      if (blocksTank(m.at(e.x + nx * sg * (e.r + 30), e.y + ny * sg * (e.r + 30)))) continue;
+      kp.dodge = { x: nx * sg, y: ny * sg, t: 0.28 }; kp.dodgeCd = KAP.dodgeCd;
+      for (let k = 0; k < 4; k++) addPart('dust', e.x - nx * sg * 14 + rand(-6, 6), e.y - ny * sg * 14 + rand(-6, 6), -nx * sg * 40, -ny * sg * 40, 0.5, 14, 20, 3);
+      return;
+    }
+  }
+}
+function kapMove(e, dt) {
+  const kp = e.kp, s = e.spec;
+  kp.dodgeCd = Math.max(0, kp.dodgeCd - dt);
+  if (kp.dodge) { // the side-step itself
+    const d = kp.dodge, ox = e.x, oy = e.y; d.t -= dt;
+    moveTank(e, d.x * s.speed * 1.9 * dt, d.y * s.speed * 1.9 * dt);
+    trackUpdate(e, (e.x - ox) * Math.cos(e.angle) + (e.y - oy) * Math.sin(e.angle), 0);
+    if (d.t <= 0 || e.treadT > 0) { kp.dodge = null; e.wp = null; }
+  } else {
+    if (kp.dodgeCd <= 0 && e.treadT <= 0 && !kapOpenNow(e) && kp.unseen < 1.5) kapCheckDodge(e);
+    kp.goalT -= dt; if (kp.goalT <= 0) { kp.goalT = 0.45; kapPickGoal(e); }
+    bossMove(e, dt, 0);
+  }
+  // turret: the led player while it sees him, else toward the last-known spot or the way it drives, sweeping like a searcher
+  if (e.canSee) e.turret = turnTo(e.turret, kapAim(e, s.bSpeed), s.tTurn * dt);
+  else {
+    const a = e.lookT > 0 ? e.lookA : (e.lk && G.time - e.lk.t < 30 && kp.mode !== 'search' ? Math.atan2(e.lk.y - e.y, e.lk.x - e.x) : e.angle);
+    e.turret = turnTo(e.turret, a + 0.9 * Math.sin(G.time * 2.2), s.tTurn * 0.6 * dt);
+  }
+}
+
+/* ---- attacks ---- */
+function* kapOpen(e) { // after an attack: the barrel glows, no dodging, full damage
+  e.kp.openUntil = G.time + KAP.open;
+  while (G.time < e.kp.openUntil) { if (e.canSee) e.turret = turnTo(e.turret, kapAim(e, e.spec.bSpeed), e.spec.tTurn * 0.5 * e.dt); yield 0; }
+}
+function kapFire(e, ang, o, mut) { // one shell from the long barrel; mut(b) patches the new shell
+  const n0 = G.bullets.length;
+  bossShell(e, ang, o);
+  for (let i = n0; i < G.bullets.length; i++) { const b = G.bullets[i]; if (mut) mut(b); }
+  e.recoil = 1; const ca = Math.cos(ang), sa = Math.sin(ang), mx = e.x + ca * (e.spec.barrel + 4), my = e.y + sa * (e.spec.barrel + 4);
+  addPart('fire', mx, my, ca * 80, sa * 80, 0.1, 24, 40, 0); for (let k = 0; k < 3; k++) addPart('smoke', mx, my, ca * 40 + rand(-12, 12), sa * 40 + rand(-12, 12), rand(0.5, 0.8), 14, 28, 3);
+  shake(3 * prox(e.x, e.y)); Sound.shoot(false, true, volAt(e.x, e.y));
+}
+function* kapPrecise(e) { // Kesin Atış: 0.6 s red line (the last 0.2 s locked), one very fast shell, ~40% of the player's armour + HP
+  const kp = e.kp, p = G.player, sp = 2.3;
+  const tl = addTele(e, { kind: 'line', dur: 0.6, min: 0.6, lock: 0.2, x: e.x, y: e.y, a: e.turret, len: 600, w: 12 });
+  Sound.warnRise(volAt(e.x, e.y) * 0.7);
+  while (tl.t < tl.dur) {
+    if (tl.t < tl.dur - tl.lock) e.turret = turnTo(e.turret, kapAim(e, e.spec.bSpeed * sp), e.spec.tTurn * 2 * e.dt);
+    tl.x = e.x; tl.y = e.y; tl.a = e.turret; tl.len = kapRay(e, e.turret, 14 * T); kp.charge = tl.t / tl.dur; yield 0;
+  }
+  release(e, 'kesin', tl); removeTele(tl); kp.charge = 0;
+  kapFire(e, e.turret, { speed: sp }, b => { b.dmg = bossDmg(kapDmg(KAP.dmgPrecise)); b.life = 1.6; b.r *= 0.9; });
+  yield 0.12; yield* kapOpen(e);
+}
+// follow a shell from (x, y) along a, reflecting once off steel like ricochet() does; returns the path and whether it passes through the player's led position
+function kapTrace(e, x, y, a, speed, wantHit) {
+  const m = G.map, p = G.player, R = p.r + 5.5 + 9; let vx = Math.cos(a), vy = Math.sin(a), s = 0, bounces = 0, bx = 0, by = 0, hit = false, seg1 = 0;
+  for (let k = 0; k < 150; k++) {
+    const px = x, py = y; x += vx * 6; y += vy * 6; s += 6;
+    const v = m.at(x, y);
+    if (isWall(v)) {
+      if (v === STEEL && bounces === 0) {
+        const c0 = Math.floor(px / T), r0 = Math.floor(py / T), c1 = Math.floor(x / T), r1 = Math.floor(y / T); let fx = c1 !== c0 && isWall(m.get(c1, r0)), fy = r1 !== r0 && isWall(m.get(c0, r1));
+        if (!fx && !fy) { fx = c1 !== c0; fy = r1 !== r0; }
+        if (fx) vx = -vx; if (fy) vy = -vy;
+        x = px; y = py; bounces = 1; bx = px; by = py; seg1 = s; continue;
+      }
+      break;
+    }
+    if (wantHit && bounces === 1) { const q = kapTarget(e, s / speed); if (Math.hypot(x - q.x, y - q.y) < R) { hit = true; break; } }
+  }
+  return { bounced: bounces === 1, hit, bx, by, seg1, len: s, a2: Math.atan2(vy, vx) };
+}
+function kapSolveBounce(e) { // the firing angle whose one-bounce path reaches the player's led spot (or the last-known spot): behind-the-corner shots
+  const sp = e.spec.bSpeed * 1.6; let best = null;
+  for (let i = 0; i < 128; i++) {
+    const a = i * TAU / 128, r = kapTrace(e, e.x, e.y, a, sp, true);
+    if (r.bounced && r.hit && r.seg1 > e.r + 20 && (!best || r.len < best.len)) best = Object.assign(r, { a });
+  }
+  return best;
+}
+function* kapBounce(e) { // Sekme Atışı: dashed red line along the whole path (to the wall, then after the bounce), shell with one steel bounce
+  const kp = e.kp, sp = 1.6; let sol = kp.sol || kapSolveBounce(e); if (!sol) { yield 0.4; return; }
+  const t1 = addTele(e, { kind: 'line', dur: 0.8, min: 0.8, lock: 0.25, dash: true, x: e.x, y: e.y, a: sol.a, len: sol.seg1, w: 10 });
+  const t2 = addTele(e, { kind: 'line', dur: 0.8, min: 0.8, lock: 0.25, dash: true, x: sol.bx, y: sol.by, a: sol.a2, len: Math.max(30, sol.len - sol.seg1), w: 10 });
+  Sound.warnRise(volAt(e.x, e.y) * 0.7); let re = 0;
+  while (t1.t < t1.dur) {
+    re -= e.dt;
+    if (t1.t < t1.dur - t1.lock) {
+      if (re <= 0) { re = 0.15; const s2 = kapSolveBounce(e); if (s2 && Math.abs(angDiff(sol.a, s2.a)) < 0.6) sol = s2; }
+      e.turret = turnTo(e.turret, sol.a, e.spec.tTurn * 2 * e.dt);
+      t1.a = sol.a; t1.len = sol.seg1; t2.x = sol.bx; t2.y = sol.by; t2.a = sol.a2; t2.len = Math.max(30, sol.len - sol.seg1);
+    }
+    kp.charge = t1.t / t1.dur; yield 0;
+  }
+  release(e, 'sekme', t1); release(e, 'sekme', t2); removeTele(t1); removeTele(t2); kp.charge = 0;
+  kapFire(e, sol.a, { speed: sp }, b => { b.bounce = 1; b.dmg = bossDmg(kapDmg(KAP.dmgBounce)); b.life = 3; });
+  yield 0.12; yield* kapOpen(e);
+}
+function* kapCut(e) { // Kesme Hamlesi: a line into the escape path (where he is heading plus the way he keeps fleeing), then a dash along it
+  const kp = e.kp, p = G.player, m = G.map, LEN = 9 * T, margin = e.r + 4, esc = kapEsc(kp);
+  const tl = addTele(e, { kind: 'line', dur: 1.0, min: 1.0, lock: 0.3, x: e.x, y: e.y, a: e.angle, len: LEN, w: 2 * (e.r + 4) });
+  Sound.warnRise(volAt(e.x, e.y));
+  while (tl.t < tl.dur) {
+    if (tl.t < tl.dur - tl.lock) {
+      const q = kapPredict(e, 0.9), tx = q.x + esc.x * 1.6 * T * esc.m, ty = q.y + esc.y * 1.6 * T * esc.m;
+      e.angle = turnTo(e.angle, e.canSee ? Math.atan2(ty - e.y, tx - e.x) : e.angle, 5.5 * e.dt);
+    }
+    e.turret = turnTo(e.turret, e.angle, 8 * e.dt);
+    tl.x = e.x; tl.y = e.y; tl.a = e.angle; tl.len = rayClip(e.x, e.y, e.angle, LEN, margin); kp.charge = tl.t / tl.dur; yield 0;
+  }
+  release(e, 'kesme', tl); removeTele(tl); kp.charge = 0;
+  const ca = Math.cos(e.angle), sa = Math.sin(e.angle), plan = tl.len; let trav = 0, hurt = false;
+  while (trav < plan) {
+    const step = Math.min(560 * e.dt, plan - trav), ox = e.x, oy = e.y;
+    moveTank(e, ca * step, sa * step); const moved = Math.hypot(e.x - ox, e.y - oy); trackUpdate(e, moved, 0); trav += moved;
+    if (fxScale === 1 && Math.random() < 0.8) addPart('dust', e.x - ca * e.r, e.y - sa * e.r + rand(-10, 10), rand(-30, 30), rand(-30, 30), rand(0.3, 0.6), rand(10, 18), 24, 2);
+    if (!hurt && p.alive && dist2(e.x, e.y, p.x, p.y) < (e.r + p.r + 2) * (e.r + p.r + 2)) {
+      hurt = true; damagePlayer({ x: p.x, y: p.y, dmg: bossDmg(kapDmg(KAP.dmgRam)), owner: 1, vx: 0, vy: 0 });
+      const side = (p.x - e.x) * -sa + (p.y - e.y) * ca < 0 ? -1 : 1; moveTank(p, -sa * 56 * side + ca * 24, ca * 56 * side + sa * 24); shake(8); vibrate(30);
+    }
+    if (moved < step * 0.35) break;
+    yield 0;
+  }
+  yield 0.1; yield* kapOpen(e);
+}
+// Havan targets: the player's led spot while it sees him; while it does not, the bushes around the last-known spot (a sweep), never his true position
+function kapMortarSpots(e) {
+  const m = G.map, n = m.n;
+  if (e.canSee) { const q = kapPredict(e, 1.0); return [{ x: q.x, y: q.y }]; }
+  const lk = e.lk || { x: e.x, y: e.y }, list = [];
+  for (let r = 1; r < n - 1; r++) for (let c = 1; c < n - 1; c++) if (m.t[r * n + c] === BUSH) { const x = c * T + T / 2, y = r * T + T / 2, d = Math.hypot(x - lk.x, y - lk.y); if (d < 5.5 * T) list.push({ x, y, d }); }
+  list.sort((a, b) => a.d - b.d);
+  const out = [];
+  for (const s of list) { if (out.every(o => Math.hypot(o.x - s.x, o.y - s.y) > 1.3 * T)) out.push({ x: s.x, y: s.y }); if (out.length === 3) break; }
+  if (!out.length) out.push({ x: lk.x + rand(-T, T), y: lk.y + rand(-T, T) });
+  return out;
+}
+function* kapMortar(e) { // Havan: red circles (1.2 s) one after another on the bushes around where it last knew him; arc: true
+  const kp = e.kp, spots = kapMortarSpots(e), live = []; let g = 0, i = 0;
+  Sound.warnRise(volAt(e.x, e.y));
+  while (i < spots.length || live.length) {
+    g += e.dt;
+    if (i < spots.length && g >= i * 0.4) { const s = spots[i++]; live.push(addTele(e, { kind: 'circle', x: s.x, y: s.y, r: T * 1.25, arc: true })); }
+    for (let k = live.length - 1; k >= 0; k--) { const tl = live[k]; if (tl.t >= tl.dur) { release(e, 'havan', tl); bossBlast(tl.x, tl.y, tl.r, kapDmg(KAP.dmgMortar)); removeTele(tl); live.splice(k, 1); } }
+    if (live.length) e.turret = turnTo(e.turret, Math.atan2(live[0].y - e.y, live[0].x - e.x), e.spec.tTurn * 0.8 * e.dt);
+    yield 0;
+  }
+  yield 0.2; yield* kapOpen(e);
+}
+
+/* ---- Kapanış: the edge ring of steel moves in ---- */
+function kapRingTiles(n, k) { const out = []; for (let i = k; i < n - k; i++) { out.push([i, k], [i, n - 1 - k]); if (i > k && i < n - 1 - k) out.push([k, i], [n - 1 - k, i]); } return out; }
+function kapClose(e, k) { // ring k (0 = the very edge) turns to steel; whoever stands in it is pushed inward (never crushed), the warning came 2 s earlier
+  const m = G.map, n = m.n, p = G.player;
+  for (const [c, r] of kapRingTiles(n, k)) {
+    const i = r * n + c, x = c * T + T / 2, y = r * T + T / 2; m.t[i] = STEEL; m.hp[i] = 0; miniTile(m, c, r);
+    for (let q = 0, nq = Math.max(2, Math.round(3 * fxScale)); q < nq; q++) { const a = rand(0, TAU), v = rand(40, 130); addPart('debris', x + rand(-14, 14), y + rand(-14, 14), Math.cos(a) * v, Math.sin(a) * v, rand(0.5, 1), rand(3, 6), 0, 3.5, q & 1 ? '#3b3f44' : '#6c717a'); }
+  }
+  m.flowDirty = true; paintRegion(m, k, k, n - 1 - k, n - 1 - k);
+  const push = (t, pad) => { const lo = (k + 1) * T + pad, hi = n * T - lo; t.x = clamp(t.x, lo, hi); t.y = clamp(t.y, lo, hi); };
+  if (p.alive) push(p, p.r + 2);
+  push(e, e.r + 3);
+  for (const pk of G.pickups) if (kapRingOf(m, pk.x, pk.y) <= k) { const lo = (k + 1) * T + T / 2, hi = n * T - lo; pk.x = clamp(pk.x, lo, hi); pk.y = clamp(pk.y, lo, hi); }
+  for (const b of G.bullets) if (!b.dead && kapRingOf(m, b.x, b.y) <= k) b.dead = true;
+  e.kp.closed = k + 1; e.kp.warn = false; e.fit = null; e.flowT = 0; e.wp = null;
+  shake(10); Sound.crumble(1); vibrate([30, 30, 50]); addText(p.x, p.y - 40, 'KAPANIŞ', '#ff8a6c', 20);
+}
+function kapRingTick(e, dt) {
+  const kp = e.kp; if (G.phase !== 'fight' || e.invuln || e.dying) return;
+  kp.t += dt;
+  const k = kp.closed; if (k >= KAP.rings) return;
+  const at = KAP.ringT + KAP.ringEvery * k;
+  if (!kp.warn && kp.t >= at - KAP.ringWarn) { kp.warn = true; showBanner('KAPANIŞ', 'Kenardan uzaklaş: çelik halka ' + KAP.ringWarn + ' sn içinde kapanıyor', KAP.ringWarn); Sound.warnRise(1); vibrate([40, 40, 60]); }
+  if (kp.t >= at) kapClose(e, k);
+}
+
+function kapTick(e, dt) {
+  const kp = e.kp;
+  if (G.phase === 'bossIntro') return;
+  kapRingTick(e, dt);
+  if (e.dying) {
+    if (Math.random() < dt * 20) addPart('spark', e.x + rand(-20, 20), e.y + rand(-20, 20), rand(-120, 120), rand(-160, -30), rand(0.2, 0.5), 1, 0, 4, '#ff5040');
+    if (!kp.boom && e.deathT >= 2.1) {
+      kp.boom = true; explode(e.x, e.y, 1.9); addPart('flash', e.x, e.y, 0, 0, 0.3, 260, 0, 0); addPart('ring', e.x, e.y, 0, 0, 0.7, 20, 380, 0, '255,90,70');
+      sparks(e.x, e.y, 36, '#ff7a5a', 460); shake(22); Sound.boom(1.8, volAt(e.x, e.y)); vibrate([50, 30, 90]);
+    }
+  }
+}
+
+/* ---- definition ---- */
+BOSS_DEFS.kapatici = {
+  id: 'kapatici', name: 'KAPATICI', arena: 'kapanis', introSub: 'Kapanış Arenası', sandboxOnly: true, hold: 0, phases: [], r: KAP_SPEC.r, lead: 0.9,
+  deathText: 'KAPATICI DÜŞTÜ', loot: 'KAPATICI GANİMETİ',
+  hp: () => KAP.hp,
+  attacks: [
+    { id: 'kesin', w: 4, ok: e => e.canSee && e.distP > 2 * T && los(e.x, e.y, G.player.x, G.player.y), run: kapPrecise },
+    { id: 'sekme', w: 2.4, ok: e => { if (!(e.canSee || (e.lk && G.time - e.lk.t < 3))) return false; e.kp.sol = kapSolveBounce(e); return !!e.kp.sol; }, run: kapBounce },
+    { id: 'kesme', w: 2.4, ok: e => e.canSee && e.distP > 3 * T && e.distP < 11 * T && e.treadT <= 0 && kapStyle(e.kp) !== 'brawler', run: kapCut, mov: true, cd: 7 },
+    { id: 'havan', w: 3, ok: e => (e.kp.unseen > 3 && !!e.lk && G.time - e.lk.t < 25) || (e.canSee && e.unrT > 4), run: kapMortar, arc: true, cd: 5 }
+  ],
+  setup(e, w) {
+    e.spec = Object.assign({}, SPECS.boss, KAP_SPEC); e.r = KAP_SPEC.r; e.pace = 0.7;
+    const at = (G.map && G.map.playerAt) || G.player;
+    e.lk = { x: at.x, y: at.y, t: G.time }; // both watched the intro: it knows where the player entered, nothing more
+    e.kp = { t: 0, closed: 0, warn: false, openUntil: 0, charge: 0, vis: false, seeT: 0, unseen: 0, heard: -1, shotSeen: -1, px: undefined, py: 0, pvx: 0, pvy: 0, om: 0, h: 0, hv: false,
+      esc: { L: 0, R: 0, away: 0, toward: 0 }, far: 0, near: 0, goal: null, goalT: 0, mode: 'lk', search: false, sn: 0, patrol: null, dodge: null, dodgeCd: 0, sol: null, boom: false };
+  },
+  sense: kapSense,
+  move: kapMove,
+  flowGoal: e => e.kp.goal || { x: e.x, y: e.y }, // never the player's true position
+  tick: kapTick,
+  watchGoal: e => !!e.kp.goal && !e.kp.dodge && Math.hypot(e.kp.goal.x - e.x, e.kp.goal.y - e.y) > 1.6 * T, // the stuck probe: it is supposed to be walking
+  onClear(e) { e.kp.openUntil = 0; e.kp.charge = 0; e.kp.dodge = null; },
+  hullMul(e, x, y, dir, direct, quiet) {
+    if (!direct && !quiet) return 1; // the nuke is a flat blow
+    if (direct && dir !== undefined && !e.canSee && e.kp) setLk(e, e.x + Math.cos(dir) * AWARE.hitBack * T, e.y + Math.sin(dir) * AWARE.hitBack * T, AWARE.hitErr); // a hit tells it the direction the shell came from
+    if (kapOpenNow(e)) return 1; // open window: the barrel glows, full damage
+    if (direct && !quiet) { sparks(x, y, 4, '#cfe8ff', 220, dir, 1); e.kp.deflect = G.time; }
+    return 0.5; // the hull deflects half
+  },
+  danger(e, x, y, pad) { // the ring that is about to close
+    const kp = e.kp; if (!kp.warn) return false;
+    const lim = (kp.closed + 1) * T + pad; return Math.min(x, y, G.map.w - x, G.map.h - y) < lim;
+  },
+  draw: (e, g, alpha) => drawKapatici(e, g, alpha),
+  drawGround: (e, g) => drawKapaniGround(e, g)
+};
 /* ================= input ================= */
 let STICK_R = 56; // set from the joystick size setting
 const mkStick = () => ({ id: null, ox: 0, oy: 0, vx: 0, vy: 0, t0: 0, max: 0 });
@@ -3493,7 +3864,7 @@ window.addEventListener('keydown', e => {
     const n = { Digit1: 0, Digit2: 1, Digit3: 2, Numpad1: 0, Numpad2: 1, Numpad3: 2 }[e.code];
     if (n !== undefined) { e.preventDefault(); if (!e.repeat && upChoices[n]) chooseUpgrade(upChoices[n]); return; }
   }
-  if ((e.code === 'Enter' || e.code === 'NumpadEnter') && !e.repeat && !focusBtn && !subOpen() && (G.state === 'menu' || G.state === 'over')) { e.preventDefault(); startGame(null); return; }
+  if ((e.code === 'Enter' || e.code === 'NumpadEnter') && !e.repeat && !focusBtn && !subOpen() && (G.state === 'menu' || G.state === 'over')) { e.preventDefault(); if (G.sandbox) sandboxRun(); else startGame(null); return; }
   const k = KEYS[e.code];
   if (!k) return;
   if (G.state === 'play') { e.preventDefault(); if (focusBtn) document.activeElement.blur(); }
@@ -3638,9 +4009,10 @@ function hideBanner() { bannerT = 0; el.banner.classList.remove('show'); }
 function showHint(t, dur) { el.hint.textContent = t; el.hint.classList.add('show'); hintT = dur || 4; }
 
 /* ================= game flow ================= */
-function startGame(resume) {
+function startGame(resume, sbx) { // sbx: Serbest Mod setup {tank, ups, boss, wave, theme} (13a)
   Sound.init(); Sound.resume();
-  for (const x of [el.menu, el.over, el.pause, el.upgrade, $('settings'), $('guide')]) x.classList.add('hidden');
+  for (const x of [el.menu, el.over, el.pause, el.upgrade, $('settings'), $('guide'), $('sbx'), $('sbxEnd')]) x.classList.add('hidden');
+  G.sandbox = !!sbx; G.sbx = sbx || null; G.sbxWin = false; G.noEvo = !!sbx; el.hud.classList.toggle('sbx', !!sbx);
   el.hud.classList.remove('hidden');
   hideBanner();
   G.state = 'play'; G.timeScale = 1; G.hurt = 0; G.boss = null;
@@ -3656,22 +4028,24 @@ function startGame(resume) {
     if (typeof resume.tank === 'string' && Object.prototype.hasOwnProperty.call(TANKS, resume.tank)) G.tank = resume.tank;
     else if (!resume.tank && resume.ups && typeof resume.ups === 'object' && LEGACY_UPS.some(k => (resume.ups[k] | 0) > 0)) G.tank = 'ikiz';
   }
+  if (sbx) { G.up = Object.assign({}, sbx.ups); G.tank = sbx.tank; }
   G.player = makeTank('player', 0, 0);
   refreshPlayer(); G.player.hp = G.player.maxHp;
+  if (sbx) G.wave = Math.max(0, sbx.wave - 1);
   if (resume) {
     G.wave = Math.max(0, (resume.wave | 0) - 1); G.score = resume.score | 0; G.kills = resume.kills | 0;
     G.shots = resume.shots | 0; G.hits = resume.hits | 0; G.player.hp = clamp(resume.hp | 0, 10, G.player.maxHp);
   }
   G.resume = null;
   releaseInput(); resetUI();
-  nextWave();
+  nextWave(sbx && sbx.boss ? BOSS_DEFS[sbx.boss] : null);
   sizeMini(); measureHud();
   if (G.wave === 1) showHint(input.touch ? 'Sol başparmakla sür, sağ başparmakla nişan al ve ateş et' : 'WASD ile sür, fareyle nişan al, tıklayarak ateş et', 5);
 }
 const prevBoss = w => { const bd = bossDefAt(w - 1); return bd && G.beaten.has(bd.id) ? bd.id : ''; }; // the boss of the wave before w, if it was a boss wave and is beaten
-function nextWave() {
+function nextWave(forceBd) { // forceBd: Serbest Mod starts a chosen boss stage
   G.wave++;
-  const w = G.wave, theme = themeFor(w), bd = bossDefAt(w); // theme: 10-wave regions; boss waves get a fixed arena (11a)
+  const w = G.wave, bd = forceBd || bossDefAt(w), theme = G.sandbox && G.sbx && !bd ? THEMES[G.sbx.theme] || themeFor(w) : themeFor(w); // theme: 10-wave regions; boss waves get a fixed arena (11a)
   G.map = bd ? loadArena(bd.arena, theme) : makeArena(generate(), theme);
   G.stage = null; G.tele = []; G.pieces = [];
   G.enemies = []; G.bullets = []; G.pickups = []; G.portals = []; G.texts = []; G.strikes = []; G.jet = null; parts.length = 0; tm.n = 0; tm.head = 0;
@@ -3682,13 +4056,14 @@ function nextWave() {
   G.phase = 'intro'; G.phaseT = 0; G.fade = 1;
   cam.x = p.x; cam.y = p.y; cam.shake = 0; clampCam(); computeView();
   if (bd) { startBossStage(bd); return; } // fade-in, siren, name title, boss breaks out of the gate
-  if (w > 1 && w % 10 === 1 && regionGone(prevBoss(w)).length) showBanner(theme.name.toLocaleUpperCase('tr-TR'), regionGone(prevBoss(w)).join(' ve ') + ' artık gelmiyor', 3); // first wave of a new region: who no longer comes
+  if (!G.sandbox && w > 1 && w % 10 === 1 && regionGone(prevBoss(w)).length) showBanner(theme.name.toLocaleUpperCase('tr-TR'), regionGone(prevBoss(w)).join(' ve ') + ' artık gelmiyor', 3); // first wave of a new region: who no longer comes
   else showBanner('DALGA ' + w, theme.name, 2.2);
   Sound.wave(false);
 }
 function waveCleared() {
   G.phase = 'cleared'; G.phaseT = 0;
-  if (G.wave % 5 === 0) { const bd = bossDefAt(G.wave); if (bd) G.beaten.add(bd.id); } // the region rule: this boss's enemy types stop coming (11)
+  if (G.sandbox && G.sbx.boss) { G.sbxWin = true; Sound.cleared(); return; } // Serbest Mod boss target: the end screen follows, no bonus or loot
+  if (G.sandbox) { /* no region rule state in Serbest Mod */ } else if (G.wave % 5 === 0) { const bd = bossDefAt(G.wave); if (bd) G.beaten.add(bd.id); } // the region rule: this boss's enemy types stop coming (11)
   const bonus = Math.round(100 * G.wave * G.D.score), p = G.player, heal = Math.min(Math.max(8, G.D.heal - Math.max(0, G.wave - 10)), p.maxHp - p.hp); // field repairs shrink after wave 10 (25 -> 8)
   G.score += bonus; p.hp += heal;
   G.bullets = G.bullets.filter(b => b.owner === 0);
@@ -3701,7 +4076,7 @@ function updatePhase(rdt) {
     case 'bossIntro': bossIntroTick(rdt); break;
     case 'intro': G.fade = clamp(1 - G.phaseT / 0.5, 0, 1); if (G.phaseT > 1.5) { G.phase = 'fight'; G.phaseT = 0; } break;
     case 'fight': if (!G.queue.length && !G.enemies.length && !G.portals.length) waveCleared(); break;
-    case 'cleared': if (G.phaseT > 2.2) showUpgrades(); break;
+    case 'cleared': if (G.sbxWin) { if (G.phaseT > 2.4) sandboxEnd(true); } else if (G.phaseT > 2.2) showUpgrades(); break;
     case 'upgrade': break; // waits for the player's card
     case 'out': G.fade = clamp(G.phaseT / 0.45, 0, 1); if (G.phaseT >= 0.5) nextWave(); break;
     case 'dying': if (G.phaseT > 1.7) gameOver(); break;
@@ -3825,6 +4200,7 @@ function upChipsHTML() {
 function renderUpList(wrap, list) { const h = upChipsHTML(); $(list).innerHTML = h; $(wrap).classList.toggle('hidden', !h); }
 
 function gameOver() {
+  if (G.sandbox) { sandboxEnd(false); return; } // Serbest Mod: no records
   G.state = 'over'; G.timeScale = 1; G.fade = 0;
   el.hud.classList.add('hidden'); el.upgrade.classList.add('hidden'); hideBanner(); el.hint.classList.remove('show');
   renderUpList('overUpsWrap', 'overUps');
@@ -3841,7 +4217,7 @@ function gameOver() {
   Sound.over();
 }
 /* ---- menu records, settings and guide screens ---- */
-const SUBS = ['settings', 'guide'];
+const SUBS = ['settings', 'guide', 'sbx'];
 const subOpen = () => SUBS.some(id => !$(id).classList.contains('hidden'));
 function openSub(id) {
   for (const x of [el.menu, el.pause]) x.classList.add('hidden');
@@ -3953,8 +4329,9 @@ function renderGuideSprites() {
   });
 }
 function toMenu() {
+  G.sandbox = false; G.sbx = null; G.sbxWin = false; G.noEvo = false;
   G.state = 'menu'; G.phase = 'intro'; G.timeScale = 1; G.fade = 0; G.boss = null; G.stage = null; G.tele = []; G.pieces = []; G.hurt = 0;
-  for (const x of [el.hud, el.over, el.pause, el.upgrade, $('settings'), $('guide')]) x.classList.add('hidden');
+  for (const x of [el.hud, el.over, el.pause, el.upgrade, $('settings'), $('guide'), $('sbx'), $('sbxEnd')]) x.classList.add('hidden');
   el.menu.classList.remove('hidden');
   hideBanner(); el.hint.classList.remove('show'); hintT = 0;
   G.enemies = []; G.bullets = []; G.pickups = []; G.portals = []; G.texts = []; G.queue = []; parts.length = 0; tm.n = 0; tm.head = 0;
@@ -3981,7 +4358,7 @@ function placeMenuTank() {
 }
 function pauseGame() {
   if (G.state !== 'play') return;
-  G.state = 'paused'; el.pause.classList.remove('hidden'); el.upgrade.classList.add('hidden'); releaseInput();
+  G.state = 'paused'; el.pause.classList.remove('hidden'); $('btnPauseSbx').classList.toggle('hidden', !G.sandbox); el.upgrade.classList.add('hidden'); releaseInput();
   renderUpList('pauseUpsWrap', 'pauseUps'); renderSynList('pauseSynWrap', 'pauseSyn');
 }
 function resumeGame() {
@@ -4004,11 +4381,120 @@ el.btnContinue.addEventListener('click', () => startGame(G.resume));
 el.btnAgain.addEventListener('click', () => startGame(null));
 el.btnMenu.addEventListener('click', toMenu);
 el.btnResume.addEventListener('click', blurAfter(resumeGame));
-el.btnRestart.addEventListener('click', () => startGame(null));
+el.btnRestart.addEventListener('click', () => { if (G.sandbox) sandboxRun(); else startGame(null); });
 el.btnQuit.addEventListener('click', toMenu);
 el.btnPause.addEventListener('click', blurAfter(() => { if (G.state === 'play') pauseGame(); else resumeGame(); }));
 el.btnSound.addEventListener('click', blurAfter(toggleSound));
 
+/* ================= Serbest Mod (sandbox): one setup screen, then a normal run with the chosen tank, cards and target ================= */
+// Nothing is saved in this mode: store.set (01) ignores everything but settings while G.sandbox is on; gameOver (13) skips the records.
+const SBX = { tank: 'std', ups: {}, boss: '', wave: 8, theme: 0 }; // boss '' = "Dalgalar"; theme = index into THEMES; the setup survives Tekrar and Kurulum
+const SBX_PRESETS = [['none', 'Yok'], ['mid', 'Orta'], ['full', 'Tam']];
+const SBX_THEME_NAMES = ['Çöl', 'Orman', 'Kar', 'Şehir']; // same order as THEMES
+// Yok: no cards. Orta: half of every ordinary card, no rare ones. Tam: every card at its top level.
+function sbxPreset(id) {
+  const o = {};
+  if (id !== 'none') for (const k of UP_KEYS) { const u = UPS[k], L = id === 'full' ? u.max : (u.rare ? 0 : Math.ceil(u.max / 2)); if (L > 0) o[k] = L; }
+  return o;
+}
+SBX.ups = sbxPreset('mid');
+const sbxSame = (a, b) => UP_KEYS.every(k => (a[k] | 0) === (b[k] | 0));
+const sbxBosses = () => Object.values(BOSS_DEFS).filter(d => d && d.id && d.name); // never hard-coded: a boss shows up when its def exists
+// the wave a boss target is run at (decides its strength): its own sandboxWave, else the middle one of its natural boss waves
+function sbxBossWave(def) {
+  if (def.sandboxWave) return def.sandboxWave;
+  const ws = []; for (let w = 5; w <= 40; w += 5) if (bossDefAt(w) === def) ws.push(w);
+  return ws.length ? ws[(ws.length - 1) >> 1] : 30;
+}
+const sbxBossName = d => d.name.split(' ').map(w => w.charAt(0) + w.slice(1).toLocaleLowerCase('tr')).join(' ');
+function sbxSprite(cv, id) {
+  const d = Math.min(window.devicePixelRatio || 1, 2), px = Math.round(56 * d), k = px / 64;
+  cv.width = cv.height = px;
+  const g = cv.getContext('2d');
+  g.setTransform(k * 0.95, 0, 0, k * 0.95, px / 2, px / 2 + 3 * k);
+  drawTank({ id: 0, type: 'player', spec: playerSpec(id, true), x: 0, y: 0, angle: -Math.PI / 2, turret: -Math.PI / 2, treadL: 0, treadR: 0, recoil: 0, flash: 0, heat: 0, overheatT: 0, evoT: 0 }, 1, g);
+}
+let sbxBuilt = false;
+function sbxBuild() {
+  if (!sbxBuilt) {
+    sbxBuilt = true;
+    $('sbxTanks').innerHTML = TANK_IDS.map(id => `<button type="button" class="sbx-tank" data-t="${id}"><canvas aria-hidden="true"></canvas><span>${TANKS[id].name}</span></button>`).join('');
+    $('sbxTanks').querySelectorAll('.sbx-tank').forEach(b => sbxSprite(b.querySelector('canvas'), b.dataset.t));
+    $('sbxPresets').innerHTML = SBX_PRESETS.map(([id, nm]) => `<button type="button" data-p="${id}">${nm}</button>`).join('');
+    $('sbxCards').innerHTML = UP_KEYS.map(k => {
+      const u = UPS[k];
+      return `<button type="button" class="sbx-card${u.rare ? ' rare' : ''}" data-k="${k}"><svg class="ico-svg" viewBox="0 0 24 24" aria-hidden="true">${u.svg}</svg><span class="nm">${u.name}</span><span class="pips">${Array.from({ length: u.max }, () => '<i></i>').join('')}</span></button>`;
+    }).join('');
+    $('sbxMaps').innerHTML = SBX_THEME_NAMES.map((nm, i) => `<button type="button" data-m="${i}">${nm}</button>`).join('');
+  }
+  const bs = sbxBosses();
+  if (SBX.boss && !bs.some(d => d.id === SBX.boss)) SBX.boss = '';
+  $('sbxTargets').innerHTML = [['', 'Dalgalar']].concat(bs.map(d => [d.id, sbxBossName(d)])).map(([id, nm]) => `<button type="button" data-b="${id}">${nm}</button>`).join('');
+  sbxSync();
+}
+function sbxSync() {
+  document.querySelectorAll('#sbxTanks .sbx-tank').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.t === SBX.tank)));
+  const cur = SBX_PRESETS.find(([id]) => sbxSame(SBX.ups, sbxPreset(id)));
+  document.querySelectorAll('#sbxPresets button').forEach(b => b.setAttribute('aria-pressed', String(!!cur && b.dataset.p === cur[0])));
+  document.querySelectorAll('#sbxCards .sbx-card').forEach(b => {
+    const k = b.dataset.k, L = SBX.ups[k] | 0;
+    b.classList.toggle('on', L > 0);
+    b.querySelectorAll('.pips i').forEach((p, i) => p.classList.toggle('on', i < L));
+    b.setAttribute('aria-label', `${UPS[k].name}, seviye ${L}/${UPS[k].max}`);
+  });
+  document.querySelectorAll('#sbxTargets button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.b === SBX.boss)));
+  document.querySelectorAll('#sbxMaps button').forEach(b => b.setAttribute('aria-pressed', String(+b.dataset.m === SBX.theme)));
+  const boss = !!SBX.boss, bd = boss ? BOSS_DEFS[SBX.boss] : null;
+  $('sbxWaveRow').classList.toggle('hidden', boss);
+  $('sbxMaps').classList.toggle('hidden', boss);
+  $('sbxNote').classList.toggle('hidden', !boss);
+  if (bd) $('sbxNote').textContent = `Kendi arenasında, dalga ${sbxBossWave(bd)} gücünde.`;
+  $('sbxWaveN').textContent = SBX.wave;
+}
+function openSandbox() { // from the main menu, the pause menu or the end screen
+  if (G.state !== 'menu') toMenu();
+  sbxBuild(); openSub('sbx');
+}
+function sandboxRun() {
+  const bd = SBX.boss ? BOSS_DEFS[SBX.boss] : null;
+  startGame(null, { tank: SBX.tank, ups: Object.assign({}, SBX.ups), boss: bd ? bd.id : '', wave: bd ? sbxBossWave(bd) : SBX.wave, theme: SBX.theme });
+}
+function sandboxEnd(win) {
+  G.state = 'over'; G.timeScale = 1; G.fade = 0;
+  el.hud.classList.add('hidden'); el.upgrade.classList.add('hidden'); hideBanner(); el.hint.classList.remove('show');
+  $('sbxEndTitle').textContent = win ? 'BOSS YENİLDİ' : 'TANKIN İMHA EDİLDİ';
+  const bd = G.sbx && G.sbx.boss ? BOSS_DEFS[G.sbx.boss] : null;
+  $('sbxEndSub').textContent = bd ? sbxBossName(bd) + ' · ' + TANKS[G.tank].name : `Dalga ${G.wave} · ${G.kills} tank imha · ${TANKS[G.tank].name}`;
+  $('sbxEnd').classList.remove('hidden');
+  G.overFree = freeArea($('sbxEndPanel'));
+  canvas.classList.remove('aim');
+  if (win) Sound.cleared(); else Sound.over();
+}
+function sbxStepper(btn, d) { // tap = one step, hold = repeat
+  let t = null, iv = null;
+  const step = () => { SBX.wave = clamp(SBX.wave + d, 1, 40); sbxSync(); };
+  const stop = () => { clearTimeout(t); clearInterval(iv); t = iv = null; };
+  btn.addEventListener('pointerdown', e => { if (e.button) return; step(); stop(); t = setTimeout(() => { iv = setInterval(step, 90); }, 420); });
+  for (const ev of ['pointerup', 'pointerleave', 'pointercancel']) btn.addEventListener(ev, stop);
+  btn.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); step(); } });
+}
+$('btnSandbox').addEventListener('click', openSandbox);
+$('btnSbxBack').addEventListener('click', closeSub);
+$('btnSbxGo').addEventListener('click', sandboxRun);
+$('btnSbxAgain').addEventListener('click', sandboxRun);
+$('btnSbxSetup').addEventListener('click', openSandbox);
+$('btnPauseSbx').addEventListener('click', openSandbox);
+sbxStepper($('sbxMinus'), -1); sbxStepper($('sbxPlus'), 1);
+$('sbxPanel').addEventListener('click', ev => {
+  const t = ev.target.closest('button'); if (!t) return;
+  if (t.dataset.t) SBX.tank = t.dataset.t;
+  else if (t.dataset.p) SBX.ups = sbxPreset(t.dataset.p);
+  else if (t.dataset.k) { const k = t.dataset.k, L = (SBX.ups[k] | 0) + 1; if (L > UPS[k].max) delete SBX.ups[k]; else SBX.ups[k] = L; }
+  else if (t.dataset.b !== undefined) SBX.boss = t.dataset.b;
+  else if (t.dataset.m !== undefined) SBX.theme = +t.dataset.m;
+  else return;
+  sbxSync();
+});
 /* ================= update ================= */
 function updateCamera(rdt) {
   const p = G.player, m = G.map;
@@ -4635,7 +5121,7 @@ function drawTele() {
       const locked = tl.t >= tl.dur - tl.lock, len = tl.len, w = tl.w;
       ctx.save(); ctx.translate(tl.x, tl.y); ctx.rotate(tl.a);
       ctx.fillStyle = locked ? 'rgba(140,16,12,.5)' : `rgba(224,60,40,${(0.16 + 0.2 * k).toFixed(3)})`; ctx.fillRect(0, -w / 2, len, w);
-      ctx.strokeStyle = locked ? 'rgba(90,6,6,.95)' : 'rgba(255,90,60,.85)'; ctx.lineWidth = locked ? 3 : 2; ctx.setLineDash(locked ? [] : [14, 10]); ctx.lineDashOffset = -G.time * 60;
+      ctx.strokeStyle = locked ? 'rgba(90,6,6,.95)' : 'rgba(255,90,60,.85)'; ctx.lineWidth = locked ? 3 : 2; ctx.setLineDash(locked && !tl.dash ? [] : [14, 10]); // tl.dash: a bounce warning stays dashed ctx.lineDashOffset = -G.time * 60;
       ctx.strokeRect(0, -w / 2, len, w); ctx.setLineDash([]);
       ctx.strokeStyle = locked ? 'rgba(255,230,200,.8)' : 'rgba(255,200,170,.55)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(len, 0); ctx.stroke();
       ctx.restore();
@@ -4889,6 +5375,82 @@ function drawDemirkokGround(e, g) {
   g.save(); g.strokeStyle = 'rgba(255,90,60,.9)'; g.lineWidth = 3; g.setLineDash([14, 10]); g.lineDashOffset = -tt * 70;
   g.beginPath(); g.moveTo(e.x, e.y); g.lineTo(e.x + Math.cos(sw.lead) * d, e.y + Math.sin(sw.lead) * d); g.stroke(); g.setLineDash([]);
   g.strokeStyle = 'rgba(255,230,200,.6)'; g.lineWidth = 1.5; g.beginPath(); g.moveTo(e.x, e.y); g.lineTo(e.x + Math.cos(sw.lead) * d, e.y + Math.sin(sw.lead) * d); g.stroke(); g.restore();
+}
+/* ================= Kapatıcı drawing (docs/img/kapatici-gorsel.png) ================= */
+// Matte black angular armour with two wing-like side plates and white light lines, a red eye on the chest with two short white lights beside it, one long barrel with a thick muzzle
+// (turns with the turret, glows orange during the open window and while a shot charges), a hexagonal rear engine cover and dark treads; thick near-black outline like the other bosses.
+// Hit flash = white overlay; scorch marks as on every boss. Ground layer: the edge ring that is about to close (red tiles with inward arrows).
+function kapPoly(g, pts, sy) { g.beginPath(); pts.forEach((q, i) => (i ? g.lineTo(q[0], q[1] * sy) : g.moveTo(q[0], q[1] * sy))); g.closePath(); }
+function kapHex(g, x, y, r) { g.beginPath(); for (let i = 0; i < 6; i++) { const a = i * TAU / 6 + TAU / 12; i ? g.lineTo(x + Math.cos(a) * r, y + Math.sin(a) * r * 0.9) : g.moveTo(x + Math.cos(a) * r, y + Math.sin(a) * r * 0.9); } g.closePath(); }
+const KAP_HULL = [[-22, -9], [-15, -15], [8, -13], [17, -7], [17, 7], [8, 13], [-15, 15], [-22, 9]];
+const KAP_CHEST = [[-11, -8], [0, -12], [11, -7], [11, 7], [0, 12], [-11, 8]];
+const KAP_WING = [[19, 13], [3, 22], [-14, 19], [-9, 11], [8, 10]];
+function drawKapatici(e, g, alpha) {
+  const s = e.spec, c = s.col, L = s.len, W = s.wid, tw = s.tread, kp = e.kp, tt = G.time, OL = '#050506';
+  const open = clamp((kp.openUntil - tt) / KAP.open, 0, 1), heat = Math.max(open, kp.charge || 0), dying = e.dying, dth = dying ? Math.min(1, e.deathT / 2.4) : 0;
+  // treads (under everything)
+  g.save(); g.translate(e.x, e.y); g.rotate(e.angle); g.globalAlpha = alpha; g.lineJoin = 'round';
+  g.fillStyle = '#1b1c1f'; g.strokeStyle = OL; g.lineWidth = 3;
+  for (const sy of [-1, 1]) { rrect(g, -L / 2, sy < 0 ? -W / 2 : W / 2 - tw, L, tw, 4); g.fill(); g.stroke(); }
+  g.fillStyle = '#4a4b51'; const st = 6;
+  let o = ((e.treadL % st) + st) % st; for (let x = -L / 2 + o; x < L / 2 - 2; x += st) g.fillRect(x, -W / 2 + 1.8, 2.2, tw - 3.6);
+  o = ((e.treadR % st) + st) % st; for (let x = -L / 2 + o; x < L / 2 - 2; x += st) g.fillRect(x, W / 2 - tw + 1.8, 2.2, tw - 3.6);
+  g.restore();
+  // barrel (turns with the turret; its base hides under the hull)
+  g.save(); g.translate(e.x, e.y); g.rotate(e.turret); g.globalAlpha = alpha; g.lineJoin = 'round';
+  const rc = e.recoil * 5, bl = s.barrel - rc;
+  g.fillStyle = '#44454b'; g.strokeStyle = OL; g.lineWidth = 3; g.beginPath(); g.rect(2, -3.4, bl - 12, 6.8); g.fill(); g.stroke();
+  g.fillStyle = '#6a6c74'; g.fillRect(4, -2.4, bl - 17, 1.6); // top light edge
+  g.fillStyle = '#26272b'; g.strokeStyle = OL; g.lineWidth = 3; g.beginPath(); g.rect(bl - 12, -5.4, 11, 10.8); g.fill(); g.stroke(); // thick muzzle
+  g.fillStyle = '#5a5c64'; g.fillRect(bl - 10, -4, 3, 8);
+  if (heat > 0.02) { // heated barrel
+    g.globalAlpha = alpha * heat * 0.8; g.fillStyle = open > 0 ? '#ff8a3a' : '#ff4a3a'; g.fillRect(8, -2.4, bl - 20, 4.8); g.fillRect(bl - 12, -4.6, 11, 9.2);
+    if (fxScale === 1) { g.globalCompositeOperation = 'lighter'; g.globalAlpha = alpha * heat; const gs = 40 + 34 * heat; g.drawImage(SPR.fire, bl - gs / 2 - 2, -gs / 2, gs, gs); g.globalCompositeOperation = 'source-over'; }
+  }
+  g.restore();
+  // hull, wings, chest, eye, engine cover
+  g.save(); g.translate(e.x, e.y); g.rotate(e.angle); g.globalAlpha = alpha; g.lineJoin = 'round';
+  kapHex(g, -22, 0, 9.5); g.fillStyle = '#2b2c31'; g.fill(); g.strokeStyle = OL; g.lineWidth = 3; g.stroke(); // rear engine cover
+  kapHex(g, -22.5, -0.6, 5.6); g.fillStyle = '#41434a'; g.fill(); g.lineWidth = 1.4; g.strokeStyle = 'rgba(0,0,0,.6)'; g.stroke();
+  kapPoly(g, KAP_HULL, 1); g.fillStyle = '#222327'; g.fill(); g.strokeStyle = OL; g.lineWidth = 3; g.stroke();
+  for (const sy of [-1, 1]) { // wing plates with a white light line along the outer edge
+    kapPoly(g, KAP_WING, sy); g.fillStyle = '#303137'; g.fill(); g.strokeStyle = OL; g.lineWidth = 3; g.stroke();
+    g.fillStyle = 'rgba(120,124,134,.35)'; g.beginPath(); g.moveTo(17, 12 * sy); g.lineTo(5, 19 * sy); g.lineTo(0, 15 * sy); g.lineTo(9, 10.5 * sy); g.closePath(); g.fill();
+    g.lineCap = 'round'; g.strokeStyle = 'rgba(255,255,255,.28)'; g.lineWidth = 3.4; g.beginPath(); g.moveTo(16, 13.5 * sy); g.lineTo(3.5, 19.6 * sy); g.lineTo(-11, 16.6 * sy); g.stroke();
+    g.strokeStyle = '#fff'; g.lineWidth = 1.3; g.stroke();
+  }
+  kapPoly(g, KAP_CHEST, 1); g.fillStyle = '#34363c'; g.fill(); g.strokeStyle = OL; g.lineWidth = 2.6; g.stroke();
+  g.fillStyle = 'rgba(255,255,255,.08)'; g.fillRect(-9, -9, 17, 2.2);
+  const eyeHot = Math.max(open, dying ? 0.5 + 0.5 * Math.sin(tt * 30) * (1 - dth) : 0), pul = 0.75 + 0.25 * Math.sin(tt * 4);
+  g.strokeStyle = '#fff'; g.lineWidth = 2.2; g.lineCap = 'round'; for (const sy of [-1, 1]) { g.beginPath(); g.moveTo(-8, 8 * sy); g.lineTo(-1, 8 * sy); g.stroke(); } // short white lights beside the eye
+  g.globalAlpha = alpha * (0.3 + 0.25 * eyeHot) * pul; g.fillStyle = '#ff2a22'; g.beginPath(); g.arc(0, 0, 8 + 2 * eyeHot, 0, TAU); g.fill(); g.globalAlpha = alpha;
+  g.fillStyle = eyeHot > 0.4 ? '#fff0d8' : '#ff2a22'; g.strokeStyle = '#5a0000'; g.lineWidth = 1.5; g.beginPath(); g.arc(0, 0, 4.4, 0, TAU); g.fill(); g.stroke();
+  g.fillStyle = 'rgba(255,255,255,.75)'; g.beginPath(); g.arc(-1.3, -1.4, 1.2, 0, TAU); g.fill();
+  // scorch marks and the hit flash
+  g.fillStyle = 'rgba(0,0,0,.55)'; g.strokeStyle = 'rgba(255,150,120,.3)'; g.lineWidth = 0.8;
+  for (const q of e.scorch) { g.save(); g.translate(q.x, q.y); g.rotate(q.a); g.beginPath(); g.ellipse(0, 0, q.r * 1.3, q.r * 0.85, 0, 0, TAU); g.fill(); g.stroke(); g.restore(); }
+  const fl = e.flash > 0 ? Math.min(1, e.flash * 10) * 0.8 : 0;
+  if (fl) { g.globalAlpha = alpha * fl; g.fillStyle = '#fff'; kapPoly(g, KAP_HULL, 1); g.fill(); for (const sy of [-1, 1]) { kapPoly(g, KAP_WING, sy); g.fill(); } g.globalAlpha = alpha; }
+  g.restore(); g.globalAlpha = 1;
+}
+// the edge ring that closes in 2 s: pulsing red tiles with arrows pointing inward
+function drawKapaniGround(e, g) {
+  const kp = e.kp; if (!kp || !kp.warn) return;
+  const m = G.map, n = m.n, k = kp.closed, tt = G.time, pul = 0.5 + 0.5 * Math.sin(tt * 14);
+  g.save();
+  for (const [c, r] of kapRingTiles(n, k)) {
+    const x = c * T, y = r * T;
+    g.fillStyle = `rgba(224,50,36,${(0.22 + 0.22 * pul).toFixed(3)})`; g.fillRect(x, y, T, T);
+    g.strokeStyle = 'rgba(255,110,80,.55)'; g.lineWidth = 1.5; g.beginPath(); g.moveTo(x, y + T); g.lineTo(x + T, y); g.stroke();
+  }
+  g.fillStyle = `rgba(255,236,220,${(0.6 + 0.3 * pul).toFixed(3)})`; g.strokeStyle = 'rgba(120,10,6,.9)'; g.lineWidth = 2;
+  for (let i = k + 2; i < n - k - 1; i += 3) {
+    for (const [c, r, dx, dy] of [[i, k, 0, 1], [i, n - 1 - k, 0, -1], [k, i, 1, 0], [n - 1 - k, i, -1, 0]]) {
+      const cx = c * T + T / 2, cy = r * T + T / 2, px = -dy, py = dx;
+      g.beginPath(); g.moveTo(cx + dx * 11, cy + dy * 11); g.lineTo(cx - dx * 8 + px * 11, cy - dy * 8 + py * 11); g.lineTo(cx - dx * 3, cy - dy * 3); g.lineTo(cx - dx * 8 - px * 11, cy - dy * 8 - py * 11); g.closePath(); g.fill(); g.stroke();
+    }
+  }
+  g.restore();
 }
 function drawStrikes() {
   if (!G.strikes.length) return;
@@ -5371,13 +5933,15 @@ if (DEBUG) {
     hurtBoss(d, x, y, dir) { const e = G.boss; hurtEnemy(e, d, x === undefined ? e.x : x, y === undefined ? e.y : y, dir); return e.hp; },
     partInfo(e) { e = e || G.boss; return e.tr ? { treadT: +e.treadT.toFixed(2), tr: e.tr.map(t => ({ hp: +t.hp.toFixed(1), max: t.max, br: t.br, t: +t.t.toFixed(2) })), bars: e.bars.map(b => ({ id: b.id, acc: +b.acc.toFixed(1), thr: b.thr, t: +b.t.toFixed(2) })), cancels: e.cancels } : e.pt ? { tread: +e.pt.tread.toFixed(2), barrel: +e.pt.barrel.toFixed(2), engine: +e.pt.engine.toFixed(2), imm: Object.assign({}, e.pt.imm), dur: Object.assign({}, e.pt.dur) } : null; },
     partBreak, PART_T, PART_HP, damageEnemy, alertHit, checkDodge, DODGE, AWARE, BT, hurtEnemy, bossVolley,
+    // start any BOSS_DEFS key (also sandboxOnly ones) at wave w with its own arena; the intro runs (bossSkip ends it)
+    bossStart(key, w) { G.forceBoss = key; G.wave = (w || 25) - 1; nextWave(); G.forceBoss = null; return this.bossInfo(); },
     bossSkip() { G.introSeen = true; G.phaseT = Math.max(G.phaseT, 0.3); bossIntroTap(); },
-    bossDanger, bossClearHazards, BOSS_DEFS, ARENAS, parseArena, themeFor, bossDefAt,
+    bossDanger, bossClearHazards, BOSS_DEFS, BOSS_ON, startBossStage, loadArena, ARENAS, parseArena, themeFor, bossDefAt,
     // one boss fight for the probe: wave w, workshop cards (object), tank id; the bot plays until the boss falls, the tank dies or maxSec passes
-    bossFight(w, cards, tank, maxSec) {
+    bossFight(w, cards, tank, maxSec, key) {
       store.set(BOSS_SEEN_KEY, true); bot.on = true; bot.nuke = false; G.god = false; G.noEvo = true;
       G.up = Object.assign({}, cards); G.tank = tank || 'std'; refreshPlayer(); G.player.hp = G.player.maxHp;
-      view.zoomK = TANKS[G.tank].zoom; G.wave = w - 1; nextWave(); G.introSeen = true; endBossIntro(true);
+      view.zoomK = TANKS[G.tank].zoom; G.forceBoss = key || null; G.wave = w - 1; nextWave(); G.forceBoss = null; G.introSeen = true; endBossIntro(true);
       const p = G.player, e = G.boss, hp0 = p.hp; let n = 0, hurtSum = 0, last = p.hp; const max = Math.round(maxSec * 60);
       while (n < max && G.state === 'play' && p.alive && !e.dead && !e.dying) {
         autopilot(1 / 60); update(1 / 60); n++;
@@ -5387,14 +5951,14 @@ if (DEBUG) {
       return { win: !!(e.dead || e.dying), secs: +(n / 60).toFixed(1), dmg: Math.round(hurtSum), hpLeft: Math.round(p.hp), bphase: e.phase, bossHp: +(e.hp / e.maxHp).toFixed(2), maxHp: e.maxHp };
     },
     // stuck watch: like bossFight, but samples the boss while it is supposed to walk; returns the longest stretch without progress (s) and where it happened
-    bossWatch(w, cards, tank, maxSec) {
+    bossWatch(w, cards, tank, maxSec, key) {
       store.set(BOSS_SEEN_KEY, true); bot.on = true; bot.nuke = false; G.god = true; G.noEvo = true;
       G.up = Object.assign({}, cards); G.tank = tank || 'std'; refreshPlayer(); G.player.hp = G.player.maxHp;
-      view.zoomK = TANKS[G.tank].zoom; G.wave = w - 1; nextWave(); G.introSeen = true; endBossIntro(true);
+      view.zoomK = TANKS[G.tank].zoom; G.forceBoss = key || null; G.wave = w - 1; nextWave(); G.forceBoss = null; G.introSeen = true; endBossIntro(true);
       const p = G.player, e = G.boss, max = Math.round(maxSec * 60); let n = 0, rx = e.x, ry = e.y, st = 0, worst = 0, at = null, moving = 0, god = 0;
       while (n < max && G.state === 'play' && !e.dead && !e.dying) {
         autopilot(1 / 60); update(1 / 60); n++;
-        const walk = G.phase === 'fight' && !e.invuln && e.trans <= 0 && !(e.stunT > 0) && e.treadT <= 0 && !e.rooted && (!e.gen || e.atkId === 'cevik') && !(e.canSee && e.distP < (e.def.hold || 4.5) * T);
+        const walk = G.phase === 'fight' && !e.invuln && e.trans <= 0 && !(e.stunT > 0) && e.treadT <= 0 && !e.rooted && (!e.gen || e.atkId === 'cevik') && !(e.canSee && e.distP < (e.def.hold || 4.5) * T) && (!e.def.watchGoal || e.def.watchGoal(e));
         if (!walk) { st = 0; rx = e.x; ry = e.y; continue; }
         moving++;
         if (Math.hypot(e.x - rx, e.y - ry) >= 14) { rx = e.x; ry = e.y; st = 0; } else { st += 1 / 60; if (st > worst) { worst = st; at = { x: Math.round(e.x), y: Math.round(e.y), t: +(n / 60).toFixed(1), atk: e.atkId, phase: e.phase, c: Math.floor(e.x / T), r: Math.floor(e.y / T) }; } }
@@ -5403,9 +5967,9 @@ if (DEBUG) {
       return { worst: +worst.toFixed(2), at, win: !!(e.dead || e.dying), secs: +(n / 60).toFixed(1), moving: +(moving / 60).toFixed(1) };
     },
     // reach probe: the player sits still on tile (c, r) (god mode, no bot); returns the closest the boss got (hull edge to hull edge, px) and whether it fired at or touched the player within maxSec
-    bossReach(w, c, r, maxSec) {
+    bossReach(w, c, r, maxSec, key) {
       store.set(BOSS_SEEN_KEY, true); bot.on = false; G.god = false; G.noEvo = true; G.up = {}; G.tank = 'std'; refreshPlayer(); G.player.maxHp = G.player.hp = 1e6;
-      G.wave = w - 1; nextWave(); G.introSeen = true; endBossIntro(true);
+      G.forceBoss = key || null; G.wave = w - 1; nextWave(); G.forceBoss = null; G.introSeen = true; endBossIntro(true);
       const p = G.player, e = G.boss, max = Math.round(maxSec * 60); p.x = c * T + T / 2; p.y = r * T + T / 2; let n = 0, best = 1e9, hit = -1, hp0 = p.hp, seen = 0;
       while (n < max && G.state === 'play' && !e.dead && !e.dying) {
         p.x = c * T + T / 2; p.y = r * T + T / 2; update(1 / 60); n++;
@@ -5425,14 +5989,14 @@ window.tankBack = () => {
   if (subOpen()) { closeSub(); return 'handled'; }
   if (G.state === 'play') { pauseGame(); return 'handled'; }
   if (G.state === 'paused') { resumeGame(); return 'handled'; }
-  if (G.state === 'over') { toMenu(); return 'handled'; }
+  if (G.state === 'over') { if (G.sandbox) openSandbox(); else toMenu(); return 'handled'; }
   return 'exit';
 };
 
 const hot = window.claude && window.claude.hot;
 if (hot && typeof hot.snapshot === 'function') {
   try {
-    hot.snapshot(() => ({ run: (G.state === 'play' || G.state === 'paused') && G.player && G.player.alive
+    hot.snapshot(() => ({ run: (G.state === 'play' || G.state === 'paused') && !G.sandbox && G.player && G.player.alive
       ? { wave: G.wave, score: G.score, hp: Math.round(G.player.hp), kills: G.kills, shots: G.shots, hits: G.hits, ups: Object.assign({}, G.up), tank: G.tank,
         nuke: nukeSave(), beaten: [...G.beaten] } : null }));
   } catch (e) { /* ignore */ }
