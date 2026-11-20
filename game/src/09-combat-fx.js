@@ -70,14 +70,11 @@ const wreckOf = t => {
 };
 function hurtEnemy(e, dmg, x, y, dir, quiet) { // quiet: burn ticks and flame, no sparks or sound
   if (e.dead) return;
+  if (e.isBoss) { bossHurt(e, dmg, x, y, dir, quiet); return; } // 11a: phases, parts, stun bonus
   e.hp -= dmg; e.flash = 0.1;
   if (!quiet) sparks(x, y, 6, '#ffd27a', 200, dir, 1.4);
   if (e.hp <= 0.001) { killEnemy(e); return; }
   if (!quiet) Sound.metal(volAt(e.x, e.y));
-  if (e.type === 'boss' && !e.enraged && e.hp <= e.maxHp / 2) {
-    e.enraged = true; e.speedMul *= 1.2; e.coolMul *= 0.7;
-    addText(e.x, e.y - 36, 'Komutan öfkelendi', '#ff7a5c', 16);
-  }
 }
 const damageEnemy = (e, b) => hurtEnemy(e, b.dmg * synDmg(b, e), b.x, b.y, Math.atan2(-b.vy, -b.vx));
 // Explosive shells (Patlayıcı mermi): a small blast that hurts every other enemy tank in reach
@@ -104,7 +101,8 @@ function killEnemy(e) {
   addText(e.x, e.y - 12, '+' + fmt(pts), '#f2c14e', e.type === 'boss' ? 22 : 16);
   if (e.type === 'boss') {
     G.boss = null;
-    showBanner('KOMUTAN İMHA EDİLDİ', '+' + fmt(pts) + ' puan', 1.9);
+    if (e.isBoss) bossDefeated(e); // armour back to full, hazards gone (11a)
+    else showBanner('KOMUTAN İMHA EDİLDİ', '+' + fmt(pts) + ' puan', 1.9);
     ['repair', 'shield', pick(['triple', 'rapid', 'pierce', 'freeze', 'air'])].forEach((k, i) => dropPickup(e.x + Math.cos(i * 2.1) * 26, e.y + Math.sin(i * 2.1) * 26, k, e.x, e.y));
     vibrate([40, 30, 80]);
   } else if (Math.random() < s.drop * G.mods.drop * (1 + 0.25 * upL('magnet'))) dropPickup(e.x, e.y);

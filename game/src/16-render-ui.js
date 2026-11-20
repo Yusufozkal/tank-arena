@@ -189,8 +189,8 @@ function drawIndicators() {
     if (!isFinite(t) || t <= 0) continue;
     let ix = cx + dx * t, iy = cy + dy * t;
     for (const h of view.hudRects) if (ix > h.l && ix < h.r && iy > h.t && iy < h.b) { t = ray(dx, dy, h.b); ix = cx + dx * t; iy = cy + dy * t; }
-    const d = Math.hypot(e.x - p.x, e.y - p.y), big = e.type === 'boss' ? 1.5 : 1;
-    ctx.globalAlpha = clamp(1.25 - d / (T * 16), 0.4, 1);
+    const d = Math.hypot(e.x - p.x, e.y - p.y), atk = e.isBoss && (e.gen || e.trans > 0) && !e.dying, big = e.type === 'boss' ? (atk ? 2 : 1.5) : 1;
+    ctx.globalAlpha = atk ? 0.35 + 0.65 * Math.abs(Math.sin(G.time * 9)) : clamp(1.25 - d / (T * 16), 0.4, 1); // an attacking boss off-screen: the edge arrow flashes
     ctx.save(); ctx.translate(ix, iy); ctx.rotate(Math.atan2(dy, dx)); ctx.scale(big, big);
     ctx.fillStyle = '#e0533a'; ctx.beginPath(); ctx.moveTo(10, 0); ctx.lineTo(-6, -8); ctx.lineTo(-2.5, 0); ctx.lineTo(-6, 8); ctx.closePath(); ctx.fill();
     ctx.strokeStyle = 'rgba(0,0,0,.55)'; ctx.lineWidth = 1.2; ctx.stroke();

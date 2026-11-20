@@ -1,13 +1,13 @@
 # Oyun kaynağı: modül haritası
 
-`game/index.html` **üretilir**; elle düzenleme. Kaynak `game/src/` içinde: `shell.html` (HTML, iki işaret satırı `/*@@CSS@@*/` ve `/*@@JS@@*/`), `style.css` ve sıralı JS modülleri `NN-ad.js`. Hepsi tek `(() => { 'use strict'; ... })()` içine birleşir, yani modüller aynı kapsamı paylaşır: `import` yok, bir modüldeki üst düzey ad sonraki (ve çağrı anında önceki) modüllerden doğrudan kullanılır. Sıra önemlidir: `const` tanımları kullanılmadan önce çalışmalıdır.
+`game/index.html` **üretilir**; elle düzenleme. Kaynak `game/src/` içinde: `shell.html` (HTML, iki işaret satırı `/*@@CSS@@*/` ve `/*@@JS@@*/`), `style.css` ve sıralı JS modülleri `NN-ad.js` (araya girenler `NNa-ad.js`: `11a` ve `11b`, `15a`; `build_game.py` bunları `NN-` dosyalarından sonra, sonraki numaradan önce birleştirir). Hepsi tek `(() => { 'use strict'; ... })()` içine birleşir, yani modüller aynı kapsamı paylaşır: `import` yok, bir modüldeki üst düzey ad sonraki (ve çağrı anında önceki) modüllerden doğrudan kullanılır. Sıra önemlidir: `const` tanımları kullanılmadan önce çalışmalıdır.
 
 ## Nasıl çalışılır
 
 1. `game/src/` içindeki ilgili dosyayı düzenle (yalnızca o modülü ve bu haritayı oku).
 2. `python3 tools/build_game.py` ile `game/index.html` dosyasını yeniden üret.
 3. `python3 tools/build_game.py --check` geçmeli (aksi halde 1 döner); commit'e `game/src/` ve üretilen `game/index.html` birlikte girer. Site için ardından `tools/build_site.py`.
-4. Yeni modül gerekirse `NN-ad.js` olarak ekle (iki haneli sıra öneki) ve bu tabloyu güncelle. Kod satırlarını bölgeler arasında taşımak sıra bağımlılığını bozabilir; testleri koş.
+4. Yeni modül gerekirse `NN-ad.js` olarak ekle (iki haneli sıra öneki; numara kaydırmamak için `NNa-ad.js` de olur) ve bu tabloyu güncelle. Kod satırlarını bölgeler arasında taşımak sıra bağımlılığını bozabilir; testleri koş.
 
 ## Modüller
 
@@ -24,14 +24,17 @@
 | `09-combat-fx.js` | 206 | Parçacık, yazı, efekt (`addPart`, `explode`, `addText`); isabet ve hasar (`hitTile`, `hurtEnemy`, `damageEnemy`, `killEnemy`, `damagePlayer`, `killPlayer`); pickup'lar (`dropPickup`, `applyPickup`); hava saldırısı | 02, 03, 05 | `check_gameplay`, `stress` |
 | `10-nuke-bullets.js` | 166 | Nükleer bomba (`NUKE_*`, `nukeFire`, `nukeBlast`, `nukeUpdate`, `nukeHud`, `drawNuke`), mermiler `ricochet`, `updateBullets` | 09 | `check_nuke` |
 | `11-enemies.js` | 278 | Dalga zorluğu `waveMods`, `buildRoster`, doğuş `spawnEnemy`, `updateEnemy`, kaçınma/siper, Avcı (zeki tank) `updateHunter` | 02, 07, 09 | `check_gameplay`, `balance_probe` |
+| `11a-boss-core.js` | ~370 | Boss altyapısı: `themeFor` (10 dalgalık bölgeler), `ARENAS`/`parseArena`/`loadArena` (21×21 metin haritası), boss tablosu `BOSS_DEFS`/`BOSS_ON`/`bossDefAt`, `spawnBoss`, `updateBoss` (evreler, parçalar, sersemleme, saldırı makinesi: generator'lar), uyarı sistemi `addTele`/`release`/`TELE_MIN`, `bossDanger` (bot için tehlike haritası), `bossClearHazards`, `bossHurt` (parça, +%50 sersem, `nukeOnBossDamage` kancası), hasar görünümü, ölüm sahnesi, giriş sahnesi `startBossStage`/`bossIntroTick` | 07, 09, 11 | `check_boss`, `boss_probe` |
+| `11b-boss-komutan.js` | ~130 | Komutan: saldırılar (`komTriple`, `komCharge`, `komMortar`, `komSalvo`, `komBombard`, `komPenta`, `komShock`), `BOSS_DEFS.komutan` (açılış dalgaları `unlocks`, kule parçası) | 11a | `check_boss`, `boss_probe` |
 | `12-input-player.js` | 166 | Girdi (`input`, `keys`, `mouse`, çubuklar, `autoTarget`), `bot` durum nesnesi, `updatePlayer`, afiş/ipucu (`showBanner`, `showHint`) | 05, 07 | `check_hud_buttons`, `check_crosshair` |
 | `13-flow.js` | 366 | Oyun akışı: `startGame`, `nextWave`, `waveCleared`, atölye (`rollUpgrades`, `chooseUpgrade`), evrim (`chooseTank`, `tankCardHTML`), `gameOver`, menü ve alt sayfalar, `applySettings`, `bindUI`, rehber, `pauseGame` | 02, 03, 11 | `check_gameplay`, `check_tanks` |
 | `14-update-hud.js` | 120 | `update(dt)` sabit adım, `updatePlay`, `updateCamera`, HUD `ui`, `updateHUD` | 09–13 | `check_hud_mobile`, `check_gameplay` |
 | `15-render-world.js` | 330 | `render()`, su/iz/portal çizimi, `barrel`, `hullMarks`, `turretMarks`, `drawTank`, `drawFrost`, `drawThermal` | 03, 05, 06 | `check_gameplay`, `stress` |
+| `15a-boss-render.js` | ~150 | `drawBoss`/`drawKomutan` (büyük Komutan), uyarı çizimi `drawTele` (çizgi, daire, halka), düşen parçalar `drawPieces` | 11a, 15 | `check_boss` |
 | `16-render-ui.js` | 291 | Hava saldırısı, çalılık, tank efektleri, `drawBullets`, `drawLocks`, `drawIndicators`, `drawCrosshair`/`syncAimCursor`, çubuklar, `drawVignette`, `drawMini` (mini harita) | 05, 15 | `check_crosshair`, `check_hud_mobile` |
 | `17-loop.js` | 13 | `frame(now)`: `update` + `render` + `requestAnimationFrame` | 14–16 | hepsi |
-| `18-bot.js` | 31 | Otomatik pilot `autopilot(dt)`, evrim seçimi `botPick` (`bot` nesnesi 12'de) | 12, 13 | `balance_probe`, `stress` |
-| `19-debug.js` | 62 | `if (DEBUG)` içinde `window.__tank` API'si (`sim`, `step`, `wave`, `give`, `spawn`, `killAll`, `choices`, `choose`, tank/birleşim/nuke grupları) | hepsi | bütün testler |
+| `18-bot.js` | ~95 | Otomatik pilot `autopilot(dt)`, boss etabı pilotu `bossAutopilot` (tehlike haritası `botDanger`, en yakın güvenli kare `botBfs`), evrim seçimi `botPick` (`bot` nesnesi 12'de) | 12, 13 | `balance_probe`, `stress` |
+| `19-debug.js` | 62 | `if (DEBUG)` içinde `window.__tank` API'si (`bossFight`, `bossInfo`, `bossSkip`, `hurtBoss`, `sim`, `step`, `wave`, `give`, `spawn`, `killAll`, `choices`, `choose`, tank/birleşim/nuke grupları) | hepsi | bütün testler |
 | `20-boot.js` | 35 | `window.tankBack` (Android), `hot` anlık görüntü, `boot`, yeniden boyutlama dinleyicileri, IIFE kapanışı | 05, 13 | `check_offline_apk` |
 
 CSS `style.css` (telefon HUD'u `@media (max-width:520px),(max-height:520px)` bloğunda), HTML iskeleti `shell.html`.
@@ -39,7 +42,8 @@ CSS `style.css` (telefon HUD'u `@media (max-width:520px),(max-height:520px)` blo
 ## Nerede bakmalı
 
 - **Denge** (düşman canı, hız, dalga): `02-constants.js` (`SPECS`, `bossHp`, `firepower`, `UPS`, `PU`), `11-enemies.js` (`waveMods`, `buildRoster`), `04-platform.js` (`RULES`). Ölçüm: `balance_probe.py` + `balance_report.py`.
-- **Düşmanlar ve Komutan/Avcı**: `11-enemies.js`; Komutan ateş uyarısı `chargeT`, canı `bossHp` (02); öldürme/hasar `09-combat-fx.js`.
+- **Düşmanlar ve Avcı**: `11-enemies.js`; öldürme/hasar `09-combat-fx.js`.
+- **Boss etabı ve Komutan**: altyapı `11a-boss-core.js` (yeni boss = `BOSS_DEFS.<id>` + `BOSS_ON[dalga]` + `ARENAS.<ad>`), Komutan `11b-boss-komutan.js`, can tablosu `BOSS_HP_AT`/`bossHp` (02), çizim `15a-boss-render.js`, bot `bossAutopilot` (18), ölçüm `tests/boss_probe.py`, kontrol `tests/check_boss.py`.
 - **Çizim**: dünya `15-render-world.js`, mermi/nişangâh/mini harita `16-render-ui.js`, harita katmanı `06-map.js`, sprite önbelleği `04-platform.js`.
 - **Telefon HUD**: `style.css` medya bloğu, `shell.html` işaretleme, `updateHUD` (14), `measureHud`/`resize` (05). Test: `check_hud_mobile.py`, `check_hud_buttons.py`.
 - **Nükleer bomba**: `10-nuke-bullets.js` (`NUKE_*`); `nukeReset` ve `nukeSave` akışta (13/20). Test: `check_nuke.py`.

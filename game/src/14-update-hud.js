@@ -4,13 +4,15 @@ function updateCamera(rdt) {
   let tx = m.w / 2, ty = m.h / 2;
   if (p) {
     tx = p.x; ty = p.y;
-    if (G.state === 'over' && G.overFree) { tx = p.x - (G.overFree.x - view.w / 2) / view.scale; ty = p.y - (G.overFree.y - view.h / 2) / view.scale; }
+    if (G.phase === 'bossIntro' && G.boss) { tx = G.boss.x; ty = G.boss.y + T * 1.5; } // intro: the camera watches the boss
+    else if (G.state === 'over' && G.overFree) { tx = p.x - (G.overFree.x - view.w / 2) / view.scale; ty = p.y - (G.overFree.y - view.h / 2) / view.scale; }
     else {
       if (p.alive) { tx += Math.cos(p.turret) * T * 0.7; ty += Math.sin(p.turret) * T * 0.7; }
       if (input.touch && view.h > view.w) ty += view.h / view.scale * 0.07;
     }
   }
-  const zt = G.state === 'menu' ? 1 : TANKS[G.tank].zoom; // Keskin Nişancı: the camera pulls back
+  let zt = G.state === 'menu' ? 1 : TANKS[G.tank].zoom; // Keskin Nişancı: the camera pulls back
+  if (G.stage && G.state !== 'menu') zt = Math.min(zt, 0.85); // boss stage: the camera pulls back
   if (view.zoomK !== zt) { view.zoomK = Math.abs(zt - view.zoomK) < 0.001 ? zt : view.zoomK + (zt - view.zoomK) * (1 - Math.exp(-3 * rdt)); view.scale = view.base * view.zoomK; }
   const k = 1 - Math.exp(-5 * rdt);
   cam.x += (tx - cam.x) * k; cam.y += (ty - cam.y) * k;
@@ -46,7 +48,7 @@ function updatePlay(rdt) {
     updateParticles(rdt); updateTexts(rdt); updateCamera(rdt); updateHUD(); return;
   }
   const p = G.player;
-  if (p.alive) { updatePlayer(p, dt); synTrack(p, dt); regen(p, dt); }
+  if (p.alive && G.phase !== 'bossIntro') { updatePlayer(p, dt); synTrack(p, dt); regen(p, dt); }
   updateFlow(dt);
   if (G.phase === 'fight') updateSpawns(dt);
   const frozen = G.buffs.freeze > 0;
@@ -54,6 +56,7 @@ function updatePlay(rdt) {
     if (e.dead) continue;
     const stunned = tickStatus(e, dt);
     if (e.dead) continue;
+    if (e.isBoss) { e.lock = false; updateBoss(e, dt, frozen || stunned); continue; } // 11a: phases, attacks, stun
     if (frozen || stunned) { e.lock = false; e.flash = Math.max(0, e.flash - dt); e.recoil = 0; } // Dondurucu / Ikiz stun: enemies stand still and hold fire
     else updateEnemy(e, dt);
   }
@@ -61,6 +64,7 @@ function updatePlay(rdt) {
   separateTanks();
   updateBullets(dt);
   updateStrikes(dt);
+  updatePieces(dt);
   updatePickups(dt);
   updateParticles(dt);
   updateTexts(dt);
@@ -72,7 +76,7 @@ function updatePlay(rdt) {
 function updateOver(rdt) {
   G.time += rdt;
   updateFlow(rdt);
-  for (const e of G.enemies) if (!e.dead) updateEnemy(e, rdt);
+  for (const e of G.enemies) if (!e.dead) { if (e.isBoss) updateBoss(e, rdt, e.dying ? false : true); else updateEnemy(e, rdt); }
   separateTanks(); updateBullets(rdt); updateParticles(rdt); updateTexts(rdt);
   if (G.enemies.some(e => e.dead)) G.enemies = G.enemies.filter(e => !e.dead);
   updateCamera(rdt);

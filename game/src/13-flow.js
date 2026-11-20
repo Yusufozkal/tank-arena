@@ -30,18 +30,19 @@ function startGame(resume) {
 }
 function nextWave() {
   G.wave++;
-  const w = G.wave, theme = THEMES[Math.floor((w - 1) / 3) % THEMES.length];
-  G.map = makeArena(generate(), theme);
+  const w = G.wave, theme = themeFor(w), bd = bossDefAt(w); // theme: 10-wave regions; boss waves get a fixed arena (11a)
+  G.map = bd ? loadArena(bd.arena, theme) : makeArena(generate(), theme);
+  G.stage = null; G.tele = []; G.pieces = [];
   G.enemies = []; G.bullets = []; G.pickups = []; G.portals = []; G.texts = []; G.strikes = []; G.jet = null; parts.length = 0; tm.n = 0; tm.head = 0;
-  const p = G.player;
-  p.x = HALF * T + T / 2; p.y = HALF * T + T / 2; p.vx = p.vy = p.avx = p.avy = 0; p.angle = p.turret = -Math.PI / 2; p.pl = p.pr = null;
+  const p = G.player, start = bd ? G.map.playerAt : { x: HALF * T + T / 2, y: HALF * T + T / 2 };
+  p.x = start.x; p.y = start.y; p.vx = p.vy = p.avx = p.avy = 0; p.angle = p.turret = -Math.PI / 2; p.pl = p.pr = null;
   p.heat = 0; p.overheatT = 0; p.pushT = 0; p.flameOn = false; // Makineli heat etc. start cold every wave
   const ro = buildRoster(w); G.queue = ro.list; G.maxAlive = ro.maxAlive; G.mods = waveMods(w); G.spawnTimer = 0.4; G.boss = null;
   G.phase = 'intro'; G.phaseT = 0; G.fade = 1;
   cam.x = p.x; cam.y = p.y; cam.shake = 0; clampCam(); computeView();
-  const bossWave = w % 5 === 0;
-  showBanner('DALGA ' + w, bossWave ? 'Komutan yaklaşıyor' : theme.name, 2.2);
-  Sound.wave(bossWave);
+  if (bd) { startBossStage(bd); return; } // fade-in, siren, name title, boss breaks out of the gate
+  showBanner('DALGA ' + w, theme.name, 2.2);
+  Sound.wave(false);
 }
 function waveCleared() {
   G.phase = 'cleared'; G.phaseT = 0;
@@ -54,6 +55,7 @@ function waveCleared() {
 function updatePhase(rdt) {
   G.phaseT += rdt;
   switch (G.phase) {
+    case 'bossIntro': bossIntroTick(rdt); break;
     case 'intro': G.fade = clamp(1 - G.phaseT / 0.5, 0, 1); if (G.phaseT > 1.5) { G.phase = 'fight'; G.phaseT = 0; } break;
     case 'fight': if (!G.queue.length && !G.enemies.length && !G.portals.length) waveCleared(); break;
     case 'cleared': if (G.phaseT > 2.2) showUpgrades(); break;
@@ -123,7 +125,7 @@ function showUpgrades() {
   } else {
     upChoices = rollUpgrades();
     const boss = G.wave % 5 === 0;
-    $('upTitle').textContent = boss ? 'KOMUTAN GANİMETİ' : 'ATÖLYE';
+    $('upTitle').textContent = boss ? (G.stage ? G.stage.loot : 'KOMUTAN GANİMETİ') : 'ATÖLYE';
     $('upSub').textContent = `Dalga ${G.wave} bitti. Tankına bir yükseltme seç.`;
     el.upCards.innerHTML = upChoices.map(cardHTML).join('');
   }
@@ -308,7 +310,7 @@ function renderGuideSprites() {
   });
 }
 function toMenu() {
-  G.state = 'menu'; G.phase = 'intro'; G.timeScale = 1; G.fade = 0; G.boss = null; G.hurt = 0;
+  G.state = 'menu'; G.phase = 'intro'; G.timeScale = 1; G.fade = 0; G.boss = null; G.stage = null; G.tele = []; G.pieces = []; G.hurt = 0;
   for (const x of [el.hud, el.over, el.pause, el.upgrade, $('settings'), $('guide')]) x.classList.add('hidden');
   el.menu.classList.remove('hidden');
   hideBanner(); el.hint.classList.remove('show'); hintT = 0;

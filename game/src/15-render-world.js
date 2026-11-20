@@ -14,7 +14,10 @@ function render() {
   const c0 = Math.max(0, Math.floor(view.x0 / T) - 1), c1 = Math.min(m.n - 1, Math.floor(view.x1 / T) + 1);
   const r0 = Math.max(0, Math.floor(view.y0 / T) - 1), r1 = Math.min(m.n - 1, Math.floor(view.y1 / T) + 1);
   drawWaterFx(c0, c1, r0, r1);
+  if (m.frame) { ctx.strokeStyle = m.theme.steelDk; ctx.lineWidth = 12; ctx.strokeRect(-6, -6, m.w + 12, m.h + 12); ctx.strokeStyle = m.theme.steel; ctx.lineWidth = 3; ctx.strokeRect(-1.5, -1.5, m.w + 3, m.h + 3); }
   drawTreads();
+  drawPieces();
+  drawTele();
   drawPortals();
   const p = G.player, pAlive = !!(p && p.alive), cloak = G.buffs.stealth > 0;
   const pa = cloak ? 0.4 + 0.08 * Math.sin(G.time * 7) : 1; // Kamuflaj: the player's tank shimmers, half seen
@@ -215,6 +218,7 @@ function turretMarks(g, s, c, tr) {
 const NO_UP = {};
 function drawTank(t, alpha, g) {
   g = g || ctx;
+  if (t.isBoss) { drawBoss(t, alpha, g); return; }
   const s = t.spec, c = s.col, L = s.len, W = s.wid, tw = s.tread, tr = s.tR, U = s.up || NO_UP;
   g.save(); g.translate(t.x, t.y); g.rotate(t.angle); g.globalAlpha = alpha;
   if (U.engine) { g.fillStyle = '#2b2823'; for (const yy of U.engine >= 3 ? [-5.5, 5.5] : [0]) { rrect(g, -L / 2 - 3.5, yy - 2.4, 6, 4.8, 1.5); g.fill(); } } // exhaust stacks

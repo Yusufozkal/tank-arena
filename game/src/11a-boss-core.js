@@ -1,0 +1,431 @@
+/* ================= boss framework ================= */
+// Data-driven boss stage (docs/BOSSES.md section 1). A boss is an enemy with isBoss = true, a def from BOSS_DEFS (11b registers Komutan; later bosses add
+// their own def with the same fields), phases (HP thresholds in %), parts with their own HP and a list of attacks written as generators.
+// Boss waves: arena + intro + fight with only the boss on the field (nextWave -> startBossStage).
+
+// Region themes: 10-wave blocks (Çöl, Orman, Kar, Şehir, then again)
+const themeFor = w => THEMES[Math.floor((w - 1) / 10) % THEMES.length];
+
+/* ---- fixed arenas (21x21 text maps: S steel, B brick, W water, G bush, . empty, X boss start, P player start) ---- */
+const ARENAS = {
+  kisla: { name: 'Kışla', gate: [[9, 3], [10, 3], [11, 3]], rows: [
+    '.....................',
+    '.SS..BBBB...BBBB..SS.',
+    '.SS..BSSB.X.BSSB..SS.',
+    '.....BBBB...BBBB.....',
+    '.....................',
+    '..S...............S..',
+    '.....................',
+    '......BBB...BBB......',
+    '.....................',
+    '.SS...............SS.',
+    '.SS.......S.......SS.',
+    '.....................',
+    '.....................',
+    '......BBB...BBB......',
+    '.....................',
+    '..S...............S..',
+    '.....................',
+    '.....BBBB...BBBB.....',
+    '.SS..BSSB...BSSB..SS.',
+    '.SS..BBBB.P.BBBB..SS.',
+    '.....................'] }
+};
+function parseArena(a) {
+  const n = a.rows.length, t = new Uint8Array(n * n); let boss = null, player = null;
+  a.rows.forEach((row, r) => {
+    for (let c = 0; c < n; c++) {
+      const ch = row[c];
+      if (CH[ch]) t[r * n + c] = CH[ch]; else if (ch === 'X') boss = { c, r }; else if (ch === 'P') player = { c, r };
+    }
+  });
+  return { n, t, boss, player };
+}
+// the arena as a map; the brick gate in front of the boss is part of the map until the intro smashes it (tests compare tiles except the gate cells)
+function loadArena(key, theme) {
+  const a = ARENAS[key], pa = parseArena(a);
+  for (const [c, r] of a.gate || []) pa.t[r * pa.n + c] = BRICK;
+  const m = makeArena({ n: pa.n, t: pa.t, spawns: [] }, theme);
+  m.arena = key; m.frame = true; m.gate = a.gate || [];
+  m.bossAt = { x: pa.boss.c * T + T / 2, y: pa.boss.r * T + T / 2 }; m.playerAt = { x: pa.player.c * T + T / 2, y: pa.player.r * T + T / 2 };
+  return m;
+}
+
+/* ---- boss table ---- */
+// def: { id, name, arena, hp(w), phases: [66, 33], plates: [kind lost in phase 2, kind lost in phase 3], attacks: [{ id, w, ok(e), run*(e) }], hold, setup(e, w), onPhase(e, i), draw(e, g, alpha),
+//        deathText, loot, introSub, unlocks(w) }.  Later bosses: BOSS_DEFS.sariFirtina = {...}; BOSS_ON[10] = 'sariFirtina'.
+const BOSS_DEFS = {};
+const BOSS_ON = { 10: 'komutan', 20: 'komutan', 30: 'komutan', 40: 'komutan' }; // boss wave (within the 40-wave cycle) -> def id; every 5th wave not listed is a Komutan
+const bossDefAt = w => {
+  if (w < 1 || w % 5) return null;
+  const k = ((w - 1) % 40) + 1;
+  return BOSS_DEFS[BOSS_ON[k] || 'komutan'] || null;
+};
+const TELE_MIN = { glow: 0.45, heavy: 0.8, line: 1.0, circle: 1.2, ring: 1.2 }; // minimum warning time per telegraph kind (uyarı dili)
+const bossDmg = base => Math.max(1, Math.round(base * G.mods.dmg));
+
+function spawnBoss(def, x, y, angle) {
+  const w = G.wave, e = makeTank('boss', x, y);
+  e.isBoss = true; e.def = def; e.name = def.name; e.stage = !!G.stage; e.phased = e.stage;
+  e.maxHp = e.hp = def.hp(w); e.r = def.r || e.spec.r;
+  e.angle = e.turret = angle; e.visit = Math.max(1, Math.floor(w / 5));
+  e.phase = 0; e.trans = 0; e.invuln = false; e.dying = false; e.parts = []; e.gen = null; e.wait = 0; e.atkId = ''; e.lastAtk = ''; e.acd = {};
+  e.cool = 1.5; e.pace = 1 + 0.6 / e.visit; e.scorch = []; e.lost = {}; e.broke = [false, false, false, false]; e.hitSide = [0, 0, 0, 0];
+  e.glow = 0; e.fxT = 0; e.flowT = 0; e.flow = null; e.dt = 0; e.log = []; e.unlock = def.unlocks ? def.unlocks(w) : {};
+  def.setup(e, w);
+  G.enemies.push(e); G.boss = e;
+  return e;
+}
+
+/* ---- telegraphs (uyarı dili) ---- */
+// kinds: glow (barrel/turret heats up), line (red line, last `lock` seconds darker and locked), circle (filling circle), ring (growing ring around the boss)
+function addTele(e, o) { const tl = Object.assign({ t: 0, e, dur: TELE_MIN[o.kind] }, o); G.tele.push(tl); return tl; }
+function removeTele(tl) { const i = G.tele.indexOf(tl); if (i >= 0) G.tele.splice(i, 1); }
+function clearTele() { G.tele.length = 0; }
+function release(e, id, tl) { // the strike behind a telegraph happens now: log how long it was shown
+  e.log.push({ atk: id, kind: tl.kind, dur: +tl.t.toFixed(3), min: TELE_MIN[tl.kind] }); if (e.log.length > 300) e.log.shift();
+}
+// Hazards of the boss fight vanish: shells, pending telegraphed strikes, mines (used by phase changes, the death scene and the nuke)
+function bossClearHazards() {
+  G.tele.length = 0;
+  G.bullets = G.bullets.filter(b => b.owner !== 1);
+  if (G.mines) G.mines.length = 0;
+  for (const e of G.enemies) if (e.isBoss) { e.gen = null; e.atkId = ''; e.glow = 0; e.cool = Math.max(e.cool, 1); }
+}
+const steelBetween = (x0, y0, x1, y1) => {
+  const m = G.map, dx = x1 - x0, dy = y1 - y0, n = Math.ceil(Math.hypot(dx, dy) / 12);
+  for (let i = 1; i < n; i++) if (m.at(x0 + dx * i / n, y0 + dy * i / n) === STEEL) return true;
+  return false;
+};
+// distance a boss can travel from (x, y) along angle a before its front (margin ahead of the centre) meets steel or water
+function rayClip(x, y, a, max, margin) {
+  const m = G.map, ca = Math.cos(a), sa = Math.sin(a);
+  for (let d = 0; d <= max; d += 6) { const v = m.at(x + ca * (d + margin), y + sa * (d + margin)); if (v === STEEL || v === WATER) return Math.max(0, d - 6); }
+  return max;
+}
+
+/* ---- danger map for the autopilot: every active warning is a dangerous area ---- */
+function bossDanger(x, y, pad, react) { // react: seconds a warning must have been showing before it counts (the bot's reaction time)
+  pad = pad || 0; const e = G.boss; if (!e || e.dead) return false;
+  for (const tl of G.tele) {
+    if (react && tl.t < react) continue;
+    if (tl.kind === 'circle') { const rr = tl.r + pad; if (dist2(x, y, tl.x, tl.y) < rr * rr) return true; }
+    else if (tl.kind === 'line') {
+      const ca = Math.cos(tl.a), sa = Math.sin(tl.a), dx = x - tl.x, dy = y - tl.y, al = dx * ca + dy * sa, pr = -dx * sa + dy * ca;
+      if (al > -pad - 10 && al < tl.len + e.r + pad && Math.abs(pr) < tl.w / 2 + pad) return true;
+    } else if (tl.kind === 'ring') {
+      const rr = tl.r + pad; if (dist2(x, y, e.x, e.y) < rr * rr && !steelBetween(e.x, e.y, x, y)) return true;
+    } else if (tl.kind === 'glow' && tl.fan) {
+      for (const off of tl.fan) {
+        const a = e.turret + off, ca = Math.cos(a), sa = Math.sin(a), dx = x - e.x, dy = y - e.y, al = dx * ca + dy * sa, pr = -dx * sa + dy * ca;
+        if (al > 0 && al < 640 && Math.abs(pr) < 22 + pad && los(e.x, e.y, x, y)) return true;
+      }
+    }
+  }
+  return false;
+}
+
+/* ---- boss shells ---- */
+function bossShell(e, ang, o) {
+  o = o || {};
+  const s = e.spec, m = G.map, ca = Math.cos(ang), sa = Math.sin(ang), len = o.len || s.barrel;
+  let bx = e.x, by = e.y, blocked = false;
+  for (let d = 6; d <= len; d += 6) { bx = e.x + ca * d; by = e.y + sa * d; if (isWall(m.at(bx, by))) { blocked = true; break; } }
+  const sp = s.bSpeed * (o.speed || 1);
+  const b = { x: bx, y: by, vx: ca * sp, vy: sa * sp, r: s.bR, owner: 1, dmg: bossDmg(s.dmg * (o.dmgK || 1)), life: 2.4, big: true, dead: false,
+    pierce: false, bounce: 0, splash: null, look: 'enemy', hits: null, bricks: null, sx: bx, sy: by, dist: 0, bounced: false, vol: 0, volN: 0, pn: 0, boss: true };
+  if (blocked) hitTile(b, bx, by); else G.bullets.push(b);
+}
+function bossVolley(e, fan) { // one volley: a shell per entry of fan (radians relative to the turret), muzzle puffs, recoil
+  for (const off of fan) bossShell(e, e.turret + off);
+  e.recoil = 1;
+  const ca = Math.cos(e.turret), sa = Math.sin(e.turret);
+  for (let k = 0; k < 3; k++) {
+    const a = e.turret + (k - 1) * 0.2, mx = e.x + Math.cos(a) * (e.spec.barrel + 4), my = e.y + Math.sin(a) * (e.spec.barrel + 4);
+    addPart('fire', mx, my, Math.cos(a) * 70, Math.sin(a) * 70, 0.1, 22, 40, 0);
+    addPart('smoke', mx, my, ca * 40 + rand(-10, 10), sa * 40 + rand(-10, 10), rand(0.5, 0.8), 14, 28, 3);
+  }
+  moveTank(e, -ca * 1.2, -sa * 1.2);
+  shake(2.5 * prox(e.x, e.y)); Sound.shoot(false, true, volAt(e.x, e.y));
+}
+// a mortar-style blast on the ground: scorch, explosion, damage to the player when inside
+function bossBlast(x, y, r, dmg) {
+  const p = G.player;
+  explode(x, y, r / 56 * 0.9);
+  addDecals(G.map, [{ k: 'scorch', x, y, r: r * 0.8 }]);
+  if (p.alive && dist2(x, y, p.x, p.y) < (r + p.r * 0.4) * (r + p.r * 0.4)) damagePlayer({ x: p.x, y: p.y, dmg: bossDmg(dmg), owner: 1, vx: 0, vy: 0 });
+}
+const aimAtPlayer = (e, dt, k) => { const p = G.player; if (p.alive) e.turret = turnTo(e.turret, Math.atan2(p.y - e.y, p.x - e.x), e.spec.tTurn * (k || 1) * dt); };
+function* glowAim(e, id, dur, fan) { // barrel glow telegraph while the turret keeps aiming; the shot itself is the caller's
+  const tl = addTele(e, { kind: 'glow', dur, fan });
+  while (tl.t < tl.dur) { aimAtPlayer(e, e.dt, 1.6); yield 0; }
+  release(e, id, tl); removeTele(tl);
+}
+
+/* ---- movement: a flow field over the tiles where the boss's body fits ---- */
+const bossFits = (m, c, r) => { for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if (blocksTank(m.get(c + dx, r + dy))) return false; return true; };
+function computeBossFlow(e) {
+  const m = G.map, n = m.n, p = G.player, N = n * n;
+  if (!e.flow || e.flow.length !== N) e.flow = new Float32Array(N);
+  e.flow.fill(1e9);
+  const pc = clamp(Math.floor(p.x / T), 0, n - 1), pr = clamp(Math.floor(p.y / T), 0, n - 1);
+  let goal = -1, gd = 1e9;
+  for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) {
+    if (!bossFits(m, c, r)) continue;
+    const d = (c - pc) * (c - pc) + (r - pr) * (r - pr); if (d < gd) { gd = d; goal = r * n + c; }
+  }
+  if (goal < 0) return;
+  const q = [goal]; e.flow[goal] = 0;
+  for (let h = 0; h < q.length; h++) {
+    const i = q[h], c = i % n, r = (i - c) / n;
+    for (const [dx, dy] of DIRS) {
+      const x = c + dx, y = r + dy; if (x < 0 || y < 0 || x >= n || y >= n || !bossFits(m, x, y)) continue;
+      const j = y * n + x; if (e.flow[j] < 1e8) continue;
+      e.flow[j] = e.flow[i] + 1; q.push(j);
+    }
+  }
+}
+function bossWaypoint(e) {
+  const m = G.map, n = m.n, c = clamp(Math.floor(e.x / T), 0, n - 1), r = clamp(Math.floor(e.y / T), 0, n - 1);
+  if (!e.flow || e.flow[r * n + c] > 1e8) return nextWaypoint(e); // squeezed outside the field: the ordinary tile flow
+  let best = null, bv = e.flow[r * n + c];
+  for (const [dx, dy] of shuffle(DIRS.slice())) { const x = c + dx, y = r + dy; if (x < 0 || y < 0 || x >= n || y >= n) continue; const f = e.flow[y * n + x]; if (f < bv) { bv = f; best = { c: x, r: y }; } }
+  if (!best) return null;
+  best.x = best.c * T + T / 2; best.y = best.r * T + T / 2; return best;
+}
+function bossMove(e, dt, hold) {
+  const s = e.spec, p = G.player, before = e.angle, ox = e.x, oy = e.y;
+  e.flowT -= dt; if (e.flowT <= 0) { computeBossFlow(e); e.flowT = 0.3; }
+  if (p.alive && !(e.canSee && e.distP < hold * T)) {
+    if (!e.wp || dist2(e.wp.x, e.wp.y, e.x, e.y) < 30) { e.wp = bossWaypoint(e); e.wpBest = 1e9; e.stuckT = 0; }
+    if (e.wp) {
+      const desired = Math.atan2(e.wp.y - e.y, e.wp.x - e.x);
+      e.angle = turnTo(e.angle, desired, s.turn * dt);
+      const diff = Math.abs(angDiff(e.angle, desired)), spd = diff < 0.55 ? s.speed * e.speedMul * (1 - diff * 0.9) : 0;
+      moveTank(e, Math.cos(e.angle) * spd * dt, Math.sin(e.angle) * spd * dt);
+      const dw = Math.hypot(e.wp.x - e.x, e.wp.y - e.y);
+      if (dw < e.wpBest - 0.5) { e.wpBest = dw; e.stuckT = 0; } else e.stuckT += dt;
+      if (e.stuckT > 1.2) { e.wp = randomNeighbor(e); e.wpBest = 1e9; e.stuckT = 0; }
+    }
+  }
+  if (dt > 0) { e.avx = (e.x - ox) / dt; e.avy = (e.y - oy) / dt; }
+  trackUpdate(e, (e.x - ox) * Math.cos(e.angle) + (e.y - oy) * Math.sin(e.angle), angDiff(before, e.angle));
+}
+
+/* ---- per-frame boss update ---- */
+function updateBoss(e, dt, halted) {
+  if (e.dead) return;
+  const p = G.player;
+  e.flash = Math.max(0, e.flash - dt); e.recoil = Math.max(0, e.recoil - dt * 6);
+  if (G.phase === 'bossIntro') return; // the intro script drives the boss
+  if (e.dying) { bossDeathTick(e, dt); return; }
+  bossFx(e, dt);
+  if (e.trans > 0) { // phase change: no damage, no attacks
+    e.trans -= dt; e.flash = 0.05 + 0.05 * Math.sin(G.time * 30);
+    if (e.trans <= 0) { e.trans = 0; e.invuln = false; e.wp = null; }
+    return;
+  }
+  if (e.phased) { bossPhaseCheck(e); if (e.trans > 0) return; }
+  if (halted) return; // stunned or frozen: neither moves nor attacks
+  e.distP = Math.hypot(p.x - e.x, p.y - e.y);
+  e.canSee = p.alive && los(e.x, e.y, p.x, p.y);
+  e.cool -= dt;
+  e.glow = 0;
+  for (const tl of G.tele) { tl.t += dt; if (tl.kind === 'glow') e.glow = Math.max(e.glow, tl.t / tl.dur); }
+  if (e.gen) {
+    e.dt = dt; e.wait -= dt;
+    if (e.wait <= 0) { const r = e.gen.next(); if (r.done) endAttack(e); else e.wait = r.value || 0; }
+  } else {
+    if (e.cool <= 0 && p.alive) startAttack(e); else bossMove(e, dt, e.def.hold || 4.5);
+    if (!e.gen) { if (e.canSee) aimAtPlayer(e, dt); else e.turret = turnTo(e.turret, e.angle, e.spec.tTurn * 0.6 * dt); }
+  }
+}
+function startAttack(e) {
+  const list = e.def.attacks.filter(a => a.ok(e) && a.id !== e.lastAtk && !(e.acd[a.id] > G.time));
+  if (!list.length) { e.cool = 0.5; return; }
+  let r = Math.random() * list.reduce((s, a) => s + a.w, 0), at = list[list.length - 1];
+  for (const a of list) { r -= a.w; if (r <= 0) { at = a; break; } }
+  e.atkId = at.id; e.lastAtk = at.id; e.wait = 0; e.gen = at.run(e);
+  if (at.cd) e.acd[at.id] = G.time + at.cd;
+}
+function endAttack(e) {
+  e.gen = null; e.atkId = ''; clearTele();
+  e.cool = rand(0.9, 1.6) * e.pace * (e.phase >= 2 ? 0.8 : 1);
+}
+
+/* ---- phases ---- */
+function bossPhaseCheck(e) {
+  const th = e.def.phases;
+  if (e.phase < th.length && e.hp / e.maxHp * 100 <= th[e.phase]) startTransition(e);
+}
+function startTransition(e) {
+  e.phase++; e.trans = 1.5; e.invuln = true;
+  bossClearHazards();
+  const kind = e.def.plates && e.def.plates[e.phase - 1];
+  if (kind) { e.lost[kind] = true; spawnPiece(e, kind, true); }
+  for (let k = 0; k < 10; k++) addPart('smoke', e.x + rand(-26, 26), e.y + rand(-26, 26), rand(-40, 40), rand(-40, 40), rand(1.2, 2), rand(18, 30), 34, 1.2);
+  sparks(e.x, e.y, 18, '#ffd27a', 320); explode(e.x, e.y, 0.9); shake(12); Sound.crumble(volAt(e.x, e.y)); vibrate([30, 40, 60]);
+  addText(e.x, e.y - e.r - 14, 'EVRE ' + (e.phase + 1), '#ff9a6c', 20);
+  dropRepairAway(e);
+  if (e.def.onPhase) e.def.onPhase(e, e.phase);
+}
+// a Tamir pickup on a tile the player can reach, away from the boss
+function dropRepairAway(e) {
+  const m = G.map, n = m.n, p = G.player, c0 = clamp(Math.floor(p.x / T), 0, n - 1), r0 = clamp(Math.floor(p.y / T), 0, n - 1);
+  if (m.flowFrom < 0 || m.flowDirty) { computeFlow(m, r0 * n + c0); m.flowFrom = r0 * n + c0; m.flowDirty = false; }
+  const ok = [];
+  for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) {
+    if (blocksTank(m.get(c, r)) || m.flow[r * n + c] > 1e8) continue;
+    const x = c * T + T / 2, y = r * T + T / 2, db = Math.hypot(x - e.x, y - e.y), dp = Math.hypot(x - p.x, y - p.y);
+    if (db >= 4.5 * T && dp <= 9 * T) ok.push({ x, y, s: Math.abs(dp - 4 * T) });
+  }
+  ok.sort((a, b) => a.s - b.s);
+  const q = ok.length ? pick(ok.slice(0, Math.max(1, Math.ceil(ok.length / 4)))) : { x: p.x, y: p.y };
+  dropPickup(q.x, q.y, 'repair', q.x, q.y);
+}
+
+/* ---- parts ---- */
+const partPos = (e, pt) => { const ca = Math.cos(e.angle), sa = Math.sin(e.angle); return { x: e.x + ca * pt.ox - sa * pt.oy, y: e.y + sa * pt.ox + ca * pt.oy }; };
+function partHit(e, pt, x, y, dir) { // a shell hits the part when its path through the hull crosses it
+  if (dir === undefined || (x === e.x && y === e.y)) return false;
+  const q = partPos(e, pt), tx = Math.cos(dir + Math.PI), ty = Math.sin(dir + Math.PI), dx = q.x - x, dy = q.y - y, along = dx * tx + dy * ty;
+  if (along < -pt.r || along > e.r * 2.2) return false;
+  return Math.abs(dx * ty - dy * tx) <= pt.r;
+}
+function breakPart(e, pt) {
+  pt.alive = false; pt.hp = 0;
+  const q = partPos(e, pt);
+  explode(q.x, q.y, 0.8); sparks(q.x, q.y, 14, '#ffd27a', 300); shake(7);
+  addText(q.x, q.y - 22, pt.name + ' kırıldı', '#ffd27a', 16);
+  dropPickup(q.x, q.y, Math.random() < 0.7 ? 'repair' : pick(['shield', 'rapid', 'triple', 'pierce']), e.x, e.y);
+  if (pt.atk && e.atkId === pt.atk) { e.gen = null; e.atkId = ''; e.glow = 0; clearTele(); e.cool = 1; } // the attack the part powered stops at once
+  if (e.def.onPartBreak) e.def.onPartBreak(e, pt);
+  vibrate(30);
+}
+const partAlive = (e, id) => e.parts.some(pt => pt.id === id && pt.alive);
+
+/* ---- damage ---- */
+function bossHurt(e, dmg, x, y, dir, quiet) {
+  if (e.dead || e.dying) return;
+  const direct = x !== e.x || y !== e.y;
+  if (e.invuln || G.phase === 'bossIntro') { if (!quiet && direct) { sparks(x, y, 3, '#ffffff', 160, dir, 1.2); Sound.metal(volAt(e.x, e.y)); } return; }
+  const k = e.stunT > 0 ? 1.5 : 1; // stunned bosses take +50%
+  for (const pt of e.parts) {
+    if (!pt.alive || !partHit(e, pt, x, y, dir)) continue;
+    pt.hp -= dmg * k; pt.flash = 0.1;
+    if (!quiet) { sparks(x, y, 6, '#ffd27a', 200, dir, 1.4); Sound.metal(volAt(e.x, e.y)); }
+    if (pt.hp <= 0) breakPart(e, pt);
+    return;
+  }
+  const applied = Math.min(dmg * k, e.hp);
+  e.hp -= dmg * k; e.flash = 0.1;
+  if (typeof nukeOnBossDamage === 'function') nukeOnBossDamage(e, applied); // hook (C): the nuke meter fills with the damage dealt to the boss
+  if (direct && !quiet) markHit(e, x, y);
+  if (!quiet) { sparks(x, y, 6, '#ffd27a', 200, dir, 1.4); Sound.metal(volAt(e.x, e.y)); }
+  if (e.hp <= 0.001) { bossBeginDeath(e); return; }
+  const f = e.hp / e.maxHp;
+  [0.8, 0.6, 0.4, 0.2].forEach((th, i) => { if (!e.broke[i] && f <= th) { e.broke[i] = true; spawnPiece(e, BOSS_PIECES[i], false); } });
+}
+const BOSS_PIECES = ['fender', 'plate', 'antenna', 'exhaust'];
+function markHit(e, x, y) { // scorch mark on the hull (max 12) and which side takes the beating
+  const ca = Math.cos(e.angle), sa = Math.sin(e.angle), dx = x - e.x, dy = y - e.y, lx = ca * dx + sa * dy, ly = -sa * dx + ca * dy;
+  e.scorch.push({ x: clamp(lx, -e.spec.len * 0.45, e.spec.len * 0.45), y: clamp(ly, -e.spec.wid * 0.4, e.spec.wid * 0.4), r: rand(2.5, 4.5), a: rand(0, TAU) });
+  if (e.scorch.length > 12) e.scorch.shift();
+  e.hitSide[Math.abs(lx) > Math.abs(ly) ? (lx > 0 ? 0 : 1) : (ly < 0 ? 2 : 3)]++;
+}
+const PIECE_AT = { fender: [-30, -36], plate: [14, 32], antenna: [-40, -12], exhaust: [-46, 0], shoulder: [18, 22], skirt: [0, 34], flag: [-24, 0] };
+function spawnPiece(e, kind, big) { // a piece of armour breaks off, falls and stays on the ground for a few seconds
+  const [lx, ly] = PIECE_AT[kind] || [0, 0], ca = Math.cos(e.angle), sa = Math.sin(e.angle), x = e.x + ca * lx - sa * ly, y = e.y + sa * lx + ca * ly;
+  const out = Math.atan2(ly * ca + lx * sa, lx * ca - ly * sa), sp = rand(90, 160);
+  G.pieces.push({ k: kind, x, y, vx: Math.cos(out) * sp, vy: Math.sin(out) * sp, a: e.angle + rand(-0.4, 0.4), vr: rand(-6, 6), t: 0, life: big ? 6.5 : 5, big, col: e.spec.col });
+  sparks(x, y, 8, '#ffd27a', 220); addPart('flash', x, y, 0, 0, 0.12, 60, 0, 0);
+  for (let k = 0; k < 4; k++) addPart('smoke', x + rand(-6, 6), y + rand(-6, 6), rand(-20, 20), rand(-20, 20), rand(0.8, 1.4), rand(12, 20), 26, 1.5);
+  Sound.metal(volAt(x, y)); shake(3);
+}
+function updatePieces(dt) {
+  for (const q of G.pieces) { q.t += dt; const k = Math.exp(-4.5 * dt); q.vx *= k; q.vy *= k; q.x += q.vx * dt; q.y += q.vy * dt; q.a += q.vr * dt; q.vr *= k; }
+  if (G.pieces.some(q => q.t > q.life)) G.pieces = G.pieces.filter(q => q.t <= q.life);
+}
+// smoke below 50% (from the side hit most), fire below 25%, sparks above a stunned boss, sparks from broken part sockets
+function bossFx(e, dt) {
+  e.fxT -= dt; if (e.fxT > 0) return;
+  e.fxT = 0.09;
+  const f = e.hp / e.maxHp, s = e.spec, ca = Math.cos(e.angle), sa = Math.sin(e.angle), put = (lx, ly) => ({ x: e.x + ca * lx - sa * ly, y: e.y + sa * lx + ca * ly });
+  if (f < 0.5) {
+    let side = 0, tot = 0; for (const v of e.hitSide) tot += v + 1; let r = Math.random() * tot;
+    for (let i = 0; i < 4; i++) { r -= e.hitSide[i] + 1; if (r <= 0) { side = i; break; } }
+    const lx = side === 0 ? s.len * 0.4 : side === 1 ? -s.len * 0.4 : rand(-s.len * 0.3, s.len * 0.3), ly = side === 2 ? -s.wid * 0.38 : side === 3 ? s.wid * 0.38 : rand(-s.wid * 0.3, s.wid * 0.3);
+    const q = put(lx, ly);
+    addPart('smoke', q.x, q.y, rand(-12, 12), rand(-30, -12), rand(0.9, 1.5), rand(12, 20), 24, 1.5);
+    if (f < 0.25) addPart('fire', q.x, q.y, rand(-14, 14), rand(-40, -15), rand(0.25, 0.5), rand(10, 16), 12, 2);
+  }
+  if (e.stunT > 0) { addPart('spark', e.x + rand(-22, 22), e.y - e.r - 6 + rand(-6, 6), rand(-90, 90), rand(-160, -60), rand(0.2, 0.4), 1, 0, 4, '#bfeaff'); }
+  for (const pt of e.parts) if (!pt.alive && Math.random() < 0.25) { const q = partPos(e, pt); addPart('spark', q.x, q.y, rand(-60, 60), rand(-90, -20), rand(0.15, 0.3), 1, 0, 4, '#ffb04a'); }
+}
+
+/* ---- death scene ---- */
+function bossBeginDeath(e) {
+  e.dying = true; e.invuln = true; e.deathT = 0; e.chainT = 0; e.hp = 0.001; e.gen = null; e.glow = 0;
+  bossClearHazards();
+  showBanner(e.def.deathText || 'BOSS DÜŞTÜ', '', 2.4);
+  spawnPiece(e, 'flag', true); // the standard topples
+  Sound.metal(1); shake(10); vibrate([40, 30, 80]);
+}
+function bossDeathTick(e, dt) {
+  e.deathT += dt; e.chainT -= dt; e.flash = 0.04;
+  if (e.chainT <= 0 && e.deathT < 2.2) {
+    e.chainT = 0.17;
+    const a = e.angle, lx = rand(-e.spec.len * 0.45, e.spec.len * 0.45), ly = rand(-e.spec.wid * 0.4, e.spec.wid * 0.4);
+    const x = e.x + Math.cos(a) * lx - Math.sin(a) * ly, y = e.y + Math.sin(a) * lx + Math.cos(a) * ly;
+    explode(x, y, rand(0.45, 0.85)); sparks(x, y, 8, '#ffd27a', 280);
+  }
+  if (e.deathT >= 2.4) killEnemy(e);
+}
+// called from killEnemy for a boss: armour back to full
+function bossDefeated(e) {
+  const p = G.player; if (p && p.alive) { p.hp = p.maxHp; addText(p.x, p.y - 30, 'Zırh tam', '#6fd46b', 18); addPart('ring', p.x, p.y, 0, 0, 0.6, 12, 200, 0, '111,212,107'); }
+  bossClearHazards();
+}
+
+/* ---- boss stage: arena, intro, fight ---- */
+function startBossStage(def) {
+  const m = G.map, p = G.player, at = m.bossAt;
+  G.stage = def; G.queue = []; G.maxAlive = 1;
+  const e = spawnBoss(def, at.x, at.y, Math.PI / 2);
+  e.invuln = true;
+  G.phase = 'bossIntro'; G.phaseT = 0; G.fade = 1; G.introGate = false; G.introSeen = !!store.get(BOSS_SEEN_KEY, false);
+  cam.x = at.x; cam.y = at.y + T; clampCam(); computeView();
+  Sound.siren();
+  showBanner(def.name, (def.introSub || m.arena) + ' · Dalga ' + G.wave, 3);
+  return e;
+}
+const BOSS_SEEN_KEY = 'tankArena.seenBossIntro';
+function bossIntroTick(rdt) {
+  const e = G.boss, m = G.map, t = G.phaseT;
+  G.fade = clamp(1 - t / 0.5, 0, 1);
+  if (!e || e.dead) { G.phase = 'fight'; G.phaseT = 0; return; }
+  const home = m.bossAt;
+  if (t < 1.35) { e.x = home.x + Math.sin(t * 40) * 1.6; if (Math.random() < rdt * 14) addPart('dust', home.x + rand(-30, 30), home.y + e.r + 4, rand(-20, 20), rand(10, 40), rand(0.5, 0.9), rand(12, 20), 24, 2); }
+  else {
+    if (!G.introGate) { smashGate(true); G.introGate = true; e.x = home.x; }
+    if (e.y < home.y + 2 * T) { e.y = Math.min(home.y + 2 * T, e.y + 70 * rdt); trackUpdate(e, 70 * rdt, 0); }
+  }
+  if (t >= 3.0) endBossIntro(false);
+}
+function smashGate(loud) {
+  const m = G.map;
+  for (const [c, r] of m.gate) {
+    if (m.t[r * m.n + c] !== BRICK) continue;
+    if (loud) { explode(c * T + T / 2, r * T + T / 2, 0.8); destroyBrick(m, c, r, 1); } else { m.t[r * m.n + c] = EMPTY; m.hp[r * m.n + c] = 0; m.flowDirty = true; miniTile(m, c, r); }
+  }
+  if (loud) { shake(12); } else paintRegion(m, 0, 0, m.n - 1, m.n - 1);
+}
+function endBossIntro(skipped) {
+  const e = G.boss, m = G.map;
+  if (!skipped) store.set(BOSS_SEEN_KEY, true);
+  if (skipped) { smashGate(false); if (e) { e.x = m.bossAt.x; e.y = m.bossAt.y + 2 * T; } hideBanner(); G.fade = 0; }
+  if (e) { e.invuln = false; e.cool = 1.4; }
+  G.phase = 'fight'; G.phaseT = 0;
+}
+// a tap skips the intro, once it has been seen
+function bossIntroTap() { if (G.state === 'play' && G.phase === 'bossIntro' && G.introSeen && G.phaseT > 0.25) endBossIntro(true); }

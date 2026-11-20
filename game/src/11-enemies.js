@@ -23,14 +23,7 @@ function typeShares(w) {
 }
 function buildRoster(w) {
   const D = G.D, list = [];
-  if (w % 5 === 0) {
-    const esc = 1 + Math.floor(w / 5);
-    for (let i = 0; i < esc; i++) list.push(i % 2 && w >= D.fastFrom ? 'fast' : 'basic');
-    if (w >= Math.max(20, D.hunterFrom)) list[list.length - 1] = 'hunter'; // escorts follow the same introduction schedule as normal waves
-    if (w >= 20) { list[0] = 'heavy'; list[2] = 'hunter'; }
-    list.splice(1, 0, 'boss');
-    return { list, maxAlive: Math.min(D.maxAlive, 3 + Math.min(5, Math.floor(w / 8)) + D.alive) };
-  }
+  if (w % 5 === 0) return { list: ['boss'], maxAlive: 1 }; // boss stage: only the boss on the field, no escorts (startBossStage spawns it)
   const total = clamp(Math.round((3 + w + Math.floor(w / 2)) * D.count), 3, 24 + Math.floor(Math.max(0, w - 20) / 2));
   const { pf, ph, pu } = typeShares(w);
   for (let i = 0; i < total; i++) { const r = Math.random(); list.push(r < ph ? 'heavy' : r < ph + pf ? 'fast' : r < ph + pf + pu ? 'hunter' : 'basic'); }
@@ -58,20 +51,20 @@ const NEW_FOE = {
   heavy: ['tankArena.seenHeavy', 'Yeni düşman: Ağır. Yavaş ama çok sağlam, çift namlu ateş eder.'],
   hunter: ['tankArena.seenHunter', 'Yeni düşman: Avcı. Mermilerden kaçar, siperden ateş eder; ateş etmeden önce yeşil hedef ışığı yakar.'] };
 function spawnEnemy(type, x, y) {
+  if (type === 'boss') { // debug / old paths: a boss in an ordinary wave (no phases, no stage)
+    const a = Math.atan2(G.player.y - y, G.player.x - x), e = spawnBoss(bossDefAt(G.wave) || BOSS_DEFS.komutan, x, y, a);
+    addPart('ring', x, y, 0, 0, 0.4, 10, 120, 0, '224,83,58'); return e;
+  }
   const e = makeTank(type, x, y), p = G.player;
   const a = Math.atan2(p.y - y, p.x - x);
   e.angle = Math.round(a / (Math.PI / 2)) * (Math.PI / 2); e.turret = a;
   e.cool = rand(0.9, 1.7) * G.mods.cool; e.speedMul = G.mods.speed; e.coolMul = G.mods.cool; e.aimErr = rand(-G.mods.err, G.mods.err);
   if (G.mods.hp > 1) e.hp = e.maxHp = Math.max(1, Math.round(e.spec.hp * G.mods.hp)); // later waves bring tougher tanks
-  if (type === 'boss') { // Komutan ignores mods.hp: its HP grows per visit instead, and it fires slower on its first visits (x1.6, x1.3, ...)
-    e.hp = e.maxHp = bossHp(G.wave); e.coolMul *= 1 + 0.6 / Math.max(1, Math.floor(G.wave / 5));
-  }
   G.enemies.push(e);
   const intro = NEW_FOE[type];
   if (intro && !store.get(intro[0], false)) { store.set(intro[0], true); showHint(intro[1], 6); }
   for (let k = 0; k < 10; k++) { const an = rand(0, TAU), sp = rand(30, 90); addPart('dust', x, y, Math.cos(an) * sp, Math.sin(an) * sp, rand(0.5, 0.9), rand(16, 26), 26, 3); }
   addPart('ring', x, y, 0, 0, 0.4, 10, 120, 0, '224,83,58');
-  if (type === 'boss') { G.boss = e; showBanner('KOMUTAN GELDİ', G.wave <= 5 ? 'Namluları parlayınca yana kaç' : 'Her gelişinde daha güçlü', 1.9); shake(6); }
 }
 function updateSpawns(dt) {
   G.spawnTimer -= dt;

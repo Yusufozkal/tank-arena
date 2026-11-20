@@ -35,6 +35,7 @@ window.addEventListener('pointerup', e => { if (e.pointerType === 'mouse' && e.b
 canvas.addEventListener('contextmenu', e => e.preventDefault());
 canvas.addEventListener('pointerdown', e => {
   Sound.init(); Sound.resume();
+  bossIntroTap(); // a seen boss intro is skipped with a tap
   if (e.pointerType === 'mouse') {
     input.touch = false; input.mouseAim = true; mouse.x = e.clientX; mouse.y = e.clientY; mouse.lastMove = mouse.lastDown = performance.now();
     if (e.button === 0) mouse.down = true;

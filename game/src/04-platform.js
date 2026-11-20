@@ -115,6 +115,8 @@ const Sound = (() => {
     bounce(v) { if (!ok('bc', 40)) return; tn(ac.currentTime, 0.07, 2600, 1700, 0.09 * v, 'triangle'); },
     pop(v) { if (!ok('pp', 70)) return; const t = ac.currentTime; nz(t, 0.22, 1600, 120, 0.3 * v); tn(t, 0.16, 140, 50, 0.22 * v); },
     over() { if (!ok('ov', 300)) return; const t = ac.currentTime; [392, 330, 262, 196].forEach((f, i) => tn(t + i * 0.18, 0.32, f, f * 0.98, 0.14, 'triangle')); },
+    siren() { if (!ok('sr', 800)) return; const t = ac.currentTime; for (let i = 0; i < 4; i++) { tn(t + i * 0.7, 0.7, 420, 760, 0.13, 'sawtooth'); tn(t + i * 0.7 + 0.35, 0.35, 760, 420, 0.1, 'sawtooth'); } },
+    warnRise(v) { if (!ok('wr', 300)) return; const t = ac.currentTime; tn(t, 1.2, 180, 900, 0.14 * v, 'sawtooth'); tn(t, 1.2, 360, 1500, 0.06 * v, 'square'); },
     nukeWarn() { if (!ok('nw', 600)) return; const t = ac.currentTime; for (let i = 0; i < 6; i++) tn(t + i * 0.2, 0.19, i & 1 ? 560 : 820, i & 1 ? 560 : 820, 0.16, 'square'); },
     nuke() { if (!ok('nk', 500)) return; const t = ac.currentTime; nz(t, 1.8, 2400, 45, 0.95, 'lowpass', 0.8); tn(t, 1.5, 78, 20, 0.75, 'sine'); nz(t + 0.25, 2.1, 700, 40, 0.5, 'lowpass', 0.9); tn(t, 0.5, 1200, 200, 0.12, 'sawtooth'); }
   };
