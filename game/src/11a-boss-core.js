@@ -9,27 +9,27 @@ const themeFor = w => THEMES[Math.floor((w - 1) / 10) % THEMES.length];
 /* ---- fixed arenas (21x21 text maps: S steel, B brick, W water, G bush, . empty, X boss start, P player start) ---- */
 const ARENAS = {
   kisla: { name: 'Kışla', gate: [[9, 3], [10, 3], [11, 3]], rows: [
+    'SS...BBBB...BBBB...SS',
+    'SS...BSSB...BSSB...SS',
+    '.....BBBB.X.BBBB.....',
     '.....................',
-    '.SS..BBBB...BBBB..SS.',
-    '.SS..BSSB.X.BSSB..SS.',
+    '.....................',
+    '.....................',
+    '...S..BBB...BBB..S...',
+    '...S.............S...',
+    '.....................',
+    'SS.................SS',
+    'SS........S........SS',
+    'SS.................SS',
+    '.....................',
+    '...S.............S...',
+    '...S..BBB...BBB..S...',
+    '.....................',
+    '.....................',
+    '.....................',
     '.....BBBB...BBBB.....',
-    '.....................',
-    '..S...............S..',
-    '.....................',
-    '......BBB...BBB......',
-    '.....................',
-    '.SS...............SS.',
-    '.SS.......S.......SS.',
-    '.....................',
-    '.....................',
-    '......BBB...BBB......',
-    '.....................',
-    '..S...............S..',
-    '.....................',
-    '.....BBBB...BBBB.....',
-    '.SS..BSSB...BSSB..SS.',
-    '.SS..BBBB.P.BBBB..SS.',
-    '.....................'] }
+    'SS...BSSB.P.BSSB...SS',
+    'SS...BBBB...BBBB...SS'] }
 };
 function parseArena(a) {
   const n = a.rows.length, t = new Uint8Array(n * n); let boss = null, player = null;
@@ -196,6 +196,7 @@ function computeBossFlow(e) {
     const d = (c - pc) * (c - pc) + (r - pr) * (r - pr); if (d < gd) { gd = d; goal = r * n + c; }
   }
   if (goal < 0) return;
+  e.goalD = fg ? 0 : Math.hypot((goal % n) * T + T / 2 - p.x, Math.floor(goal / n) * T + T / 2 - p.y); // how far the closest tile the boss can stand on is from the player (reach fallback in updateBoss)
   const q = [goal]; e.flow[goal] = 0;
   for (let h = 0; h < q.length; h++) {
     const i = q[h], c = i % n, r = (i - c) / n;
@@ -283,6 +284,7 @@ function updateBoss(e, dt, halted) {
   e.distP = Math.hypot(p.x - e.x, p.y - e.y);
   e.canSee = p.alive && los(e.x, e.y, p.x, p.y);
   e.cool -= dt;
+  e.unrT = p.alive && e.goalD > e.r + p.r + T ? (e.unrT || 0) + dt : 0; // the player stands where the hull cannot go (a pocket): after ~4 s startAttack prefers the arcing attacks (a.arc)
   e.healT = (e.healT === undefined ? 30 : e.healT) - dt; // a long fight: a worn-down player gets a Tamir kit now and then (not while one still lies around)
   if (e.healT <= 0 && p.alive) { e.healT = 5; if (p.hp < p.maxHp * 0.55 && !G.pickups.some(q => q.kind === 'repair')) { dropRepairAway(e); e.healT = 35; } }
   e.glow = 0;
@@ -297,6 +299,7 @@ function updateBoss(e, dt, halted) {
 }
 function startAttack(e) {
   const list = e.def.attacks.filter(a => a.ok(e) && a.id !== e.lastAtk && !(e.acd[a.id] > G.time) && !(a.mov && e.treadT > 0)); // mov: an attack that needs the treads (charge)
+  if (e.unrT > 4) { const arc = list.filter(a => a.arc); if (arc.length) list.splice(0, list.length, ...arc); } // unreachable player: the mortar or bombardment reaches the pocket (normal telegraph)
   if (!list.length) { e.cool = 0.5; return; }
   let r = Math.random() * list.reduce((s, a) => s + a.w, 0), at = list[list.length - 1];
   for (const a of list) { r -= a.w; if (r <= 0) { at = a; break; } }

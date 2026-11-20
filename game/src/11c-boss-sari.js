@@ -3,9 +3,9 @@
 // Phase 2: exhausts light up (+15% speed), double charge, sand strips left on the charge path. Phase 3 "Fırtına": wind every 12 s, triple charge.
 // Per-boss state lives in e.sari; the generic hooks it uses in 11a: def.tick (every frame), def.danger (bot), def.onClear, def.drawGround (15a).
 ARENAS.kum = { name: 'Kum Çukuru', gate: [[9, 4], [10, 4], [11, 4]], rows: [ // the brick wall in front of the boss is the gate: the intro smashes it
-  '.....................',
-  '.SS...............SS.',
-  '.SS.......X.......SS.',
+  'SS.................SS',
+  'SS.................SS',
+  '..........X..........',
   '.....................',
   '....S...SBBBS...S....',
   '.....................',
@@ -21,9 +21,9 @@ ARENAS.kum = { name: 'Kum Çukuru', gate: [[9, 4], [10, 4], [11, 4]], rows: [ //
   '.....................',
   '....S...SBBBS...S....',
   '.....................',
-  '.SS...............SS.',
-  '.SS.......P.......SS.',
-  '.....................'] };
+  '.....................',
+  'SS........P........SS',
+  'SS.................SS'] };
 
 const SARI_CHARGE_LEN = 9 * T;   // a charge covers this far (more with the wind) unless steel is in the way
 const SARI_RAM_DMG = 30;       // a clean hit; the double and triple charge can hit again

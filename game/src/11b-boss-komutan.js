@@ -92,9 +92,9 @@ function* komBombard(e) { // bombardıman hattı: a row of circles across the ar
 const KOM_ATTACKS = [
   { id: 'triple', w: 3, ok: e => true, run: komTriple },
   { id: 'ezme', w: 2.2, ok: e => e.distP > 2.5 * T, run: komCharge, mov: true },
-  { id: 'topcu', w: 2, ok: e => e.unlock.topcu && partAlive(e, 'tower'), run: komMortar },
+  { id: 'topcu', w: 2, ok: e => e.unlock.topcu && partAlive(e, 'tower'), run: komMortar, arc: true },
   { id: 'yaylim', w: 2, ok: e => e.unlock.yaylim && e.phase >= 1, run: komSalvo },
-  { id: 'bomb', w: 1.6, ok: e => e.unlock.bomb && e.phase >= 1, run: komBombard, cd: 9 },
+  { id: 'bomb', w: 1.6, ok: e => e.unlock.bomb && e.phase >= 1, run: komBombard, cd: 9, arc: true },
   { id: 'penta', w: 2.4, ok: e => e.unlock.penta && e.phase >= 2, run: komPenta }
 ];
 BOSS_DEFS.komutan = {

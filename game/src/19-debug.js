@@ -92,6 +92,20 @@ if (DEBUG) {
       bot.on = false; G.noEvo = false; G.god = false;
       return { worst: +worst.toFixed(2), at, win: !!(e.dead || e.dying), secs: +(n / 60).toFixed(1), moving: +(moving / 60).toFixed(1) };
     },
+    // reach probe: the player sits still on tile (c, r) (god mode, no bot); returns the closest the boss got (hull edge to hull edge, px) and whether it fired at or touched the player within maxSec
+    bossReach(w, c, r, maxSec) {
+      store.set(BOSS_SEEN_KEY, true); bot.on = false; G.god = false; G.noEvo = true; G.up = {}; G.tank = 'std'; refreshPlayer(); G.player.maxHp = G.player.hp = 1e6;
+      G.wave = w - 1; nextWave(); G.introSeen = true; endBossIntro(true);
+      const p = G.player, e = G.boss, max = Math.round(maxSec * 60); p.x = c * T + T / 2; p.y = r * T + T / 2; let n = 0, best = 1e9, hit = -1, hp0 = p.hp, seen = 0;
+      while (n < max && G.state === 'play' && !e.dead && !e.dying) {
+        p.x = c * T + T / 2; p.y = r * T + T / 2; update(1 / 60); n++;
+        best = Math.min(best, Math.hypot(e.x - p.x, e.y - p.y) - e.r - p.r);
+        if (e.canSee && e.distP < 9 * T) seen++;
+        if (hit < 0 && p.hp < hp0) hit = n / 60;
+      }
+      G.noEvo = false;
+      return { closest: Math.round(best), seen: +(seen / 60).toFixed(1), hit: +hit.toFixed(1), secs: +(n / 60).toFixed(1), unr: +(e.unrT || 0).toFixed(1) };
+    },
     drop(kind, dx, dy) { const p = G.player; dropPickup(p.x + (dx || 0), p.y + (dy || 0), kind); }
   };
 }
