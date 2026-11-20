@@ -104,6 +104,6 @@ BOSS_DEFS.komutan = {
   setup(e, w) {
     if (e.unlock.tower) e.parts.push({ id: 'tower', name: 'Komuta kulesi', atk: 'topcu', ox: -24, oy: 0, r: 15, maxHp: Math.max(2, Math.round(e.maxHp * 0.1)), hp: Math.max(2, Math.round(e.maxHp * 0.1)), alive: true, flash: 0 });
   },
-  onPhase(e, i) { if (i === 2) { e.speedMul *= 1.3; addText(e.x, e.y - e.r - 34, 'SON EMİR', '#ff7a5c', 18); } },
+  onPhase(e, i) { if (i === 2) { e.speedMul *= 1.3; addText(e.x, e.y - e.r - 54, 'SON EMİR', '#ff7a5c', 18); } },
   onPartBreak(e, pt) { if (pt.id === 'tower') spawnPiece(e, 'flag', true); }
 };

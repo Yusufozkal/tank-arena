@@ -2,7 +2,7 @@
 // Owner: package C (nuclear bomb).
 // Hooks called from shared code: nukeOnKill (killEnemy), nukeUpdate (updatePlay), nukeKey (keydown), nukeHud (updateHUD), drawNuke (render).
 // Meter: every kill adds weight / (NUKE_WAVES * expected weight of a whole wave), so a wave of any size gives about 1/NUKE_WAVES of the meter.
-const NUKE_WAVES = 2.5;                                                  // waves of kills to fill the meter (E tunes this)
+const NUKE_WAVES = 3.5;                                                  // waves of kills to fill the meter (E tunes this)
 const NUKE_WEIGHT = { basic: 1, fast: 1, hunter: 1.5, heavy: 2, boss: 3 }; // meter weight per enemy type
 const NUKE_WARN = 1.2;      // seconds of warning (game time) before the blast
 const NUKE_BOSS_CAP = 0.3;   // blast damage to a boss is at most this share of its max HP

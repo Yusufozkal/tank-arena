@@ -48,6 +48,7 @@ function sariOrbit(e, st, dt, R) { // circle the player at about R px, tangent p
   const p = G.player, s = e.spec, ang = Math.atan2(e.y - p.y, e.x - p.x), d = Math.hypot(e.x - p.x, e.y - p.y), tang = ang + st.sign * Math.PI / 2;
   const rad = clamp((d - R) / (2 * T), -1, 1);
   const hx = Math.cos(tang) - Math.cos(ang) * rad * 1.2, hy = Math.sin(tang) - Math.sin(ang) * rad * 1.2;
+  if (e.treadT > 0) return; // a broken tread: the boss stands still (it still turns its turret in the callers)
   const des = Math.atan2(hy, hx), before = e.angle, ox = e.x, oy = e.y;
   e.angle = turnTo(e.angle, des, s.turn * dt);
   const diff = Math.abs(angDiff(e.angle, des)), spd = diff < 0.8 ? s.speed * e.speedMul * (1 - diff * 0.5) : s.speed * e.speedMul * 0.25;
@@ -180,20 +181,21 @@ function sariTick(e, dt) {
 BOSS_DEFS.sari = {
   id: 'sari', name: 'SARI FIRTINA', arena: 'kum', introSub: 'Kum Çukuru', hold: 4, phases: [66, 33], plates: ['plate', 'fender'], r: SARI_SPEC.r,
   deathText: 'SARI FIRTINA DİNDİ', loot: 'SARI FIRTINA GANİMETİ',
-  hp: w => Math.round(460 + (w - 10) * 25),
+  barrels: [{ id: 'main', name: 'Namlu', ang: 0, k: 0.1 }],
+  hp: w => Math.round(510 + (w - 10) * 25),
   attacks: [
     { id: 'cevik', w: 3, ok: e => true, run: sariShots },
-    { id: 'hucum', w: 3, ok: e => e.distP > 2.5 * T && e.phase < 2, run: sariCharge },
-    { id: 'cift', w: 3, ok: e => e.distP > 2.5 * T && e.phase >= 1, run: sariDouble },
-    { id: 'uclu', w: 3, ok: e => e.distP > 2.5 * T && e.phase >= 2, run: sariTriple }
+    { id: 'hucum', w: 3, ok: e => e.distP > 2.5 * T && e.phase < 2, run: sariCharge, mov: true },
+    { id: 'cift', w: 3, ok: e => e.distP > 2.5 * T && e.phase >= 1, run: sariDouble, mov: true },
+    { id: 'uclu', w: 3, ok: e => e.distP > 2.5 * T && e.phase >= 2, run: sariTriple, mov: true }
   ],
   setup(e, w) {
-    e.spec = Object.assign({}, SPECS.boss, SARI_SPEC); e.r = SARI_SPEC.r; e.pace = 1.2;
+    e.spec = Object.assign({}, SPECS.boss, SARI_SPEC); e.r = SARI_SPEC.r; e.pace = 1.5;
     e.sari = { chargeN: 0, sand: [], wind: { st: 'idle', t: 0, a: 0 }, windT: 5, snd: false, boom: false, slow: false, omx: NaN, omy: NaN, rmx: 0, rmy: 0 };
   },
   onPhase(e, i) {
-    if (i === 1) { e.speedMul *= 1.15; addText(e.x, e.y - e.r - 34, 'EGZOZLAR YANDI', '#f08a2c', 18); }
-    if (i === 2) { e.sari.windT = 4; addText(e.x, e.y - e.r - 34, 'FIRTINA', '#f08a2c', 20); }
+    if (i === 1) { e.speedMul *= 1.15; addText(e.x, e.y - e.r - 54, 'EGZOZLAR YANDI', '#f08a2c', 18); }
+    if (i === 2) { e.sari.windT = 4; addText(e.x, e.y - e.r - 54, 'FIRTINA', '#f08a2c', 20); }
   },
   tick: sariTick,
   onClear(e) { const S = e.sari; S.sand.length = 0; if (S.wind.st !== 'idle') { S.wind.st = 'idle'; S.windT = Math.max(S.windT, 5); } },
