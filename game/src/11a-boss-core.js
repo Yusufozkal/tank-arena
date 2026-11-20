@@ -130,16 +130,16 @@ function bossDanger(x, y, pad, react) { // react: seconds a warning must have be
 /* ---- boss shells ---- */
 function bossShell(e, ang, o) {
   o = o || {};
-  const s = e.spec, m = G.map, ca = Math.cos(ang), sa = Math.sin(ang), len = o.len || s.barrel;
-  let bx = e.x, by = e.y, blocked = false;
-  for (let d = 6; d <= len; d += 6) { bx = e.x + ca * d; by = e.y + sa * d; if (isWall(m.at(bx, by))) { blocked = true; break; } }
+  const s = e.spec, m = G.map, ca = Math.cos(ang), sa = Math.sin(ang), len = o.len || s.barrel, ox = o.x === undefined ? e.x : o.x, oy = o.y === undefined ? e.y : o.y; // o.x/o.y: a muzzle that is not the boss centre (side turrets)
+  let bx = ox, by = oy, blocked = false;
+  for (let d = 6; d <= len; d += 6) { bx = ox + ca * d; by = oy + sa * d; if (isWall(m.at(bx, by))) { blocked = true; break; } }
   const sp = s.bSpeed * (o.speed || 1);
   const b = { x: bx, y: by, vx: ca * sp, vy: sa * sp, r: s.bR, owner: 1, dmg: bossDmg(s.dmg * (o.dmgK || 1)), life: 2.4, big: true, dead: false,
     pierce: false, bounce: 0, splash: null, look: 'enemy', hits: null, bricks: null, sx: bx, sy: by, dist: 0, bounced: false, vol: 0, volN: 0, pn: 0, boss: true };
   if (blocked) hitTile(b, bx, by); else G.bullets.push(b);
 }
-function bossVolley(e, fan) { // one volley: a shell per entry of fan (radians relative to the turret), muzzle puffs, recoil
-  for (const off of fan) if (!barrelSilent(e, off)) bossShell(e, e.turret + off); // a silent barrel does not fire
+function bossVolley(e, fan, o) { // one volley: a shell per entry of fan (radians relative to the turret), muzzle puffs, recoil; o: bossShell options (speed, dmgK)
+  for (const off of fan) if (!barrelSilent(e, off)) bossShell(e, e.turret + off, o); // a silent barrel does not fire
   e.recoil = 1;
   const ca = Math.cos(e.turret), sa = Math.sin(e.turret);
   for (let k = 0; k < 3; k++) {
@@ -170,7 +170,8 @@ function computeBossFlow(e) {
   const m = G.map, n = m.n, p = G.player, N = n * n;
   if (!e.flow || e.flow.length !== N) e.flow = new Float32Array(N);
   e.flow.fill(1e9);
-  const pc = clamp(Math.floor(p.x / T), 0, n - 1), pr = clamp(Math.floor(p.y / T), 0, n - 1);
+  const fg = e.def.flowGoal ? e.def.flowGoal(e) : null; // hook: a fixed place to walk to instead of the player (Demirkök walks to the castle centre)
+  const pc = clamp(Math.floor((fg ? fg.x : p.x) / T), 0, n - 1), pr = clamp(Math.floor((fg ? fg.y : p.y) / T), 0, n - 1);
   let goal = -1, gd = 1e9;
   for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) {
     if (!bossFits(m, c, r)) continue;
@@ -350,7 +351,7 @@ function bossPartHit(e, dmg, x, y, dir) {
 }
 function bossPartTick(e, dt) {
   if (e.dying) return;
-  e.treadT = 0;
+  e.treadT = e.rooted ? 1 : 0; // a rooted boss (Demirkök, phase 3) cannot move: the same state as a broken tread, which bossMove, startAttack and the bot already read
   for (let i = 0; i < 2; i++) {
     const tr = e.tr[i]; if (tr.t <= 0) continue;
     tr.t -= dt; const q = treadWorld(e, i);
@@ -383,6 +384,7 @@ function bossHurt(e, dmg, x, y, dir, quiet) {
     return;
   }
   if (direct && dir !== undefined && !quiet) bossPartHit(e, dmg * k, x, y, dir); // treads and barrels: own HP / accumulated hits (the hull takes the damage too)
+  if (e.def.hullMul) dmg *= e.def.hullMul(e, x, y, dir, direct, quiet); // hook: damage multiplier of the hull itself (Demirkök: turret shield, rear weak point)
   const applied = Math.min(dmg * k, e.hp);
   e.hp -= dmg * k; e.flash = 0.1;
   if (typeof nukeOnBossDamage === 'function') nukeOnBossDamage(e, applied); // hook (C): the nuke meter fills with the damage dealt to the boss

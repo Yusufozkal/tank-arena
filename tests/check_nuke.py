@@ -74,7 +74,7 @@ with sync_playwright() as p:
       G.nuke.meter = 0; G.nuke.warnT = 0; G.nuke.bossAcc = 0;
       t.hurtBoss(0.3 * mx); o.half = G.nuke.meter; t.hurtBoss(0.3 * mx); o.full = G.nuke.meter; o.ready = t.nuke().ready;
       t.hurtBoss(0.3 * mx); o.afterExtra = G.nuke.meter; return o; }"""
-    for w in (5, 10, 35):
+    for w in (5, 10, 20, 35):
         ready = page.evaluate(START, w); assert ready >= 0, f'boss fight at wave {w} did not start'
         a = page.evaluate(BLAST); f = page.evaluate(FLOOR); c = page.evaluate(BOT); d = page.evaluate(CHARGE)
         R[f'boss_w{w}'] = {'blast': a, 'floor': f, 'bot': c, 'charge': d}
