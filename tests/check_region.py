@@ -22,7 +22,7 @@ HELPERS = """() => {
   const t = __tank, G = t.G; window.VOL = 100;
   window.shoot = (e, a) => { // one non-lethal player shell flying at e from direction a (angle of the shooter seen from e)
     const d = 36, x = e.x + Math.cos(a) * d, y = e.y + Math.sin(a) * d;
-    const b = { x, y, vx: -Math.cos(a) * 600, vy: -Math.sin(a) * 600, r: 4, owner: 0, dmg: 0.001, life: 2, big: false, dead: false, pierce: false, bounce: 0, splash: null, look: 'player',
+    const b = { x, y, vx: -Math.cos(a) * 600, vy: -Math.sin(a) * 600, r: 4, owner: 0, dmg: 2, life: 2, big: false, dead: false, pierce: false, bounce: 0, splash: null, look: 'player',
       hits: null, bricks: null, sx: x, sy: y, dist: 0, bounced: false, vol: ++window.VOL, volN: 1, pn: 0, h: 0 };
     G.bullets.push(b); for (let i = 0; i < 6 && !b.dead; i++) t.stepBullets(1 / 60);
   };

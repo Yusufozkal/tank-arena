@@ -60,13 +60,13 @@ with sync_playwright() as p:
     ev(page, "for (let i = 0; i < 120; i++) { __tank.view.zoomK = __tank.view.zoomK; } __tank.step(2)")
     check('camera_zoomed_out', ev(page, "__tank.view.zoomK") <= 0.86, ev(page, "__tank.view.zoomK"))
 
-    # ---- map sizes: 25 -> 21 -> 25 ----
+    # ---- map sizes: 35 -> 21 -> 35 ----
     ev(page, "__tank.wave(6)"); n6 = ev(page, "__tank.G.map.n")
     ev(page, "__tank.wave(10)"); n10 = ev(page, "[__tank.G.map.n, __tank.G.map.flow.length, __tank.G.map.mini.width]")
     ev(page, "__tank.dbg.freeze = false"); ev(page, "__tank.bossSkip(); __tank.sim(5, true)"); ev(page, "__tank.dbg.freeze = true")
     ev(page, "__tank.wave(11)"); n11 = ev(page, "[__tank.G.map.n, __tank.G.map.flow.length]")
     ev(page, "__tank.dbg.freeze = false"); ev(page, "__tank.sim(3, true)"); ev(page, "__tank.dbg.freeze = true")
-    check('map_size_switch', n6 == 25 and n10 == [21, 441, 21] and n11 == [25, 625], [n6, n10, n11])
+    check('map_size_switch', n6 == 35 and n10 == [21, 441, 21] and n11 == [35, 1225], [n6, n10, n11])
 
     # ---- phases ----
     ev(page, "localStorage.setItem('tankArena.seenBossIntro', 'true'); __tank.wave(15); __tank.bossSkip()")

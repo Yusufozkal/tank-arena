@@ -4,10 +4,10 @@
 function waveMods(w) {
   const D = G.D, late = Math.max(0, w - 10), rn = removedN();
   const err0 = Math.max(0.035, 0.13 - (w - 1) * 0.012);
-  return { speed: 1 + Math.min(0.3, (w - 1) * 0.03) + Math.min(0.3, late * 0.015), cool: Math.max(0.35, 1 - 0.035 * Math.min(9, w - 1) - 0.013 * late) * D.cool * (1 - 0.07 * rn),
-    err: Math.max(0.012, err0 - Math.max(0, w - 9) * 0.0008) * D.err * (1 - 0.1 * rn),
+  return { speed: 1 + Math.min(0.3, (w - 1) * 0.03) + Math.min(0.3, late * 0.015), cool: Math.max(0.35, 1 - 0.045 * Math.min(9, w - 1) - 0.010 * late) * D.cool * (1 - 0.07 * rn),
+    err: Math.max(0.012, err0 - Math.max(0, w - 9) * 0.0005) * D.err * (1 - 0.1 * rn),
     lead: Math.min(0.85, (w - 1) * 0.14) + Math.min(0.15, Math.max(0, w - 7) * 0.01),
-    dmg: D.dmg * (1 + Math.min(0.6, Math.max(0, w - 13) * 0.02) + Math.max(0, w - 25) * 0.07),
+    dmg: D.dmg * (1 + Math.min(0.6, Math.max(0, w - 13) * 0.018) + Math.max(0, w - 25) * 0.04),
     dodge: Math.min(0.85, D.dodge + late * 0.01), // Avcı sidesteps more of the player's shells as waves go on
     drop: Math.max(0.5, 1 - late * 0.02), // supplies thin out: fewer power-ups (shields!) from late-wave wrecks
     pace: Math.max(0.25, 1 - late * 0.015 - Math.max(0, w - 25) * 0.02), // spawn interval factor: reinforcements arrive faster in late waves
@@ -27,20 +27,20 @@ function typeShares(w) {
   return {
     pf: ok('fast') && w > D.fastFrom ? Math.min(0.28, 0.04 + 0.02 * (w - D.fastFrom)) - Math.max(0, w - 20) * 0.005 : 0,
     ph: ok('heavy') && w > D.heavyFrom ? Math.min(0.45, 0.04 + 0.02 * (w - D.heavyFrom)) : 0,
-    pu: ok('hunter') && w > D.hunterFrom ? Math.min(0.35, 0.04 + 0.02 * (w - D.hunterFrom)) : 0,
+    pu: ok('hunter') && w > D.hunterFrom ? Math.min(0.4, 0.04 + 0.03 * (w - D.hunterFrom)) : 0,
     pt: ok('tamirci') && w > D.tamirciFrom ? Math.min(0.15, 0.03 + 0.015 * (w - D.tamirciFrom)) : 0 };
 }
 function buildRoster(w) {
   const D = G.D, list = [];
   if (w % 5 === 0) return { list: ['boss'], maxAlive: 1 }; // boss stage: only the boss on the field, no escorts (startBossStage spawns it)
-  const rk = 1 + 0.12 * removedN(), total = clamp(Math.round((3 + w + Math.floor(w / 2)) * D.count * rk), 3, Math.round((24 + Math.floor(Math.max(0, w - 20) / 2)) * rk));
+  const rk = 1 + 0.12 * removedN(), total = clamp(Math.round((3 + w + Math.floor(w / 2)) * D.count * rk), 3, Math.round((20 + Math.floor(Math.max(0, w - 20) / 3)) * rk));
   const { pf, ph, pu, pt } = typeShares(w);
   for (let i = 0; i < total; i++) { const r = Math.random(); list.push(r < ph ? 'heavy' : r < ph + pf ? 'fast' : r < ph + pf + pu ? 'hunter' : r < ph + pf + pu + pt ? 'tamirci' : 'basic'); }
   shuffle(list);
   // a type's first wave: exactly one of it (the roster above has none yet), placed a little way into the wave; never for a type the region rule removed
   const first = w === D.fastFrom ? 'fast' : w === D.heavyFrom ? 'heavy' : w === D.hunterFrom ? 'hunter' : w === D.tamirciFrom ? 'tamirci' : null;
   if (first && !typeBanned(first)) list[Math.min(list.length - 1, first === 'tamirci' ? 3 : 1 + Math.floor(Math.random() * 2))] = first;
-  const alive = Math.min(6, 2 + Math.ceil(w / 2)) + (w > 12 ? Math.min(6, 1 + Math.floor((w - 13) / 5)) : 0) + D.alive;
+  const alive = Math.min(6, 3 + Math.ceil(w / 2)) + (w > 12 ? Math.min(6, 1 + Math.floor((w - 13) / 5)) : 0) + D.alive;
   return { list, maxAlive: Math.min(D.maxAlive, alive) };
 }
 function chooseSpawn() {
@@ -83,6 +83,7 @@ function updateSpawns(dt) {
     if (sp) {
       let ty = G.queue.shift();
       if (ty === 'tamirci' && G.enemies.filter(o => o.type === 'tamirci').length + G.portals.filter(q => q.type === 'tamirci').length >= 2) ty = 'basic'; // at most two Tamirci on the field
+      if (ty === 'hunter' && G.enemies.filter(o => o.type === 'hunter').length + G.portals.filter(q => q.type === 'hunter').length >= RULES.maxHunters) ty = 'basic'; // and a few Avcı at once
       G.portals.push({ x: sp.x, y: sp.y, t: 0, dur: 1.15, type: ty, done: false }); G.spawnTimer = rand(0.7, 1.5) * G.mods.pace; Sound.spawn(volAt(sp.x, sp.y));
     } else G.spawnTimer = 0.25;
   }
@@ -306,6 +307,8 @@ function partWorld(e, k) { // world position of a part: tread (the broken side),
   const lx = k === 'engine' ? -s.len / 2 : 0, ly = k === 'tread' ? (e.pt.side ? 1 : -1) * (s.wid / 2 - s.tread / 2) : 0;
   return { x: e.x + ca * lx - sa * ly, y: e.y + sa * lx + ca * ly };
 }
+// Parts break by accumulated damage, not chance or wave: hits from one direction add up per part (e.pt.acc) and the part breaks at PART_HP damage (a fixed amount, not a share of max HP).
+const PART_HP = 2;
 function partBreak(e, b) { // called from damageEnemy: a direct shell of the player hit tank e and did not kill it
   if (e.dead || e.isBoss || e.type === 'boss' || b.owner !== 0 || b.lob || G.boss === e) return;
   if (b.vol && e.pvol === b.vol) return; // the other shells of one volley (Ikiz, Uclu, Sarapnel) count once
@@ -313,8 +316,11 @@ function partBreak(e, b) { // called from damageEnemy: a direct shell of the pla
   const a = angDiff(e.angle, Math.atan2(-b.vy, -b.vx)), aa = Math.abs(a); // direction towards the shooter, against the hull
   const k = aa < 0.785 ? 'barrel' : aa > 2.356 ? 'engine' : 'tread';
   if (k === 'barrel' && e.spec.medic) return; // the Tamirci has no barrel to jam
-  const pt = e.pt || (e.pt = { tread: 0, barrel: 0, engine: 0, imm: { tread: 0, barrel: 0, engine: 0 }, dur: { tread: 0, barrel: 0, engine: 0 }, side: 0, fx: 0 });
+  const pt = e.pt || (e.pt = { tread: 0, barrel: 0, engine: 0, imm: { tread: 0, barrel: 0, engine: 0 }, acc: { tread: 0, barrel: 0, engine: 0 }, dur: { tread: 0, barrel: 0, engine: 0 }, side: 0, fx: 0 });
   if (pt[k] > 0 || pt.imm[k] > 0) return;
+  pt.acc[k] += b.dmg || 1;
+  if (pt.acc[k] < PART_HP) return;
+  pt.acc[k] = 0;
   pt[k] = pt.dur[k] = PART_T[k] / (G.wave > PART_T.fastFrom ? PART_T.fast : 1);
   if (k === 'tread') pt.side = a > 0 ? 1 : 0;
   const q = partWorld(e, k), vl = volAt(e.x, e.y);

@@ -60,7 +60,7 @@ if (DEBUG) {
     bossInfo() { const e = G.boss; return { stage: !!G.stage, phase: G.phase, wave: G.wave, boss: !!e, hp: e ? +e.hp.toFixed(2) : 0, maxHp: e ? e.maxHp : 0, bphase: e ? e.phase : -1, trans: e ? +e.trans.toFixed(2) : 0, invuln: e ? !!e.invuln : false, dying: e ? !!e.dying : false, atk: e ? e.atkId : '', stunT: e ? +e.stunT.toFixed(2) : 0, tower: e ? e.parts.map(q => [q.id, q.alive, q.hp]) : [], enemies: G.enemies.length, tele: G.tele.length, log: e ? e.log.slice() : [] }; },
     hurtBoss(d, x, y, dir) { const e = G.boss; hurtEnemy(e, d, x === undefined ? e.x : x, y === undefined ? e.y : y, dir); return e.hp; },
     partInfo(e) { e = e || G.boss; return e.tr ? { treadT: +e.treadT.toFixed(2), tr: e.tr.map(t => ({ hp: +t.hp.toFixed(1), max: t.max, br: t.br, t: +t.t.toFixed(2) })), bars: e.bars.map(b => ({ id: b.id, acc: +b.acc.toFixed(1), thr: b.thr, t: +b.t.toFixed(2) })), cancels: e.cancels } : e.pt ? { tread: +e.pt.tread.toFixed(2), barrel: +e.pt.barrel.toFixed(2), engine: +e.pt.engine.toFixed(2), imm: Object.assign({}, e.pt.imm), dur: Object.assign({}, e.pt.dur) } : null; },
-    partBreak, PART_T, BT, hurtEnemy, bossVolley,
+    partBreak, PART_T, PART_HP, BT, hurtEnemy, bossVolley,
     bossSkip() { G.introSeen = true; G.phaseT = Math.max(G.phaseT, 0.3); bossIntroTap(); },
     bossDanger, bossClearHazards, BOSS_DEFS, ARENAS, parseArena, themeFor, bossDefAt,
     // one boss fight for the probe: wave w, workshop cards (object), tank id; the bot plays until the boss falls, the tank dies or maxSec passes
