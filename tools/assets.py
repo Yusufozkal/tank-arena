@@ -22,12 +22,20 @@ SPRITE_HOOK = '''    sprite(type, px, up, tank) { // tank: a TANKS id, draws tha
       G.up = {}; return cv.toDataURL('image/png');
     },
 '''
+BOSS_HOOK = '''    bossSprite(w, px, span) { // the real boss drawing (drawBoss) of the boss at wave w, alone and idle on a transparent canvas, nose up
+      G.wave = w - 1; nextWave(); G.introSeen = true; endBossIntro(true);
+      const e = G.boss, keep = [e.x, e.y, e.angle, e.turret], cv = document.createElement('canvas'); cv.width = cv.height = px;
+      const k = px / span, g = cv.getContext('2d'); g.setTransform(k, 0, 0, k, px / 2, px / 2 + 3 * k);
+      e.x = e.y = 0; e.angle = -Math.PI / 2; e.turret = -Math.PI / 2; e.flash = 0; drawBoss(e, 1, g);
+      [e.x, e.y, e.angle, e.turret] = keep; return cv.toDataURL('image/png');
+    },
+'''
 ANCHOR = '    hold(v) { bot.hold = !!v; },\n'
 _src = P.GAME.read_text(encoding='utf-8')
 assert ANCHOR in _src, 'debug API anchor not found in game/index.html; update ANCHOR in tools/assets.py'
 SPRITE_GAME = P.TMP / 'spritegame'
 SPRITE_GAME.mkdir(parents=True, exist_ok=True)
-(SPRITE_GAME / 'index.html').write_text(_src.replace(ANCHOR, ANCHOR + SPRITE_HOOK, 1), encoding='utf-8')
+(SPRITE_GAME / 'index.html').write_text(_src.replace(ANCHOR, ANCHOR + SPRITE_HOOK + BOSS_HOOK, 1), encoding='utf-8')
 
 class H(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *a, **k): super().__init__(*a, directory=str(SPRITE_GAME), **k)
@@ -53,8 +61,11 @@ with sync_playwright() as p:
     # tank sprites at 4x
     page = b.new_page(); page.route('https://fonts.googleapis.com/**', route_fonts); page.route('https://fonts.gstatic.com/**', route_fonts)
     page.goto('http://127.0.0.1:8769/index.html#debug'); page.wait_for_timeout(800)
-    for t in ['basic', 'fast', 'heavy', 'hunter', 'tamirci', 'boss', 'player']:
+    for t in ['basic', 'fast', 'heavy', 'hunter', 'tamirci', 'player']:
         save(page.evaluate(f"__tank.sprite('{t}', 256)"), f'{SITE}/img/tank-{t}.png')
+    page.click('#btnStart'); page.wait_for_timeout(300)
+    for name, w in (('komutan', 5), ('sari', 10), ('demirkok', 20)):  # the three bosses, drawn by the game itself
+        save(page.evaluate(f"__tank.bossSprite({w}, 512, 170)"), f'{SITE}/img/boss-{name}.png')
     for tid in page.evaluate('__tank.tanks()'):  # all player tanks (Tank ağacı section): tank-<id>.png
         save(page.evaluate(f"__tank.sprite('player', 256, null, '{tid}')"), f'{SITE}/img/tank-{tid}.png')
     save(page.evaluate("__tank.sprite('player', 256, { armor: 4, engine: 3, loader: 3, caliber: 2, barrel: 2, repair: 1, magnet: 1, thermal: 1 })"), f'{SITE}/img/tank-player-upgraded.png')

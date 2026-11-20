@@ -35,9 +35,10 @@ FIND_JS = """(q) => {
     if (G.phase !== 'fight' || !G.player.alive || !on(G.player.x, G.player.y, 110)) continue;
     const a = { i, enemiesOn: G.enemies.filter(e => !e.hidden && on(e.x, e.y, 60)).length,
       fire: t.parts.filter(p => p.k === 'fire' && p.life / p.max > 0.5 && on(p.x, p.y, 70)).length,
-      bullets: G.bullets.filter(b => on(b.x, b.y, 20)).length, pick: G.pickups.filter(k => on(k.x, k.y, 40)).length };
+      bullets: G.bullets.filter(b => on(b.x, b.y, 20)).length,
+      mine: G.bullets.filter(b => b.owner === 0 && on(b.x, b.y, 20)).length, theirs: G.bullets.filter(b => b.owner === 1 && on(b.x, b.y, 20)).length, pick: G.pickups.filter(k => on(k.x, k.y, 40)).length };
     last = a;
-    if (a.enemiesOn >= q.e && a.fire >= q.f && a.bullets >= q.b && a.pick >= q.k) return a;
+    if (a.enemiesOn >= q.e && a.fire >= q.f && a.mine >= (q.m || 0) && a.theirs >= (q.t || 0) && a.bullets >= q.b && a.pick >= q.k) return a;
   }
   return Object.assign({ fallback: true }, last);
 }"""
@@ -74,8 +75,8 @@ with sync_playwright() as p:
     vp = {'width': 390, 'height': 844}
     ctx, page = page_for(b, vp, 2, True)
     up = {'armor': 2, 'caliber': 1, 'engine': 1}
-    page.evaluate("(u) => { __tank.wave(4); __tank.setUp(u); __tank.setTank('alev'); __tank.sim(1.8, true); }", up)
-    res['play_phone'] = page.evaluate(FIND_JS, dict(steps=9000, wave=4, e=2, f=7, b=2, k=1, up=up, tank='alev'))
+    page.evaluate("(u) => { __tank.wave(9); __tank.setUp(u); __tank.setTank('ikiz'); __tank.sim(1.8, true); }", up)
+    res['play_phone'] = page.evaluate(FIND_JS, dict(steps=9000, wave=9, e=2, f=0, b=3, m=1, t=1, k=0, up=up, tank='ikiz'))
     sticks(ctx, page, vp)
     shoot(page, f'{OUT}/play-phone.jpg', {'speed': 6.5})
     ctx.close()
@@ -94,16 +95,19 @@ with sync_playwright() as p:
     vp = {'width': 844, 'height': 390}
     ctx, page = page_for(b, vp, 2, True)
     up = {'armor': 3, 'engine': 2, 'loader': 2, 'magnet': 1}
-    page.evaluate("(u) => { __tank.wave(6); __tank.setUp(u); __tank.setTank('rayli'); __tank.sim(1.8, true); }", up)
-    res['play_wide'] = page.evaluate(FIND_JS, dict(steps=9000, wave=6, e=3, f=7, b=2, k=0, up=up, tank='rayli'))
+    page.evaluate("(u) => { __tank.wave(8); __tank.setUp(u); __tank.setTank('rayli'); __tank.sim(1.8, true); }", up)
+    res['play_wide'] = page.evaluate(FIND_JS, dict(steps=9000, wave=8, e=2, f=0, b=3, m=0, t=1, k=0, up=up, tank='rayli'))
     sticks(ctx, page, vp)
     shoot(page, f'{OUT}/play-wide.jpg', {'pierce': 7, 'shield': 4})
     ctx.close()
-    # 4. phone, boss stage: Sarı Fırtına (wave 10) with the big boss bar
+    # 4. phone, boss stage: Demirkök (wave 20) hurt to about 60%, so the big boss bar shows its lighter lost-HP chunk
     ctx, page = page_for(b, vp := {'width': 390, 'height': 844}, 2, True)
     page.evaluate("__tank.dbg.freeze = false")
-    res['boss'] = page.evaluate("""() => { const t = __tank; t.setUp({ armor: 2, caliber: 1, engine: 1 }); t.wave(10); t.bossSkip(); for (let i = 0; i < 8; i++) t.sim(1, true); t.dbg.clean = false; return t.bossInfo().hp; }""")
-    page.wait_for_timeout(300)
+    res['boss'] = page.evaluate("""() => { const t = __tank, G = t.G; t.setUp({ armor: 3, caliber: 1, engine: 1 }); t.wave(20); t.bossSkip();
+      for (let i = 0; i < 6; i++) t.sim(1, true);
+      for (let i = 0; i < 30; i++) t.sim(0.3, true);
+      t.hurtBoss(G.boss.maxHp * 0.42); t.sim(0.4, true); t.dbg.clean = false; const q = t.bossInfo(); return [q.hp, q.maxHp]; }""")
+    page.wait_for_timeout(200)
     page.screenshot(path=f'{OUT}/boss-phone.jpg', type='jpeg', quality=90)
     ctx.close()
     b.close()

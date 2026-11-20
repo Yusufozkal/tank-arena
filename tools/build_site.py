@@ -88,11 +88,11 @@ FOES = [
     ('heavy', 'Ağır tank', 'heavy', '5 isabet. İri mermisi çok can yakar. 7. dalgadan sonra gelir.'),
     ('hunter', 'Avcı', 'hunter', '3 isabet. Mermilerden kaçar ama uzaktan gelen mermiden kaçamaz; vurulunca saklanır. 12. dalgadan sonra gelir.'),
     ('tamirci', 'Tamirci', 'tamirci', '3 isabet. Silahı yok; yaralı tankları onarır, bozuk parçalarını düzeltir. 13. dalgadan sonra gelir. Önce onu vur.'),
-    ('boss', 'Komutan', 'boss', 'Ana boss. 5, 15, 25 ve 35. dalgada kendi arenasında gelir. Üç evresi ve komuta kulesi var, her gelişinde yeni saldırılar açar.'),
-    ('fast', 'Sarı Fırtına', 'fast boss', 'Keşif tankının boss\'u, 10. dalgada. Kırmızı çizgi boyunca hücum eder; çeliğe çarparsa sersemler.'),
-    ('heavy', 'Demirkök', 'heavy boss', 'Ağır tankın boss\'u, 20. dalgada Orman Kalesi\'nde. Yan taretleri ayaktayken gövdesi yarı hasar alır; son evrede kök salar.'),
+    ('boss-komutan', 'Komutan', 'boss', 'Ana boss. 5, 15, 25 ve 35. dalgada kendi arenasında gelir. Üç evresi ve komuta kulesi var, her gelişinde yeni saldırılar açar.'),
+    ('boss-sari', 'Sarı Fırtına', 'boss', 'Keşif tankının boss\'u, 10. dalgada. Kırmızı çizgi boyunca hücum eder; çeliğe çarparsa sersemler.'),
+    ('boss-demirkok', 'Demirkök', 'boss', 'Ağır tankın boss\'u, 20. dalgada Orman Kalesi\'nde. Yan taretleri ayaktayken gövdesi yarı hasar alır; son evrede kök salar.'),
 ]
-foes = '\n'.join(f'<li class="foe-{c.split()[-1]}"><img src="/img/tank-{k}.png" width="128" height="128" alt="" loading="lazy"><b>{n}</b><span>{t}</span></li>' for k, n, c, t in FOES)
+foes = '\n'.join(f'<li class="foe-{c.split()[-1]}"><img src="/img/{k if k.startswith("boss-") else "tank-" + k}.png" width="128" height="128" alt="" loading="lazy"><b>{n}</b><span>{t}</span></li>' for k, n, c, t in FOES)
 
 TK = D['TANKS']
 def tank_card(i):
@@ -248,7 +248,7 @@ h1 span{{display:block}}
 .foes{{list-style:none;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:30px 18px;margin-top:36px}}
 .foes li{{display:flex;flex-direction:column;align-items:flex-start;gap:4px}}
 .foes img{{width:104px;filter:drop-shadow(4px 5px 0 rgba(70,45,15,.34))}}
-.foes .foe-boss img{{width:130px}}
+.foes .foe-boss img{{width:150px}}
 .bossshot{{margin:34px auto 0;max-width:300px;border:9px solid #12140d;border-radius:30px;overflow:hidden;background:#12140d}}
 .bossshot img{{border-radius:21px}}
 .foes b{{font-weight:700;font-size:22px;line-height:1.1}}
@@ -334,7 +334,7 @@ footer a{{text-underline-offset:3px}}
   <div class="wrap">
     <h2>Karşına çıkacaklar</h2>
     <p class="lead">Harita 35×35, sahada aynı anda en fazla 6 düşman olur. Düşman türleri sırayla gelir: önce Standart tank, sonra Keşif, Ağır, Avcı ve 13. dalgadan Tamirci. Çalıya saklanırsan seni kaybederler ve son gördükleri yeri ararlar. Düşman mermileri seninkilerden farklı renktedir, kolay ayırt edersin.</p>
-    <p class="lead">Düşmanı yandan vurursan paleti, önden vurursan namlusu, arkadan vurursan motoru bozulur; kısa süre sonra onarır. Bir boss'u yenince onun türü bir daha gelmez: Sarı Fırtına'dan sonra Keşif tankları, Demirkök'ten sonra Ağır tanklar ve Tamirciler.</p>
+    <p class="lead">Düşmanı yeterince vurursan parçaları bozulur: yandan vurursan paleti, önden vurursan namlusu, arkadan vurursan motoru. Kısa süre sonra onarır. Bir boss'u yenince onun türü bir daha gelmez: Sarı Fırtına'dan sonra Keşif tankları, Demirkök'ten sonra Ağır tanklar ve Tamirciler.</p>
     <ul class="foes">
 {foes}
     </ul>
@@ -354,7 +354,7 @@ footer a{{text-underline-offset:3px}}
 <section id="tek-savas">
   <div class="wrap">
     <h2>Boss savaşları</h2>
-    <p class="lead">Boss dalgalarında oyun kendi etabına geçer: sahada yalnızca boss ve sen varsınız, arena boss'a göre tasarlanmıştır. Üstte büyük bir can çubuğu görünür. Boss saldırmadan önce uyarır; çelik bloklar seni korur. Boss'a parça hasarı da işler: paleti ve namlusu kırılabilir.</p>
+    <p class="lead">Boss dalgalarında oyun kendi etabına geçer: sahada yalnızca boss ve sen varsınız, arena boss'a göre tasarlanmıştır. Üstte büyük bir can çubuğu görünür. Boss saldırmadan önce uyarır; çelik bloklar seni korur. Yeterince vurursan boss'un paleti ve namlusu da kırılır.</p>
     <div class="bossshot"><img src="/img/boss-phone.jpg" width="720" height="1558" alt="Sarı Fırtına boss savaşı: üstte büyük boss can çubuğu, sarı boss tankı ve mavi oyuncu tankı" loading="lazy"></div>
     <p class="lead">Herkes aynı kurallarla oynar, rekorlar tek listede tutulur.</p>
   </div>
