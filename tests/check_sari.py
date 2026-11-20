@@ -145,3 +145,5 @@ errs = real_errors()
 check('no_page_errors', not errs, errs[:3])
 print('check_sari:', 'FAILED ' + ', '.join(FAILS) if FAILS else 'all ok')
 print('ERRORS:', errs or 'none')
+
+sys.exit(1 if FAILS else 0)

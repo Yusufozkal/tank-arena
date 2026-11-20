@@ -103,7 +103,7 @@ with sync_playwright() as p:
     ev(page, "(() => { const t = __tank; t.sim(40, true); const e = t.G.boss; e.hp = e.maxHp * 0.6; t.sim(60, true); e.hp = e.maxHp * 0.3; t.sim(90, true); })()")
     ev(page, "__tank.dbg.freeze = true")
     lg = ev(page, "__tank.G.boss ? __tank.G.boss.log : []")
-    kinds = sorted({x['atk'] for x in lg})
+    kinds = sorted({x['atk'] for x in lg if x['atk'] != 'cancel'})  # 'cancel' is an interrupt record (11a-boss-core.js cancelAttack), not an attack
     short = [x for x in lg if x['dur'] + 0.002 < x['min']]
     check('telegraph_min_times', len(lg) > 15 and not short, {'n': len(lg), 'short': short[:3]})
     check('all_attacks_seen_w35', kinds == ['bomb', 'ezme', 'penta', 'shock', 'topcu', 'triple', 'yaylim'], kinds)
@@ -143,3 +143,5 @@ errs = real_errors()
 check('no_page_errors', not errs, errs[:3])
 print('check_boss:', 'FAILED ' + ', '.join(FAILS) if FAILS else 'all ok')
 print('ERRORS:', errs or 'none')
+
+sys.exit(1 if FAILS else 0)
