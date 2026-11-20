@@ -80,7 +80,7 @@ function makeArena(gen, theme) {
   return m;
 }
 function buildLayer(m) {
-  const res = layerRes();
+  const res = layerRes(m);
   m.layer.width = Math.ceil(m.w * res); m.layer.height = Math.ceil(m.h * res);
   m.lg = m.layer.getContext('2d'); m.res = res;
   paintRegion(m, 0, 0, m.n - 1, m.n - 1);
