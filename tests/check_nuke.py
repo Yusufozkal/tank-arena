@@ -1,4 +1,4 @@
-"""Nuclear bomb (1.4 package C): the meter fills over kills, the effect, pause freezes the warning, key N, resume keeps the meter.
+"""Nuclear bomba (1.5): whole-map blast, fixed boss damage (150, floor 10%, 3 s stun), boss-stage charging; the meter fills over kills, the effect, pause freezes the warning, key N, resume keeps the meter.
 Waves-to-fill is measured with the autopilot and bot.nuke off (kills made by the nuke itself never count). Screenshots under .tmp/shots."""
 from common import *  # noqa: F401,F403
 
@@ -30,10 +30,10 @@ with sync_playwright() as p:
     page.evaluate("__tank.G.god = true; __tank.wave(3);"); page.wait_for_timeout(2700)
     setup = """() => { const t = __tank, G = t.G, p = G.player; G.queue.length = 0; G.portals.length = 0; G.enemies.length = 0; G.pickups.length = 0; G.mods.drop = 1000;
       const on = [t.spawn('basic', p.x + 90, p.y - 120), t.spawn('fast', p.x - 100, p.y - 90), t.spawn('heavy', p.x + 30, p.y - 160)];
-      const far = t.spawn('basic', p.x, p.y + 4000); // far off screen
+      const far = t.spawn('basic', p.x, p.y + 4000); // far off screen: the whole-map blast kills it too
       G.bullets.push({ x: p.x + 40, y: p.y - 40, vx: 0, vy: 0, r: 4, owner: 1, dmg: 1, life: 5, dead: false, hits: null, bricks: null, sx: 0, sy: 0, dist: 0, bounced: false });
       t.nukeCharge(1); return { on: on.length, far: !!far, onScreen: t.nuke().onScreen, enemyShells: G.bullets.filter(b => b.owner === 1).length }; }"""
-    R['effect_setup'] = page.evaluate(setup); assert R['effect_setup']['onScreen'] == 3, R['effect_setup']
+    R['effect_setup'] = page.evaluate(setup); assert R['effect_setup']['onScreen'] == 4, R['effect_setup']  # debug name kept: counts every living enemy on the map
     k0 = page.evaluate('__tank.G.kills')
     assert page.evaluate('__tank.nukeFire()') is True
     R['warn'] = page.evaluate('__tank.nuke()'); assert R['warn']['warnT'] > 0
@@ -42,28 +42,40 @@ with sync_playwright() as p:
     R['effect'] = page.evaluate("""() => { const t = __tank, G = t.G; return { meter: t.nuke().meter, used: t.nuke().used, alive: G.enemies.filter(e => !e.dead).length, shells: G.bullets.filter(b => b.owner === 1).length,
       pickups: G.pickups.length, dropMod: G.mods.drop, kills: G.kills }; }""")
     assert R['effect']['meter'] == 0 and R['effect']['used'] == 1, R['effect']
-    assert R['effect']['alive'] == 1 and R['effect']['shells'] == 0 and R['effect']['pickups'] == 0 and R['effect']['dropMod'] == 1000, R['effect']
-    assert R['effect']['kills'] - k0 == 3, R['effect']
+    assert R['effect']['alive'] == 0 and R['effect']['shells'] == 0 and R['effect']['pickups'] == 0 and R['effect']['dropMod'] == 1000, R['effect']
+    assert R['effect']['kills'] - k0 == 4, R['effect']
     vprint('effect:', R['effect'])
 
     # 3. kills made by the nuke do not refill the meter; ordinary kills do
     page.evaluate("(() => { const t = __tank, p = t.G.player; t.G.nuke.meter = 0; t.spawn('basic', p.x + 60, p.y - 90); t.killAll(); })()")
     R['meter_after_normal_kill'] = page.evaluate('__tank.nuke().meter'); assert R['meter_after_normal_kill'] > 0, 'a normal kill must fill the meter'
 
-    # 4. boss: -25 percent, never dies, enrage still triggers, off-screen boss also takes it
+    # 4. boss: fixed 150 damage, floor 10%, stun 3 s, enemy bullets cleared, enrage still runs, nuke damage never charges
     page.evaluate("(() => { const t = __tank, G = t.G; G.enemies.length = 0; G.queue.length = 0; G.phase = 'fight'; G.phaseT = 0; })()")  # step 3's killAll emptied the wave: back to the fight phase
-    R['boss'] = page.evaluate("""() => { const t = __tank, G = t.G, p = G.player, out = {}; const b = t.spawn('boss', p.x + 110, p.y - 170); G.phase = 'fight'; const mx = b.maxHp; t.nukeCharge(1); t.nukeFire(); t.step(1.5);
-      out.frac = +(b.hp / mx).toFixed(3); out.dead = !!b.dead; out.enraged = !!b.enraged;
-      b.hp = mx * 0.52; t.nukeCharge(1); t.nukeFire(); t.step(1.5); out.frac2 = +(b.hp / mx).toFixed(3); out.dead2 = !!b.dead; out.enraged2 = !!b.enraged;
-      b.hp = 3; t.nukeCharge(1); t.nukeFire(); t.step(1.5); out.hpLow = +b.hp.toFixed(2); out.dead3 = !!b.dead; return out; }""")
-    assert abs(R['boss']['frac'] - 0.75) < 0.01 and not R['boss']['dead'] and not R['boss']['enraged'], R['boss']
-    assert not R['boss']['dead2'] and R['boss']['enraged2'] and R['boss']['frac2'] < 0.28, R['boss']
-    assert not R['boss']['dead3'] and R['boss']['hpLow'] > 0, R['boss']
+    R['boss'] = page.evaluate("""() => { const t = __tank, G = t.G, p = G.player, out = {}; const b = t.spawn('boss', p.x + 110, p.y - 170); G.phase = 'fight'; const mx = b.maxHp; out.mx = mx;
+      const shell = () => G.bullets.push({ x: p.x + 40, y: p.y - 40, vx: 0, vy: 0, r: 4, owner: 1, dmg: 1, life: 5, dead: false, hits: null, bricks: null, sx: 0, sy: 0, dist: 0, bounced: false });
+      b.hp = mx; b.stunT = 0; shell(); t.nukeCharge(1); t.nukeFire(); t.step(1.5);
+      out.hp1 = +b.hp.toFixed(2); out.want1 = +Math.max(0.1 * mx, mx - 150).toFixed(2); out.dead = !!b.dead; out.stun = b.stunT; out.shells = G.bullets.filter(q => q.owner === 1).length; out.meter1 = t.nuke().meter;
+      b.hp = mx * 0.52; t.nukeCharge(1); t.nukeFire(); t.step(1.5); out.hp2 = +b.hp.toFixed(2); out.floor2 = +(0.1 * mx).toFixed(2); out.dead2 = !!b.dead;
+      b.hp = 3; t.nukeCharge(1); t.nukeFire(); t.step(1.5); out.hpLow = +b.hp.toFixed(2); out.dead3 = !!b.dead;
+      b.hp = mx; b.stunT = 0.5; t.nukeCharge(1); t.nukeFire(); t.step(1.3); out.stunKeep = b.stunT; return out; }""")
+    r = R['boss']
+    assert not r['dead'] and abs(r['hp1'] - r['want1']) < 0.05, r
+    assert r['stun'] > 1.4 and r['shells'] == 0 and r['meter1'] == 0, r  # 1.5 s step later about 1.5 s of the 3 s stun is left; blast damage does not recharge
+    assert not r['dead2'] and r['hp2'] >= r['floor2'] - 0.05 and r['hp2'] <= r['floor2'] + 0.05 or r['hp2'] <= 0.52 * r['mx'], r
+    assert not r['dead3'] and r['hpLow'] > 0 and r['hpLow'] <= 3.0, r
     vprint('boss:', R['boss'])
 
-    # 5. conditions: not ready, no enemy on screen, outside the fight phase
+    # 4b. boss-stage charging: nukeOnBossDamage fills the meter at 60% of max HP, once per fight
+    R['bossCharge'] = page.evaluate("""() => { const t = __tank, G = t.G, p = G.player, o = {}; G.enemies.length = 0; const b = t.spawn('boss', p.x + 110, p.y - 170); G.phase = 'fight'; const mx = b.maxHp;
+      G.nuke.meter = 0; G.nuke.bossAcc = 0; G.nukeOnBossDamage(b, 0.3 * mx); o.half = +G.nuke.meter.toFixed(3); G.nukeOnBossDamage(b, 0.3 * mx); o.full = +G.nuke.meter.toFixed(3); o.ready = t.nuke().ready;
+      G.nuke.meter = 0; G.nukeOnBossDamage(b, 5 * mx); o.second = G.nuke.meter; return o; }""")
+    r = R['bossCharge']; assert abs(r['half'] - 0.5) < 0.01 and r['full'] == 1 and r['ready'] and r['second'] == 0, r
+    page.evaluate("(() => { const G = __tank.G; G.enemies.length = 0; G.nuke.meter = 0; })()")
+
+    # 5. conditions: not ready, no enemy on the map, outside the fight phase
     R['cond'] = page.evaluate("""() => { const t = __tank, G = t.G, p = G.player, o = {}; G.enemies.length = 0; G.queue.length = 0; G.portals.length = 0;
-      const far = t.spawn('basic', p.x, p.y + 4000); t.nukeCharge(1); o.noEnemy = t.nukeFire(); far.dead = true; G.enemies.length = 0;
+      t.nukeCharge(1); o.noEnemy = t.nukeFire();
       t.spawn('basic', p.x + 60, p.y - 90); t.nukeCharge(0.5); o.notReady = t.nukeFire(); t.nukeCharge(1); G.phase = 'cleared'; o.wrongPhase = t.nukeFire(); G.phase = 'fight'; return o; }""")
     assert R['cond'] == {'noEnemy': False, 'notReady': False, 'wrongPhase': False}, R['cond']
 
