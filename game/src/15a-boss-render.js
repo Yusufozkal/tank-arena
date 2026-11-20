@@ -117,7 +117,7 @@ function drawTele() {
       const locked = tl.t >= tl.dur - tl.lock, len = tl.len, w = tl.w;
       ctx.save(); ctx.translate(tl.x, tl.y); ctx.rotate(tl.a);
       ctx.fillStyle = locked ? 'rgba(140,16,12,.5)' : `rgba(224,60,40,${(0.16 + 0.2 * k).toFixed(3)})`; ctx.fillRect(0, -w / 2, len, w);
-      ctx.strokeStyle = locked ? 'rgba(90,6,6,.95)' : 'rgba(255,90,60,.85)'; ctx.lineWidth = locked ? 3 : 2; ctx.setLineDash(locked ? [] : [14, 10]); ctx.lineDashOffset = -G.time * 60;
+      ctx.strokeStyle = locked ? 'rgba(90,6,6,.95)' : 'rgba(255,90,60,.85)'; ctx.lineWidth = locked ? 3 : 2; ctx.setLineDash(locked && !tl.dash ? [] : [14, 10]); // tl.dash: a bounce warning stays dashed ctx.lineDashOffset = -G.time * 60;
       ctx.strokeRect(0, -w / 2, len, w); ctx.setLineDash([]);
       ctx.strokeStyle = locked ? 'rgba(255,230,200,.8)' : 'rgba(255,200,170,.55)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(len, 0); ctx.stroke();
       ctx.restore();

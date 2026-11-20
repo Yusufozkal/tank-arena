@@ -84,11 +84,11 @@ function patrolSpot(e) { // a free tile 6-18 tiles away, the map centre favoured
   }
   return best;
 }
-function sees(e, p, fov) { // sight check from e toward the player: range (hidden / stealth shorten it), cone around the turret, line of sight
+function sees(e, p, fov, cone) { // sight check from e toward the player: range (hidden / stealth shorten it), cone around the turret, line of sight
   const d = Math.hypot(p.x - e.x, p.y - e.y);
   const hid = G.map.at(p.x, p.y) === BUSH && G.time - p.lastShot > 1.2, rng = G.buffs.stealth > 0 ? T * 1.6 : hid ? T * 2.3 : T * (AWARE.sight + (fov || 0));
   if (d >= rng) return false;
-  if (!e.canSee && d > AWARE.near * T && Math.abs(angDiff(e.turret, Math.atan2(p.y - e.y, p.x - e.x))) > AWARE.cone / 2) return false;
+  if (!e.canSee && d > AWARE.near * T && Math.abs(angDiff(e.turret, Math.atan2(p.y - e.y, p.x - e.x))) > (cone || AWARE.cone) / 2) return false;
   return los(e.x, e.y, p.x, p.y);
 }
 function searchSpot(e) { // a free tile 2-6 tiles around the last-known spot: bushes and corners preferred, away from other searchers' goals

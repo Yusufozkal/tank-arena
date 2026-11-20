@@ -7,7 +7,7 @@ from common import *  # noqa: F401,F403
 
 T = 48
 PLAYER_R = 17           # largest player hull incl. margin the tank collider uses
-BOSSES = {'komutan': ('kisla', 38), 'sari': ('kum', 27), 'demirkok': ('kale', 46)}
+BOSSES = {'komutan': ('kisla', 38), 'sari': ('kum', 27), 'demirkok': ('kale', 46), 'kapatici': ('kapanis', 27)}
 BLOCK = set('SBW'); SHOT_BLOCK = set('SB')
 FAR_MAX = 0.08          # largest share of inner open tiles that may lie 2+ tiles from every boss tile
 GAP = T                 # hull-to-hull gap the boss closes by itself (ram or charge): reach = boss r + player r + GAP
@@ -88,7 +88,7 @@ if __name__ == '__main__':
         rep[boss] = {'arena': ak, 'player_tiles': npl, 'boss_tiles': nbo, 'unreachable': bad}
         print(f"{boss:9s} arena {ak:6s} player tiles {npl:3d} boss tiles {nbo:3d} unreachable pockets {len(bad)} {bad[:8]}")
         fails += len(bad)
-    # live check: a passive player on the player-reachable tiles farthest from the boss's own tiles; the boss must touch or hurt it in time (slow Demirkok gets longer)
+    # live check (not for Kapatici: it only knows what it sees or hears, a passive player far away is not hunted by design): a passive player on the player-reachable tiles farthest from the boss's own tiles; the boss must touch or hurt it in time (slow Demirkok gets longer)
     LIVE = {'komutan': (15, 25), 'sari': (10, 20), 'demirkok': (20, 70)}
     with sync_playwright() as p:
         b = p.chromium.launch(); pg = new_ctx(b, 'reach2').new_page(); seed(pg); pg.click('#btnStart'); pg.wait_for_timeout(200)

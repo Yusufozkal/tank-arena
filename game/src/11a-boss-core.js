@@ -45,7 +45,7 @@ function parseArena(a) {
 function loadArena(key, theme) {
   const a = ARENAS[key], pa = parseArena(a);
   for (const [c, r] of a.gate || []) pa.t[r * pa.n + c] = BRICK;
-  const m = makeArena({ n: pa.n, t: pa.t, spawns: [] }, theme);
+  const m = makeArena({ n: pa.n, t: pa.t, spawns: [] }, a.theme || theme); // a.theme: an arena with its own floor (Kapanış)
   m.arena = key; m.frame = true; m.gate = a.gate || [];
   m.bossAt = { x: pa.boss.c * T + T / 2, y: pa.boss.r * T + T / 2 }; m.playerAt = { x: pa.player.c * T + T / 2, y: pa.player.r * T + T / 2 };
   return m;
@@ -57,6 +57,7 @@ function loadArena(key, theme) {
 const BOSS_DEFS = {};
 const BOSS_ON = { 10: 'komutan', 20: 'komutan', 30: 'komutan', 40: 'komutan' }; // boss wave (within the 40-wave cycle) -> def id; every 5th wave not listed is a Komutan
 const bossDefAt = w => {
+  if (G.forceBoss && BOSS_DEFS[G.forceBoss]) return BOSS_DEFS[G.forceBoss]; // debug / probes: start any BOSS_DEFS key (also sandboxOnly ones, which are never in BOSS_ON)
   if (w < 1 || w % 5) return null;
   const k = ((w - 1) % 40) + 1;
   return BOSS_DEFS[BOSS_ON[k] || 'komutan'] || null;
@@ -84,7 +85,7 @@ function addTele(e, o) { const tl = Object.assign({ t: 0, e, dur: TELE_MIN[o.kin
 function removeTele(tl) { const i = G.tele.indexOf(tl); if (i >= 0) G.tele.splice(i, 1); }
 function clearTele() { G.tele.length = 0; }
 function release(e, id, tl) { // the strike behind a telegraph happens now: log how long it was shown
-  e.log.push({ atk: id, kind: tl.kind, dur: +tl.t.toFixed(3), min: TELE_MIN[tl.kind] }); if (e.log.length > 300) e.log.shift();
+  e.log.push({ atk: id, kind: tl.kind, dur: +tl.t.toFixed(3), min: tl.min === undefined ? TELE_MIN[tl.kind] : tl.min }); // tl.min: a boss that shows a shorter warning on purpose (Kapatıcı's Kesin Atış 0.6 s) if (e.log.length > 300) e.log.shift();
 }
 // Hazards of the boss fight vanish: shells, pending telegraphed strikes, mines (used by phase changes, the death scene and the nuke)
 function bossClearHazards() {
@@ -283,6 +284,7 @@ function updateBoss(e, dt, halted) {
   if (halted) return; // stunned or frozen: neither moves nor attacks
   e.distP = Math.hypot(p.x - e.x, p.y - e.y);
   e.canSee = p.alive && los(e.x, e.y, p.x, p.y);
+  if (e.def.sense) e.def.sense(e, dt); // hook: a boss with fair senses replaces canSee with sight, hearing and a last-known spot (Kapatıcı)
   e.cool -= dt;
   e.unrT = p.alive && e.goalD > e.r + p.r + T ? (e.unrT || 0) + dt : 0; // the player stands where the hull cannot go (a pocket): after ~4 s startAttack prefers the arcing attacks (a.arc)
   e.healT = (e.healT === undefined ? 30 : e.healT) - dt; // a long fight: a worn-down player gets a Tamir kit now and then (not while one still lies around)
@@ -293,8 +295,8 @@ function updateBoss(e, dt, halted) {
     e.dt = dt; e.wait -= dt;
     if (e.wait <= 0) { const r = e.gen.next(); if (r.done) endAttack(e); else e.wait = r.value || 0; }
   } else {
-    if (e.cool <= 0 && p.alive) startAttack(e); else bossMove(e, dt, e.def.hold || 4.5);
-    if (!e.gen) { if (e.canSee) aimAtPlayer(e, dt); else e.turret = turnTo(e.turret, e.angle, e.spec.tTurn * 0.6 * dt); }
+    if (e.cool <= 0 && p.alive) startAttack(e); else if (e.def.move) e.def.move(e, dt); else bossMove(e, dt, e.def.hold || 4.5); // def.move: the boss's own brain (movement and turret)
+    if (!e.gen && !e.def.move) { if (e.canSee) aimAtPlayer(e, dt); else e.turret = turnTo(e.turret, e.angle, e.spec.tTurn * 0.6 * dt); }
   }
 }
 function startAttack(e) {

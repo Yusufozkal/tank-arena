@@ -61,13 +61,15 @@ if (DEBUG) {
     hurtBoss(d, x, y, dir) { const e = G.boss; hurtEnemy(e, d, x === undefined ? e.x : x, y === undefined ? e.y : y, dir); return e.hp; },
     partInfo(e) { e = e || G.boss; return e.tr ? { treadT: +e.treadT.toFixed(2), tr: e.tr.map(t => ({ hp: +t.hp.toFixed(1), max: t.max, br: t.br, t: +t.t.toFixed(2) })), bars: e.bars.map(b => ({ id: b.id, acc: +b.acc.toFixed(1), thr: b.thr, t: +b.t.toFixed(2) })), cancels: e.cancels } : e.pt ? { tread: +e.pt.tread.toFixed(2), barrel: +e.pt.barrel.toFixed(2), engine: +e.pt.engine.toFixed(2), imm: Object.assign({}, e.pt.imm), dur: Object.assign({}, e.pt.dur) } : null; },
     partBreak, PART_T, PART_HP, damageEnemy, alertHit, checkDodge, DODGE, AWARE, BT, hurtEnemy, bossVolley,
+    // start any BOSS_DEFS key (also sandboxOnly ones) at wave w with its own arena; the intro runs (bossSkip ends it)
+    bossStart(key, w) { G.forceBoss = key; G.wave = (w || 25) - 1; nextWave(); G.forceBoss = null; return this.bossInfo(); },
     bossSkip() { G.introSeen = true; G.phaseT = Math.max(G.phaseT, 0.3); bossIntroTap(); },
-    bossDanger, bossClearHazards, BOSS_DEFS, ARENAS, parseArena, themeFor, bossDefAt,
+    bossDanger, bossClearHazards, BOSS_DEFS, BOSS_ON, startBossStage, loadArena, ARENAS, parseArena, themeFor, bossDefAt,
     // one boss fight for the probe: wave w, workshop cards (object), tank id; the bot plays until the boss falls, the tank dies or maxSec passes
-    bossFight(w, cards, tank, maxSec) {
+    bossFight(w, cards, tank, maxSec, key) {
       store.set(BOSS_SEEN_KEY, true); bot.on = true; bot.nuke = false; G.god = false; G.noEvo = true;
       G.up = Object.assign({}, cards); G.tank = tank || 'std'; refreshPlayer(); G.player.hp = G.player.maxHp;
-      view.zoomK = TANKS[G.tank].zoom; G.wave = w - 1; nextWave(); G.introSeen = true; endBossIntro(true);
+      view.zoomK = TANKS[G.tank].zoom; G.forceBoss = key || null; G.wave = w - 1; nextWave(); G.forceBoss = null; G.introSeen = true; endBossIntro(true);
       const p = G.player, e = G.boss, hp0 = p.hp; let n = 0, hurtSum = 0, last = p.hp; const max = Math.round(maxSec * 60);
       while (n < max && G.state === 'play' && p.alive && !e.dead && !e.dying) {
         autopilot(1 / 60); update(1 / 60); n++;
@@ -77,14 +79,14 @@ if (DEBUG) {
       return { win: !!(e.dead || e.dying), secs: +(n / 60).toFixed(1), dmg: Math.round(hurtSum), hpLeft: Math.round(p.hp), bphase: e.phase, bossHp: +(e.hp / e.maxHp).toFixed(2), maxHp: e.maxHp };
     },
     // stuck watch: like bossFight, but samples the boss while it is supposed to walk; returns the longest stretch without progress (s) and where it happened
-    bossWatch(w, cards, tank, maxSec) {
+    bossWatch(w, cards, tank, maxSec, key) {
       store.set(BOSS_SEEN_KEY, true); bot.on = true; bot.nuke = false; G.god = true; G.noEvo = true;
       G.up = Object.assign({}, cards); G.tank = tank || 'std'; refreshPlayer(); G.player.hp = G.player.maxHp;
-      view.zoomK = TANKS[G.tank].zoom; G.wave = w - 1; nextWave(); G.introSeen = true; endBossIntro(true);
+      view.zoomK = TANKS[G.tank].zoom; G.forceBoss = key || null; G.wave = w - 1; nextWave(); G.forceBoss = null; G.introSeen = true; endBossIntro(true);
       const p = G.player, e = G.boss, max = Math.round(maxSec * 60); let n = 0, rx = e.x, ry = e.y, st = 0, worst = 0, at = null, moving = 0, god = 0;
       while (n < max && G.state === 'play' && !e.dead && !e.dying) {
         autopilot(1 / 60); update(1 / 60); n++;
-        const walk = G.phase === 'fight' && !e.invuln && e.trans <= 0 && !(e.stunT > 0) && e.treadT <= 0 && !e.rooted && (!e.gen || e.atkId === 'cevik') && !(e.canSee && e.distP < (e.def.hold || 4.5) * T);
+        const walk = G.phase === 'fight' && !e.invuln && e.trans <= 0 && !(e.stunT > 0) && e.treadT <= 0 && !e.rooted && (!e.gen || e.atkId === 'cevik') && !(e.canSee && e.distP < (e.def.hold || 4.5) * T) && (!e.def.watchGoal || e.def.watchGoal(e));
         if (!walk) { st = 0; rx = e.x; ry = e.y; continue; }
         moving++;
         if (Math.hypot(e.x - rx, e.y - ry) >= 14) { rx = e.x; ry = e.y; st = 0; } else { st += 1 / 60; if (st > worst) { worst = st; at = { x: Math.round(e.x), y: Math.round(e.y), t: +(n / 60).toFixed(1), atk: e.atkId, phase: e.phase, c: Math.floor(e.x / T), r: Math.floor(e.y / T) }; } }
@@ -93,9 +95,9 @@ if (DEBUG) {
       return { worst: +worst.toFixed(2), at, win: !!(e.dead || e.dying), secs: +(n / 60).toFixed(1), moving: +(moving / 60).toFixed(1) };
     },
     // reach probe: the player sits still on tile (c, r) (god mode, no bot); returns the closest the boss got (hull edge to hull edge, px) and whether it fired at or touched the player within maxSec
-    bossReach(w, c, r, maxSec) {
+    bossReach(w, c, r, maxSec, key) {
       store.set(BOSS_SEEN_KEY, true); bot.on = false; G.god = false; G.noEvo = true; G.up = {}; G.tank = 'std'; refreshPlayer(); G.player.maxHp = G.player.hp = 1e6;
-      G.wave = w - 1; nextWave(); G.introSeen = true; endBossIntro(true);
+      G.forceBoss = key || null; G.wave = w - 1; nextWave(); G.forceBoss = null; G.introSeen = true; endBossIntro(true);
       const p = G.player, e = G.boss, max = Math.round(maxSec * 60); p.x = c * T + T / 2; p.y = r * T + T / 2; let n = 0, best = 1e9, hit = -1, hp0 = p.hp, seen = 0;
       while (n < max && G.state === 'play' && !e.dead && !e.dying) {
         p.x = c * T + T / 2; p.y = r * T + T / 2; update(1 / 60); n++;
