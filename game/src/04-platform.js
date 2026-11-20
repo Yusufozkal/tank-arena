@@ -46,6 +46,7 @@ const SPR = {
   fire: glowSprite('rgba(255,248,215,1)', 'rgba(255,165,55,.75)', 'rgba(255,80,20,0)'),
   flash: glowSprite('rgba(255,255,240,1)', 'rgba(255,225,150,.5)', 'rgba(255,200,100,0)'),
   smoke: glowSprite('rgba(62,58,52,.62)', 'rgba(62,58,52,.32)', 'rgba(62,58,52,0)'),
+  smokeK: glowSprite('rgba(16,14,12,.85)', 'rgba(16,14,12,.5)', 'rgba(16,14,12,0)'),
   blue: glowSprite('rgba(230,248,255,1)', 'rgba(110,195,240,.6)', 'rgba(60,140,220,0)')
 };
 for (const k in PU) { PU[k].glow = glowSprite(`rgba(${PU[k].rgb},.95)`, `rgba(${PU[k].rgb},.4)`, `rgba(${PU[k].rgb},0)`); SPR['pu_' + k] = PU[k].glow; }

@@ -90,7 +90,7 @@ function* komBombard(e) { // bombardıman hattı: a row of circles across the ar
 }
 const KOM_ATTACKS = [
   { id: 'triple', w: 3, ok: e => true, run: komTriple },
-  { id: 'ezme', w: 2.2, ok: e => e.distP > 2.5 * T, run: komCharge },
+  { id: 'ezme', w: 2.2, ok: e => e.distP > 2.5 * T, run: komCharge, mov: true },
   { id: 'topcu', w: 2, ok: e => e.unlock.topcu && partAlive(e, 'tower'), run: komMortar },
   { id: 'yaylim', w: 2, ok: e => e.unlock.yaylim && e.phase >= 1, run: komSalvo },
   { id: 'bomb', w: 1.6, ok: e => e.unlock.bomb && e.phase >= 1, run: komBombard, cd: 9 },
@@ -99,7 +99,7 @@ const KOM_ATTACKS = [
 BOSS_DEFS.komutan = {
   id: 'komutan', name: 'KOMUTAN', arena: 'kisla', introSub: 'Kışla', hold: 4.5, phases: [66, 33], plates: ['shoulder', 'skirt'],
   deathText: 'KOMUTAN DÜŞTÜ', loot: 'KOMUTAN GANİMETİ',
-  hp: bossHp, attacks: KOM_ATTACKS,
+  hp: bossHp, attacks: KOM_ATTACKS, barrels: [{ id: 'mid', name: 'Orta namlu', ang: 0, k: 0.07 }],
   unlocks: w => ({ tower: w >= 15, topcu: w >= 15, yaylim: w >= 25, bomb: w >= 25, penta: w >= 35, shock: w >= 35 }),
   setup(e, w) {
     if (e.unlock.tower) e.parts.push({ id: 'tower', name: 'Komuta kulesi', atk: 'topcu', ox: -24, oy: 0, r: 15, maxHp: Math.max(2, Math.round(e.maxHp * 0.1)), hp: Math.max(2, Math.round(e.maxHp * 0.1)), alive: true, flash: 0 });

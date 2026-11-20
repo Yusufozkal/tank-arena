@@ -111,17 +111,17 @@ function updateEnemy(e, dt) {
       else { tx = e.wp.x; ty = e.wp.y; hasT = true; }
     }
   }
-  const before = e.angle, ox = e.x, oy = e.y;
-  if (hasT) {
+  const before = e.angle, ox = e.x, oy = e.y, trB = !!e.pt && e.pt.tread > 0, jam = !!e.pt && e.pt.barrel > 0, pk = e.pt && e.pt.engine > 0 ? 0.5 : 1; // part damage: broken tread / jammed barrel / damaged engine
+  if (hasT && !trB) {
     const desired = Math.atan2(ty - e.y, tx - e.x);
     e.angle = turnTo(e.angle, desired, s.turn * dt);
     const diff = Math.abs(angDiff(e.angle, desired));
-    const spd = diff < 0.55 ? s.speed * e.speedMul * (1 - diff * 0.9) : 0;
+    const spd = diff < 0.55 ? s.speed * e.speedMul * pk * (1 - diff * 0.9) : 0;
     moveTank(e, Math.cos(e.angle) * spd * dt, Math.sin(e.angle) * spd * dt);
     const dw = Math.hypot(tx - e.x, ty - e.y);
     if (dw < e.wpBest - 0.5) { e.wpBest = dw; e.stuckT = 0; } else e.stuckT += dt;
     if (e.stuckT > 1.2) { e.wp = randomNeighbor(e); e.wpBest = 1e9; e.stuckT = 0; }
-  } else if (e.blast) {
+  } else if (e.blast && !trB) {
     e.angle = turnTo(e.angle, Math.atan2(e.blast.y - e.y, e.blast.x - e.x), s.turn * dt);
   }
   if (dt > 0) { e.avx = (e.x - ox) / dt; e.avy = (e.y - oy) / dt; }
@@ -135,7 +135,7 @@ function updateEnemy(e, dt) {
   if (e.type === 'boss') e.chargeT = e.canSee && p.alive && e.cool < 0.55 ? e.chargeT + dt : 0; // Komutan's barrels glow while charging
   if (aim !== null) {
     e.turret = turnTo(e.turret, aim, s.tTurn * dt);
-    if (may && e.cool <= 0 && Math.abs(angDiff(e.turret, aim)) < 0.07 && (e.type !== 'boss' || !e.canSee || e.chargeT >= 0.45)) {
+    if (may && e.cool <= 0 && !jam && Math.abs(angDiff(e.turret, aim)) < 0.07 && (e.type !== 'boss' || !e.canSee || e.chargeT >= 0.45)) {
       fireTank(e); e.cool = s.cool * e.coolMul * rand(0.85, 1.25); e.aimErr = rand(-G.mods.err, G.mods.err);
       if (e.type === 'boss') e.chargeT = 0;
     }
@@ -214,12 +214,13 @@ function updateHunter(e, dt) {
   else if (e.mode === 'cover') { if (e.cool <= 0.3 || !p.alive) { e.mode = 'hunt'; e.path = null; } }
   else if (e.canSee && G.time - e.lastShot < 0.25 && e.cool > 0.7) { e.mode = 'cover'; e.path = null; G.covers++; }
 
-  const before = e.angle, ox = e.x, oy = e.y;
+  const before = e.angle, ox = e.x, oy = e.y, trB = !!e.pt && e.pt.tread > 0, jam = !!e.pt && e.pt.barrel > 0, pk = e.pt && e.pt.engine > 0 ? 0.5 : 1; // part damage
   let goal = null;
   e.blast = null;
+  if (trB) e.dodge = null;
   if (e.dodge) {
     e.dodge.t -= dt;
-    const sp = s.speed * 1.6 * e.speedMul;
+    const sp = s.speed * 1.6 * e.speedMul * pk;
     moveTank(e, e.dodge.x * sp * dt, e.dodge.y * sp * dt);
     if (e.dodge.t <= 0) { e.dodge = null; e.wp = null; e.path = null; }
   } else if (e.mode === 'cover' || e.mode === 'retreat') {
@@ -239,16 +240,16 @@ function updateHunter(e, dt) {
       if (v === BRICK) e.blast = e.wp; else if (blocksTank(v)) e.wp = null; else goal = e.wp;
     }
   }
-  if (goal) {
+  if (goal && !trB) {
     const desired = Math.atan2(goal.y - e.y, goal.x - e.x);
     e.angle = turnTo(e.angle, desired, s.turn * dt);
     const diff = Math.abs(angDiff(e.angle, desired));
-    const spd = diff < 0.6 ? s.speed * e.speedMul * (1 - diff * 0.8) : 0;
+    const spd = diff < 0.6 ? s.speed * e.speedMul * pk * (1 - diff * 0.8) : 0;
     moveTank(e, Math.cos(e.angle) * spd * dt, Math.sin(e.angle) * spd * dt);
     const dw = Math.hypot(goal.x - e.x, goal.y - e.y);
     if (dw < e.wpBest - 0.5) { e.wpBest = dw; e.stuckT = 0; } else e.stuckT += dt;
     if (e.stuckT > 1) { e.wp = randomNeighbor(e); e.path = null; e.wpBest = 1e9; e.stuckT = 0; }
-  } else if (e.blast) e.angle = turnTo(e.angle, Math.atan2(e.blast.y - e.y, e.blast.x - e.x), s.turn * dt);
+  } else if (e.blast && !trB) e.angle = turnTo(e.angle, Math.atan2(e.blast.y - e.y, e.blast.x - e.x), s.turn * dt);
   if (dt > 0) { e.avx = (e.x - ox) / dt; e.avy = (e.y - oy) / dt; }
   trackUpdate(e, (e.x - ox) * Math.cos(e.angle) + (e.y - oy) * Math.sin(e.angle), angDiff(before, e.angle));
 
@@ -269,7 +270,7 @@ function updateHunter(e, dt) {
     e.turret = turnTo(e.turret, aim, s.tTurn * dt);
     const off = Math.abs(angDiff(e.turret, aim));
     e.lock = e.canSee && may && e.cool < 0.45 && off < 0.3;
-    if (may && e.cool <= 0 && off < 0.06) {
+    if (may && e.cool <= 0 && !jam && off < 0.06) {
       fireTank(e);
       e.cool = s.cool * e.coolMul * rand(0.9, 1.15);
       e.aimErr = rand(-G.mods.err, G.mods.err);
@@ -279,3 +280,52 @@ function updateHunter(e, dt) {
   damageSmoke(e, dt);
 }
 
+
+/* ================= parça hasarı (docs/BOSSES.md section 2) ================= */
+// A shell hit that does not kill breaks a part by the direction it came from (against the hull): side -> tread (cannot move), front -> barrel (cannot fire), rear -> engine (half speed).
+// e.pt = { tread, barrel, engine: seconds left broken; imm: seconds of immunity after the repair; dur: the repair time (ring); side }. Boss treads and barrels: 11a.
+const PART_T = { tread: 1.5, barrel: 1.2, engine: 1.8, imm: 1.5, fast: 1.3, fastFrom: 20 }, PART_NAME = { tread: 'Palet kırıldı', barrel: 'Namlu tutukluk', engine: 'Motor hasarlı' };
+const partSeen = {};
+function partWorld(e, k) { // world position of a part: tread (the broken side), barrel (muzzle), engine (rear deck)
+  const s = e.spec, ca = Math.cos(e.angle), sa = Math.sin(e.angle);
+  if (k === 'barrel') return { x: e.x + Math.cos(e.turret) * s.barrel, y: e.y + Math.sin(e.turret) * s.barrel };
+  const lx = k === 'engine' ? -s.len / 2 : 0, ly = k === 'tread' ? (e.pt.side ? 1 : -1) * (s.wid / 2 - s.tread / 2) : 0;
+  return { x: e.x + ca * lx - sa * ly, y: e.y + sa * lx + ca * ly };
+}
+function partBreak(e, b) { // called from damageEnemy: a direct shell of the player hit tank e and did not kill it
+  if (e.dead || e.isBoss || e.type === 'boss' || b.owner !== 0 || b.lob || G.boss === e) return;
+  if (b.vol && e.pvol === b.vol) return; // the other shells of one volley (Ikiz, Uclu, Sarapnel) count once
+  e.pvol = b.vol;
+  const a = angDiff(e.angle, Math.atan2(-b.vy, -b.vx)), aa = Math.abs(a); // direction towards the shooter, against the hull
+  const k = aa < 0.785 ? 'barrel' : aa > 2.356 ? 'engine' : 'tread';
+  const pt = e.pt || (e.pt = { tread: 0, barrel: 0, engine: 0, imm: { tread: 0, barrel: 0, engine: 0 }, dur: { tread: 0, barrel: 0, engine: 0 }, side: 0, fx: 0 });
+  if (pt[k] > 0 || pt.imm[k] > 0) return;
+  pt[k] = pt.dur[k] = PART_T[k] / (G.wave > PART_T.fastFrom ? PART_T.fast : 1);
+  if (k === 'tread') pt.side = a > 0 ? 1 : 0;
+  const q = partWorld(e, k), vl = volAt(e.x, e.y);
+  if (k === 'tread') {
+    for (let i = 0, n = Math.max(3, Math.round(7 * fxScale)); i < n; i++) { const an = rand(0, TAU), v = rand(40, 170); addPart('debris', q.x + rand(-8, 8), q.y + rand(-8, 8), Math.cos(an) * v, Math.sin(an) * v, rand(0.7, 1.3), rand(3, 5.5), 0, 3.4, i & 1 ? '#4b473e' : '#1f1d19'); }
+    sparks(q.x, q.y, 9, '#ffd27a', 240);
+  } else if (k === 'barrel') { sparks(q.x, q.y, 8, '#ffb04a', 220); for (let i = 0; i < 3; i++) addPart('smoke', q.x, q.y, rand(-20, 20), rand(-30, -8), rand(0.6, 1), rand(10, 15), 22, 2); }
+  else { for (let i = 0, n = Math.max(2, Math.round(5 * fxScale)); i < n; i++) addPart('smoke', q.x + rand(-4, 4), q.y + rand(-4, 4), rand(-40, 10) - Math.cos(e.angle) * 20, rand(-30, 5), rand(0.8, 1.4), rand(12, 20), 26, 1.6, 'k'); sparks(q.x, q.y, 5, '#ffb04a', 160); }
+  Sound.metal(vl);
+  if (!partSeen[k]) { partSeen[k] = true; addText(e.x, e.y - e.r - 12, PART_NAME[k], '#ffd27a', 13); }
+}
+function partTick(e, dt) { // timers, repair, smoke; once per frame per enemy (tickStatus)
+  const pt = e.pt;
+  pt.fx -= dt; const fx = pt.fx <= 0; if (fx) pt.fx = 0.1;
+  for (const k of ['tread', 'barrel', 'engine']) {
+    if (pt[k] > 0) {
+      pt[k] -= dt;
+      if (pt[k] <= 0) { // repaired: a spark burst and a ring, then 1.5 s immune
+        pt[k] = 0; pt.imm[k] = PART_T.imm; const q = partWorld(e, k);
+        sparks(q.x, q.y, 5, '#fff0b0', 150); addPart('ring', q.x, q.y, 0, 0, 0.3, 4, 40, 0, '255,230,150');
+      } else if (fx) {
+        const q = partWorld(e, k);
+        if (k === 'tread') { if (Math.random() < 0.5) addPart('spark', q.x, q.y, rand(-60, 60), rand(-90, -20), rand(0.15, 0.3), 1, 0, 4, '#ffb04a'); }
+        else if (k === 'barrel') addPart('smoke', q.x, q.y, rand(-8, 8), rand(-30, -14), rand(0.7, 1.1), rand(8, 13), 20, 1.5);
+        else if (fxScale === 1 || Math.random() < 0.5) addPart('smoke', q.x, q.y, rand(-10, 10) - Math.cos(e.angle) * 22, rand(-30, -12), rand(0.8, 1.3), rand(10, 16), 24, 1.5, 'k');
+      }
+    } else if (pt.imm[k] > 0) pt.imm[k] -= dt;
+  }
+}

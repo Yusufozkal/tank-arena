@@ -2,6 +2,30 @@
 // drawTank hands bosses to drawBoss. Komutan: bordeaux hull, gold trim, three barrels, command tower with a banner (bigger than the old Komutan: 90 long).
 function drawBoss(e, alpha, g) {
   if (e.def && e.def.draw) e.def.draw(e, g, alpha); else drawKomutan(e, g, alpha);
+  if (e.tr) drawBossPartDamage(e, g, alpha);
+}
+// part damage on every boss (11a): broken treads (missing links, loose pieces), silent barrels (bent dark stub), repair rings above the treads
+function drawBossPartDamage(e, g, alpha) {
+  const s = e.spec, L = s.len, W = s.wid, tw = s.tread;
+  g.save(); g.translate(e.x, e.y); g.rotate(e.angle); g.globalAlpha = alpha;
+  for (let i = 0; i < 2; i++) {
+    if (e.tr[i].t <= 0) continue;
+    const y0 = i ? W / 2 - tw : -W / 2;
+    g.fillStyle = 'rgba(8,6,4,.8)'; g.fillRect(-L * 0.34, y0 + 0.5, L * 0.5, tw - 1);
+    g.fillStyle = '#4b473e'; for (let k = 0; k < 5; k++) g.fillRect(-L * 0.38 + k * 5.5, y0 + ((k * 5) % 4) + 0.8, 3.4, 2.2);
+    g.strokeStyle = '#ffb04a'; g.lineWidth = 1.2; g.globalAlpha = alpha * (0.5 + 0.5 * Math.sin(G.time * 18)); g.beginPath(); g.moveTo(-L * 0.34, y0 + 1); g.lineTo(-L * 0.34, y0 + tw - 1); g.stroke(); g.globalAlpha = alpha;
+  }
+  g.rotate(e.turret - e.angle);
+  for (const b of e.bars) {
+    if (b.t <= 0) continue;
+    g.save(); g.rotate(b.ang); const tip = s.barrel + 2 - e.recoil * 5;
+    g.rotate(-0.25); g.fillStyle = '#17110f'; g.fillRect(tip - 16, -7, 18, 14); g.fillStyle = '#ffb04a'; g.globalAlpha = alpha * (0.4 + 0.4 * Math.sin(G.time * 20)); g.fillRect(tip, -2, 2.5, 4);
+    g.restore();
+  }
+  g.restore();
+  for (let i = 0; i < 2; i++) { const tr = e.tr[i]; if (tr.t > 0) { const q = treadWorld(e, i); repairRing(g, q.x, q.y - 18, 1 - tr.t / BT.halt, alpha); } }
+  const jam = e.bars.find(b => b.t > 0); if (jam) { const mx = e.x + Math.cos(e.turret + jam.ang) * s.barrel, my = e.y + Math.sin(e.turret + jam.ang) * s.barrel; repairRing(g, mx, my - 18, 1 - jam.t / BT.silent, alpha); }
+  g.globalAlpha = 1;
 }
 function drawKomutan(e, g, alpha) {
   const s = e.spec, c = s.col, L = s.len, W = s.wid, tw = s.tread, tr = s.tR, lost = e.lost, tower = e.parts.find(p => p.id === 'tower');
