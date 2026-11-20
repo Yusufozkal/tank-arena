@@ -144,15 +144,12 @@ function synPickup(kind) { // Zincir: every other active power-up grows
   for (const k of BUFFS) if (k !== kind && G.buffs[k] > 0) { G.buffs[k] += SYN_K.chainAdd; G.buffMax[k] += SYN_K.chainAdd; n++; }
   if (n) { const p = G.player; addText(p.x, p.y - 46, 'Zincir +' + SYN_K.chainAdd + ' sn', '#7fd0ff', 15); addPart('ring', p.x, p.y, 0, 0, 0.45, 10, 90, 0, '127,208,255'); }
 }
-// Workshop: badge on a card that completes a synergy with an owned card, otherwise a faint hint for its first synergy
+// Workshop: a card shows a synergy block only for synergies whose partner the player already owns (picking the card completes them); none otherwise
 function synBadgeHTML(k) {
-  const mine = SYN.filter(sy => sy.a === k || sy.b === k);
-  if (!mine.length) return '';
-  const partner = sy => sy.a === k ? sy.b : sy.a;
-  const done = mine.find(sy => !upL(k) && upL(partner(sy)) > 0);
-  if (done) return `<span class="up-syn on"><b>Birleşim: ${done.name}</b><i>${done.desc}</i></span>`;
-  const open = mine.find(sy => !upL(partner(sy)));
-  return open ? `<span class="up-syn"><b>${UPS[partner(open)].name} ile birleşir: ${open.name}</b><i>${open.desc}</i></span>` : '';
+  if (upL(k)) return '';
+  const done = SYN.filter(sy => (sy.a === k || sy.b === k) && upL(sy.a === k ? sy.b : sy.a) > 0);
+  if (!done.length) return '';
+  return `<span class="up-syn on">${done.map(sy => `<b>Birleşim: ${sy.name}</b><i>${sy.desc}</i>`).join('')}</span>`;
 }
 // chooseUpgrade: before = ids active before the card, returns the new ones; the banner is shown by the caller's phase delay
 function synUnlocked(before) { return synList().filter(sy => !before.includes(sy.id)); }
