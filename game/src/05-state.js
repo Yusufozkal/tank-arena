@@ -23,7 +23,7 @@ const G = {
   buffs: freshBuffs(), buffMax: freshBuffs(), bushHint: false, beaten: new Set(), resume: null, overFree: null,
   D: RULES, dodges: 0, covers: 0,
   up: {}, strikes: [], jet: null, airQ: 0, stage: null, tele: [], pieces: [], introGate: false, introSeen: false,
-  tank: 'std', upMode: 'cards', evoWait: 0, noEvo: false
+  tank: 'std', upMode: 'cards', evoWait: 0, noEvo: false, sandbox: false, sbx: null, sbxWin: false
 };
 const upL = k => G.up[k] | 0;
 const bountyPts = () => Math.round(250 * Math.max(1, G.wave) * G.D.score);
@@ -58,7 +58,7 @@ function resize() {
   readSafe(); sizeMini(); measureHud();
   if (G.map && Math.abs(layerRes(G.map) - G.map.res) / G.map.res > 0.2) buildLayer(G.map);
   if (G.state === 'menu' && G.map && G.player) { cam.x = G.map.w / 2; cam.y = G.map.h / 2; clampCam(); computeView(); placeMenuTank(); }
-  if (G.state === 'over') G.overFree = freeArea(el.overPanel);
+  if (G.state === 'over') G.overFree = freeArea(G.sandbox ? $('sbxEndPanel') : el.overPanel);
 }
 function clampCam() {
   const m = G.map; if (!m) return;
