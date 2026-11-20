@@ -324,3 +324,15 @@ Boss canı %8–11 düştü (kullanıcı çok azaltılmasını istemedi). Savaş
 - Orta set 15–25. dalgalarda canının çoğunu kaybediyor (hedef %40–70'ti); kazanma yine de 9–10/10.
 - Zayıf set 25. dalgada 0/10; çıplak tank Demirkök'ün yarı hasar kalkanına karşı zamanı dolduruyor.
 
+## 1.5.3 sonuçları (20 Kasım 2026)
+
+Düşman görüşü 8,5 kare + 120° koni, doğuşta ipucu yok, duyma 6 kare; oyuncu mermi menzili ~14 kare (nişancı ~19). Telafi `SHARP`: düşman dolumu ×0,88, nişan hatası ×0,75 (can eklenmedi).
+
+| | 1.5.2 | 1.5.3 öncesi telafi | 1.5.3 |
+|---|---|---|---|
+| Ortalama bitiş dalgası | 24,4 | 29,5 | 25,6 |
+| 40'a ulaşma | %10 | %30 | %10 |
+
+Görmeyen düşmanın oyuncuya yönelme ölçüsü (`check_ai`, ortalama kosinüs): 0,683 → 0,401 (ayna nokta tabanı ~0,3).
+
+Komutan canı (Kışla açıldığı için savaş kısalmıştı): 15. dalga 550 → 960, 25. dalga 840 → 1130. boss_probe (6 savaş): 5. dalga orta 50 sn; 15. dalga orta ~140–220 sn (960 ölçülmedi, 920 ve 1000 arası), zayıf 2/6; 25. dalga orta 183 sn, zayıf 0/6. Sarı ve Demirkök değişmedi.

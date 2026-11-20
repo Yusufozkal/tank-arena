@@ -290,6 +290,12 @@ Kullanıcının isteği: diep.io'daki Arena Closer benzeri, ana oyunda olmayan, 
 - Geliş: ilk kez 13. dalgada tek tane ve "Yeni düşman: Tamirci" ipucu; sonra payı 0,03 + 0,015·(dalga − 13), en fazla 0,15; sahada aynı anda en fazla 2.
 - Bot: Tamirci görünüyorsa önce onu vurur.
 
+## 1.5.3'te değişenler
+
+- Arena cepleri kapandı (Kışla 96, Kum 20, Kale 12 karede oyuncu girebiliyor, boss ulaşamıyordu). Kural: çelik bloklar arası ve blok–kenar arası boşluk 0 ya da en az 3 kare. Test `check_boss_reach.py`.
+- Boss 4 sn oyuncuya ulaşamazsa kavisli saldırıya geçer (`arc: true`: Komutan topçu ve bombardıman, Demirkök havan; Sarı'da yok).
+- Komutan canı: 5→185, 15→960, 25→1130, 35→1350, sonrası +25/dalga.
+
 ## 1.5.2'de değişenler (oyuncu geri bildirimi)
 
 - Canlar %8–11 düştü: Komutan 5→185, 15→550, 25→840, 35→1090, sonrası +25/dalga; Sarı Fırtına 460 + 23·(dalga − 10); Demirkök 1020 + 27·(dalga − 20). Kullanıcı canın çok azaltılmasını istemedi; asıl istek vuruşun görünmesiydi: üstte büyük boss çubuğu, yüzde, giden can kısa süre açık renkte kalır, evre çizgileri.
