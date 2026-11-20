@@ -253,6 +253,26 @@ SSS...SSS...SSS...SSS
 - Evre 4 "Son direniş" (%30–0): meydanda durur, çekirdek açılır (2 kat hasar); döner ateş + her 8 sn şok dalgası ve havan; saldırılar %25 hızlı.
 - Ölüm: uzun zincirleme patlama, ağır çekim, "SON HİSAR DÜŞTÜ", ardından "İKİNCİ TUR" ve Çöl'e dönüş.
 
+## 9. Bölge düşmanları ve Tamirci (1.5.1, Orman)
+
+### Bölge kuralı (kullanıcının fikri)
+- Her düşman türü bir boss'a bağlıdır. O boss bu oyunda yenilince o türler oyunun geri kalanında gelmez:
+  - Sarı Fırtına (10) → Hızlı (Keşif tankı)
+  - Demirkök (20) → Ağır ve Tamirci
+  - Kırağı (30, ileride) → Avcı
+- Normal tank her zaman gelir (Komutan'ın türü; Komutan her bölgede döner).
+- Yeni bölgenin ilk dalgasında başlığın altında kısa bir satır: "ORMAN BÖLGESİ · Keşif tankları artık gelmiyor" gibi.
+- Bir boss dalgası henüz kendi boss'u yerine Komutan'la oynanıyorsa (bugün 30 ve 40) o boss'a bağlı türler kalkmaz.
+- Geçici durum: Kar ve Şehir bölgelerinin kendi yeni türleri gelene kadar oralarda tür azdır; zorluk can artışıyla değil sayı, isabet ve ateş hızıyla korunur.
+
+### Tamirci (Orman'ın yeni türü)
+- Görünüş: orta boy tank (uzunluk 36), namlu yerine sarı vinç kolu ve anahtar; zeytin yeşili #6f8a3a, koyu #46591f, açık #9fbf5a, vurgu sarı #f2c14e. Silahı yok. Kırmızı haç gibi tıbbi işaret kullanılmaz.
+- Can 3, hız 95, puan 200, güçlendirme düşürme şansı 0,3.
+- Davranış: 6 kare içindeki en hasarlı müttefiki (can oranı düşük ya da parçası bozuk) seçer; onun 2–4 kare arkasında, müttefiki kendisiyle oyuncu arasında tutacak yerde durur; çalıyı tercih eder. Oyuncu 4 kareden yakınsa ve görüyorsa kaçar.
+- Onarım: hedefe yeşil onarım ışını (görünür çizgi); saniyede 0,5 can verir (en fazla hedefin tam canı); bozuk parçayı (palet, namlu, motor) hemen onarır. Bir hedefi aynı anda tek Tamirci onarır. Işın açıkken ve kapandıktan sonra 1 sn Tamirci çalıda da görünür.
+- Geliş: ilk kez 13. dalgada tek tane ve "Yeni düşman: Tamirci" ipucu; sonra payı 0,03 + 0,015·(dalga − 13), en fazla 0,15; sahada aynı anda en fazla 2.
+- Bot: Tamirci görünüyorsa önce onu vurur.
+
 ## 1.5'te uygulanırken değişenler
 
 - Normal düşman parça hasarı süreleri 1,5 / 1,2 / 1,8 sn (palet / namlu / motor); şartnamedeki 2,5 / 2 / 3 sn oyunu fazla kolaylaştırdı.
