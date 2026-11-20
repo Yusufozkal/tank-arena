@@ -1930,7 +1930,10 @@ function regen(p, dt) {
 const NUKE_WAVES = 2.5;                                                  // waves of kills to fill the meter (E tunes this)
 const NUKE_WEIGHT = { basic: 1, fast: 1, hunter: 1.5, heavy: 2, boss: 3 }; // meter weight per enemy type
 const NUKE_WARN = 1.2;      // seconds of warning (game time) before the blast
-const NUKE_BOSS_CUT = 0.25; // share of the Komutan's max HP the blast takes (never kills)
+const NUKE_BOSS_DMG = 150;  // fixed blast damage to a boss (150 x the base shell damage of 1); never lethal
+const NUKE_BOSS_FLOOR = 0.1; // a boss keeps at least this share of its max HP after the blast
+const NUKE_BOSS_STUN = 3;   // seconds a boss is stunned
+const NUKE_BOSS_FILL = 0.6; // share of a boss's max HP that, dealt as damage, fills the meter once (boss stage)
 const NUKE_FLASH = 0.6;     // seconds the white flash fades
 // expected total weight of wave w's roster; mirrors buildRoster without touching its random numbers
 function nukeWaveWeight(w) {
@@ -1947,7 +1950,7 @@ function nukeWaveWeight(w) {
   const { pf, ph, pu } = typeShares(w);
   return total * (ph * W.heavy + pf * W.fast + pu * W.hunter + Math.max(0, 1 - ph - pf - pu) * W.basic);
 }
-const nukeFresh = m => ({ meter: clamp(+m || 0, 0, 1), warnT: 0, flashT: -1e9, firing: false, used: 0, hinted: false });
+const nukeFresh = m => ({ meter: clamp(+m || 0, 0, 1), warnT: 0, flashT: -1e9, firing: false, used: 0, hinted: false, bossAcc: 0, bossWave: 0 });
 G.nuke = nukeFresh(0);
 const nukeReady = () => G.nuke.meter >= 0.9999;
 const nukeSave = () => +G.nuke.meter.toFixed(4);
@@ -1957,13 +1960,26 @@ function nukeOnKill(e) {
   if (n.firing || G.phase === 'dying' || !G.player || !G.player.alive) return; // blast kills and kills while dying do not count
   n.meter = Math.min(1, n.meter + NUKE_WEIGHT[e.type] / (NUKE_WAVES * nukeWaveWeight(G.wave)));
 }
-const nukeOnScreen = () => G.enemies.filter(e => !e.dead && onScreen(e.x, e.y, 0));
+const nukeIsBoss = e => e.isBoss === true || e.type === 'boss';
+// boss-stage charging: the boss agent calls this from the boss damage path with the damage applied to the boss body.
+// 60% of max HP dealt fills the meter once; at most one charge per fight (per wave). The blast's own damage never counts.
+function nukeOnBossDamage(e, amount) {
+  const n = G.nuke;
+  if (n.firing || !(amount > 0) || !e || !(e.maxHp > 0) || G.phase === 'dying' || !G.player || !G.player.alive) return;
+  if (n.bossWave !== G.wave) { n.bossWave = G.wave; n.bossAcc = 0; }
+  const room = 1 - n.bossAcc; if (room <= 0) return;
+  const add = Math.min(room, amount / (NUKE_BOSS_FILL * e.maxHp));
+  n.bossAcc += add; n.meter = Math.min(1, n.meter + add);
+}
+G.nukeOnBossDamage = nukeOnBossDamage; // also reachable for tests (module 19 is not edited here)
+// every living enemy on the whole map (not only the visible screen); the name stays because the debug API reads it
+const nukeOnScreen = () => G.enemies.filter(e => !e.dead);
 // true when the warning started; says why not (hint) when the player asked for it by hand
 function nukeFire(manual) {
   const n = G.nuke, p = G.player;
   if (G.state !== 'play' || G.phase !== 'fight' || !p || !p.alive || n.warnT > 0) return false;
   if (!nukeReady()) { if (manual) showHint('Nükleer bomba %' + Math.floor(n.meter * 100) + ' şarjlı, kill yaparak doldur', 2); return false; }
-  if (!nukeOnScreen().length) { if (manual) showHint('Ekranda düşman yok', 2); return false; }
+  if (!nukeOnScreen().length) { if (manual) showHint('Haritada düşman yok', 2); return false; }
   n.warnT = NUKE_WARN;
   hintT = 0; el.hint.classList.remove('show'); // the "ready" hint is done
   showBanner('NÜKLEER BOMBA', '', NUKE_WARN);
@@ -1974,14 +1990,20 @@ function nukeBlast() {
   const n = G.nuke, p = G.player;
   n.firing = true; n.used++;
   const mods = G.mods, drop = mods.drop; mods.drop = 0; // no pickup drops from blast kills
-  for (const e of G.enemies.slice()) if (!e.dead && e.type !== 'boss' && onScreen(e.x, e.y, 0)) killEnemy(e);
+  for (const e of G.enemies.slice()) if (!e.dead && !nukeIsBoss(e)) killEnemy(e); // the whole map, on or off screen
   mods.drop = drop;
-  const b = G.boss && !G.boss.dead ? G.boss : null;
-  if (b) hurtEnemy(b, Math.min(NUKE_BOSS_CUT * b.maxHp, b.hp - 0.5), b.x, b.y, 0); // never lethal; the enrage check still runs
+  for (const b of G.enemies.slice()) {
+    if (b.dead || !nukeIsBoss(b)) continue;
+    const dmg = Math.min(NUKE_BOSS_DMG, b.hp - NUKE_BOSS_FLOOR * b.maxHp); // never lethal, never below the floor
+    if (dmg > 0) hurtEnemy(b, dmg, b.x, b.y, 0); // enrage checks still run
+    b.stunT = Math.max(b.stunT || 0, NUKE_BOSS_STUN);
+  }
   G.bullets = G.bullets.filter(q => q.owner === 0);
+  if (typeof bossClearHazards === 'function') bossClearHazards();
   n.firing = false; n.meter = 0; n.hinted = false; n.flashT = G.time;
-  addPart('ring', cam.x, cam.y, 0, 0, 0.9, 30, 1700, 0, '255,244,214');
-  addPart('ring', cam.x, cam.y, 0, 0, 1.3, 20, 1300, 0, '255,170,90');
+  const mx = G.map.w / 2, my = G.map.h / 2, R = Math.hypot(G.map.w, G.map.h) * 0.75; // shockwave from the arena centre reaches every corner
+  addPart('ring', mx, my, 0, 0, 0.9, 30, R, 0, '255,244,214');
+  addPart('ring', mx, my, 0, 0, 1.3, 20, R * 0.8, 0, '255,170,90');
   shake(16); Sound.nuke(); vibrate([80, 40, 160, 40, 260]);
 }
 function nukeUpdate(dt) {
@@ -1990,7 +2012,7 @@ function nukeUpdate(dt) {
     if (G.phase !== 'fight' || !p.alive) n.warnT = 0; // wave ended or player died during the warning: the charge is kept
     else if ((n.warnT -= dt) <= 0) { n.warnT = 0; nukeBlast(); }
   } else if (bot.on && bot.nuke && G.phase === 'fight' && p.alive && nukeReady()) {
-    if (nukeOnScreen().length >= 3 || (G.boss && !G.boss.dead)) nukeFire();
+    if (nukeOnScreen().length >= 3 || G.enemies.some(e => !e.dead && nukeIsBoss(e) && !e.invuln && !e.invulnerable)) nukeFire();
   }
 }
 function nukeKey(e) {
