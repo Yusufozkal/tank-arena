@@ -53,7 +53,7 @@ with sync_playwright() as p:
     # tank sprites at 4x
     page = b.new_page(); page.route('https://fonts.googleapis.com/**', route_fonts); page.route('https://fonts.gstatic.com/**', route_fonts)
     page.goto('http://127.0.0.1:8769/index.html#debug'); page.wait_for_timeout(800)
-    for t in ['basic', 'fast', 'heavy', 'hunter', 'boss', 'player']:
+    for t in ['basic', 'fast', 'heavy', 'hunter', 'tamirci', 'boss', 'player']:
         save(page.evaluate(f"__tank.sprite('{t}', 256)"), f'{SITE}/img/tank-{t}.png')
     for tid in page.evaluate('__tank.tanks()'):  # all player tanks (Tank ağacı section): tank-<id>.png
         save(page.evaluate(f"__tank.sprite('player', 256, null, '{tid}')"), f'{SITE}/img/tank-{tid}.png')
@@ -71,7 +71,7 @@ with sync_playwright() as p:
     b.close()
 
 # web-sized screenshots
-for name, w in (('play-phone', 720), ('workshop-phone', 720), ('play-wide', 1400)):
+for name, w in (('play-phone', 720), ('workshop-phone', 720), ('boss-phone', 720), ('play-wide', 1400)):
     im = Image.open(f'{RAW}/{name}.jpg').convert('RGB')
     h = round(im.height * w / im.width)
     im.resize((w, h), Image.LANCZOS).save(f'{SITE}/img/{name}.jpg', quality=82, optimize=True, progressive=True)

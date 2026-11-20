@@ -1,4 +1,4 @@
-"""Fresh screenshots (Alev Topu on the phone, Raylı Top sideways) for the Tank Arena website (phone portrait, workshop, landscape)."""
+"""Fresh screenshots (Alev Topu on the phone, Raylı Top sideways, a boss fight) for the Tank Arena website (phone portrait, workshop, landscape)."""
 import http.server, json, os, socketserver, sys, threading
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import paths as P  # noqa: E402
@@ -98,6 +98,13 @@ with sync_playwright() as p:
     res['play_wide'] = page.evaluate(FIND_JS, dict(steps=9000, wave=6, e=3, f=7, b=2, k=0, up=up, tank='rayli'))
     sticks(ctx, page, vp)
     shoot(page, f'{OUT}/play-wide.jpg', {'pierce': 7, 'shield': 4})
+    ctx.close()
+    # 4. phone, boss stage: Sarı Fırtına (wave 10) with the big boss bar
+    ctx, page = page_for(b, vp := {'width': 390, 'height': 844}, 2, True)
+    page.evaluate("__tank.dbg.freeze = false")
+    res['boss'] = page.evaluate("""() => { const t = __tank; t.setUp({ armor: 2, caliber: 1, engine: 1 }); t.wave(10); t.bossSkip(); for (let i = 0; i < 8; i++) t.sim(1, true); t.dbg.clean = false; return t.bossInfo().hp; }""")
+    page.wait_for_timeout(300)
+    page.screenshot(path=f'{OUT}/boss-phone.jpg', type='jpeg', quality=90)
     ctx.close()
     b.close()
 print(json.dumps(res))

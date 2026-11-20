@@ -20,7 +20,7 @@ const T = new Function('Path2D', 'G', 'fmt', 'bountyPts', `${code}\nreturn { PU,
 // TANKS and SYN: plain data, in their own slices (outside PU..UP_KEYS). Weapon numbers are not exported; the table also holds Math.PI,
 // the T constant and the stubTank helper, so those come in as arguments / are evaluated with the slice.
 const tankCode = slice('const TANKS = {', 'for (const id in TANKS)');
-const synCode = slice('const SYN = [', 'const synOnS');
+const synCode = slice('const SYN_K = {', 'const synOnS');
 const TK = new Function('T', `${tankCode}\nreturn TANKS;`)(48);
 const SY = new Function(`${synCode}\nreturn SYN;`)();
 
