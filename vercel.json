@@ -106,43 +106,48 @@
  ],
  "redirects": [
   {
-   "source": "/TankArena-1.5.2.apk",
-   "destination": "https://github.com/Yusufozkal/tank-arena/raw/main/TankArena-1.5.2.apk",
+   "source": "/TankArena-1.5.3.apk",
+   "destination": "https://github.com/Yusufozkal/tank-arena/raw/main/TankArena-1.5.3.apk",
    "permanent": false
   },
   {
    "source": "/TankArena-1.2.apk",
-   "destination": "https://github.com/Yusufozkal/tank-arena/raw/main/TankArena-1.5.2.apk",
+   "destination": "https://github.com/Yusufozkal/tank-arena/raw/main/TankArena-1.5.3.apk",
    "permanent": false
   },
   {
    "source": "/TankArena-1.2.1.apk",
-   "destination": "https://github.com/Yusufozkal/tank-arena/raw/main/TankArena-1.5.2.apk",
+   "destination": "https://github.com/Yusufozkal/tank-arena/raw/main/TankArena-1.5.3.apk",
    "permanent": false
   },
   {
    "source": "/TankArena-1.3.apk",
-   "destination": "https://github.com/Yusufozkal/tank-arena/raw/main/TankArena-1.5.2.apk",
+   "destination": "https://github.com/Yusufozkal/tank-arena/raw/main/TankArena-1.5.3.apk",
    "permanent": false
   },
   {
    "source": "/TankArena-1.4.apk",
-   "destination": "https://github.com/Yusufozkal/tank-arena/raw/main/TankArena-1.5.2.apk",
+   "destination": "https://github.com/Yusufozkal/tank-arena/raw/main/TankArena-1.5.3.apk",
    "permanent": false
   },
   {
    "source": "/TankArena-1.4.1.apk",
-   "destination": "https://github.com/Yusufozkal/tank-arena/raw/main/TankArena-1.5.2.apk",
+   "destination": "https://github.com/Yusufozkal/tank-arena/raw/main/TankArena-1.5.3.apk",
    "permanent": false
   },
   {
    "source": "/TankArena-1.5.apk",
-   "destination": "https://github.com/Yusufozkal/tank-arena/raw/main/TankArena-1.5.2.apk",
+   "destination": "https://github.com/Yusufozkal/tank-arena/raw/main/TankArena-1.5.3.apk",
    "permanent": false
   },
   {
    "source": "/TankArena-1.5.1.apk",
-   "destination": "https://github.com/Yusufozkal/tank-arena/raw/main/TankArena-1.5.2.apk",
+   "destination": "https://github.com/Yusufozkal/tank-arena/raw/main/TankArena-1.5.3.apk",
+   "permanent": false
+  },
+  {
+   "source": "/TankArena-1.5.2.apk",
+   "destination": "https://github.com/Yusufozkal/tank-arena/raw/main/TankArena-1.5.3.apk",
    "permanent": false
   }
  ]

@@ -85,7 +85,7 @@ const SPECS = {
 };
 
 // Komutan HP per boss wave, tuned with tests/boss_probe.py so that a medium card set (and the bot) takes about 3-4 minutes from wave 15 on; the wave-5 Komutan is the easy one
-const BOSS_HP_AT = [[5, 185], [15, 550], [25, 840], [35, 1090]];
+const BOSS_HP_AT = [[5, 185], [15, 960], [25, 1130], [35, 1350]];
 const bossHp = w => {
   const P = BOSS_HP_AT, last = P[P.length - 1];
   if (w <= P[0][0]) return P[0][1];
@@ -189,35 +189,35 @@ const LEGACY_UPS = ['twin']; // cards removed in 1.4; an old save with one of th
 //   stub  tier-2 entry that still clones its parent's weapon and look (D2's rayli / obus until they land)
 const TANKS = {
   std: { name: 'Standart', tier: 0, parent: null, kids: ['ikiz', 'nisanci', 'makineli'], traitName: 'Dengeli', blurb: 'Dengeli başlangıç tankı.',
-    hpMul: 1, speedMul: 1, turnMul: 1, dmg: 1, cool: 0.3, bSpeed: 660, bR: 4, bW: 6, life: 2.4, barrel: 26, shape: 'std', zoom: 1, mode: 'shell',
+    hpMul: 1, speedMul: 1, turnMul: 1, dmg: 1, cool: 0.3, bSpeed: 660, bR: 4, bW: 6, life: 1.02, barrel: 26, shape: 'std', zoom: 1, mode: 'shell',
     muzzles: [{ off: 0, ang: 0 }], col: { body: '#3d86ad', dk: '#235b7b', hi: '#7cc0e2', acc: '#f2c14e' } },
   ikiz: { name: 'İkiz', tier: 1, parent: 'std', kids: ['uclu', 'cift'], traitName: 'Çift darbe', blurb: 'İki mermi aynı tanka birlikte isabet ederse tank 0,3 sn sersemler.',
-    hpMul: 1, speedMul: 1, turnMul: 1, dmg: 0.42, cool: 0.3, bSpeed: 660, bR: 3.6, bW: 4.4, life: 2.4, barrel: 26, shape: 'twin', zoom: 1, mode: 'shell',
+    hpMul: 1, speedMul: 1, turnMul: 1, dmg: 0.42, cool: 0.3, bSpeed: 660, bR: 3.6, bW: 4.4, life: 1.02, barrel: 26, shape: 'twin', zoom: 1, mode: 'shell',
     muzzles: [{ off: -5, ang: 0 }, { off: 5, ang: 0 }], tr: { stun: 0.3, stunCd: 1.5, win: 0.12 }, botRange: 330,
     col: { body: '#2f9e8f', dk: '#1a6258', hi: '#7fd6c8', acc: '#ffe27a' } },
   nisanci: { name: 'Keskin Nişancı', tier: 1, parent: 'std', kids: ['rayli', 'obus'], traitName: 'Uzak görüş', blurb: 'Kamera geri çekilir, geniş alan görünür; mermisi hızlı ve güçlü, tankı yavaş.',
-    hpMul: 1, speedMul: 0.9, turnMul: 0.9, dmg: 1.9, cool: 0.43, bSpeed: 900, bR: 4.5, bW: 5, life: 1.8, barrel: 34, shape: 'long', zoom: 0.82, mode: 'shell',
+    hpMul: 1, speedMul: 0.9, turnMul: 0.9, dmg: 1.9, cool: 0.43, bSpeed: 900, bR: 4.5, bW: 5, life: 1.01, barrel: 34, shape: 'long', zoom: 0.82, mode: 'shell',
     muzzles: [{ off: 0, ang: 0 }], botRange: 250,
     col: { body: '#4a5bb0', dk: '#2b3670', hi: '#8f9de4', acc: '#ff9f43' } },
   makineli: { name: 'Makineli', tier: 1, parent: 'std', kids: ['alev', 'sarapnel'], traitName: 'Isınma', blurb: 'Sürekli ateşte atış hızı artar; çok ısınırsa namlu kızarır ve 1,5 sn soğur.',
-    hpMul: 1, speedMul: 1, turnMul: 1, dmg: 0.95, cool: 0.16, bSpeed: 640, bR: 3.4, bW: 6.5, life: 2, barrel: 24, shape: 'mg', zoom: 1, mode: 'shell', spread: 0.04,
+    hpMul: 1, speedMul: 1, turnMul: 1, dmg: 0.95, cool: 0.16, bSpeed: 640, bR: 3.4, bW: 6.5, life: 0.9, barrel: 24, shape: 'mg', zoom: 1, mode: 'shell', spread: 0.04,
     muzzles: [{ off: 0, ang: 0 }], tr: { heatUp: 0.04, heatDown: 0.5, cd: 1.5, rateGain: 0.8 }, botRange: 260,
     col: { body: '#6bb23a', dk: '#3e6e1f', hi: '#a9de7a', acc: '#ff5a36' } }
 };
 // Tier-2 stubs for D1 / D2: right name, tier, parent, blurb, trait name and palette; weapon, muzzles and look are the parent's until D1 / D2 replace the call
 function stubTank(id, parent, o) { TANKS[id] = Object.assign(JSON.parse(JSON.stringify(TANKS[parent])), { kids: [], stub: true }, o); }
 TANKS.uclu = { name: 'Üçlü', tier: 2, parent: 'ikiz', kids: [], traitName: 'Delici orta mermi', blurb: 'Üç mermilik yelpaze; ortadaki mermi bir tankı delip arkasındakine gider.',
-  hpMul: 1, speedMul: 1, turnMul: 1, dmg: 0.27, cool: 0.3, bSpeed: 660, bR: 3.6, bW: 4.6, life: 2.4, barrel: 26, shape: 'tri', zoom: 1, mode: 'shell',
+  hpMul: 1, speedMul: 1, turnMul: 1, dmg: 0.27, cool: 0.3, bSpeed: 660, bR: 3.6, bW: 4.6, life: 1.02, barrel: 26, shape: 'tri', zoom: 1, mode: 'shell',
   muzzles: [{ off: 0, ang: -0.2, len: 23 }, { off: 0, ang: 0, len: 30, pierceN: 1 }, { off: 0, ang: 0.2, len: 23 }], botRange: 340, // D1: dps 1.2 x Standart (3 shells of 0.4 per 0.3 s)
   col: { body: '#1f7f93', dk: '#124a58', hi: '#6cc6d9', acc: '#ff8fd0' } };
 TANKS.cift = { name: 'Çift Yön', tier: 2, parent: 'ikiz', kids: [], traitName: 'İtici arka namlu', blurb: 'Arkaya da ateş eder (arka mermi %80 hasar); her atışta tank ileri hızlanır, geri tepme yok.',
-  hpMul: 1, speedMul: 1, turnMul: 1, dmg: 0.67, cool: 0.3, bSpeed: 660, bR: 3.8, bW: 5, life: 2.4, barrel: 26, shape: 'duo', zoom: 1, mode: 'shell', kick: 0,
+  hpMul: 1, speedMul: 1, turnMul: 1, dmg: 0.67, cool: 0.3, bSpeed: 660, bR: 3.8, bW: 5, life: 1.02, barrel: 26, shape: 'duo', zoom: 1, mode: 'shell', kick: 0,
   muzzles: [{ off: 0, ang: 0 }, { off: 0, ang: Math.PI, rear: true, dmgK: 0.8, len: 21 }], tr: { push: 0.6, pushK: 0.3, impulse: 70 }, botRange: 300, // D1: dps 1.1 x Standart (1.8 shells of 0.61 per 0.3 s)
   col: { body: '#35b07a', dk: '#1d6c48', hi: '#86e0b4', acc: '#fff0a0' } };
 // D2 (Keskin Nisanci branch): full entries, same table as above. dps vs Standart (3.33): rayli 4.5 / 1.08 = 4.17 (x1.25), obus 4 / 1.09 = 3.67 (x1.1, per target in the blast)
 TANKS.rayli = { name: 'Raylı Top', tier: 2, parent: 'nisanci', kids: [], traitName: 'Lazer çizgisi',
   blurb: 'Lazer çizgisi merminin yolunu gösterir; hızlı mermi tuğlayı ve tankı deler, çeliği delemez (Sekme varsa seker).',
-  hpMul: 0.95, speedMul: 0.9, turnMul: 0.9, dmg: 2.6, cool: 0.85, bSpeed: 1100, bR: 3.8, bW: 4.2, life: 1.3, barrel: 42, shape: 'rail', zoom: 0.82, mode: 'shell',
+  hpMul: 0.95, speedMul: 0.9, turnMul: 0.9, dmg: 2.6, cool: 0.85, bSpeed: 1100, bR: 3.8, bW: 4.2, life: 0.83, barrel: 42, shape: 'rail', zoom: 0.82, mode: 'shell',
   muzzles: [{ off: 0, ang: 0 }], tr: { pierce: true, zap: true }, botRange: 300,
   col: { body: '#3578d8', dk: '#1b4687', hi: '#86b4f4', acc: '#7ef0ff' } };
 TANKS.obus = { name: 'Obüs', tier: 2, parent: 'nisanci', kids: [], traitName: 'Mesafe ayarı',
@@ -324,15 +324,12 @@ function synPickup(kind) { // Zincir: every other active power-up grows
   for (const k of BUFFS) if (k !== kind && G.buffs[k] > 0) { G.buffs[k] += SYN_K.chainAdd; G.buffMax[k] += SYN_K.chainAdd; n++; }
   if (n) { const p = G.player; addText(p.x, p.y - 46, 'Zincir +' + SYN_K.chainAdd + ' sn', '#7fd0ff', 15); addPart('ring', p.x, p.y, 0, 0, 0.45, 10, 90, 0, '127,208,255'); }
 }
-// Workshop: badge on a card that completes a synergy with an owned card, otherwise a faint hint for its first synergy
+// Workshop: a card shows a synergy block only for synergies whose partner the player already owns (picking the card completes them); none otherwise
 function synBadgeHTML(k) {
-  const mine = SYN.filter(sy => sy.a === k || sy.b === k);
-  if (!mine.length) return '';
-  const partner = sy => sy.a === k ? sy.b : sy.a;
-  const done = mine.find(sy => !upL(k) && upL(partner(sy)) > 0);
-  if (done) return `<span class="up-syn on"><b>Birleşim: ${done.name}</b><i>${done.desc}</i></span>`;
-  const open = mine.find(sy => !upL(partner(sy)));
-  return open ? `<span class="up-syn"><b>${UPS[partner(open)].name} ile birleşir: ${open.name}</b><i>${open.desc}</i></span>` : '';
+  if (upL(k)) return '';
+  const done = SYN.filter(sy => (sy.a === k || sy.b === k) && upL(sy.a === k ? sy.b : sy.a) > 0);
+  if (!done.length) return '';
+  return `<span class="up-syn on">${done.map(sy => `<b>Birleşim: ${sy.name}</b><i>${sy.desc}</i>`).join('')}</span>`;
 }
 // chooseUpgrade: before = ids active before the card, returns the new ones; the banner is shown by the caller's phase delay
 function synUnlocked(before) { return synList().filter(sy => !before.includes(sy.id)); }
@@ -1695,11 +1692,13 @@ function updateBullets(dt) {
 /* ================= enemies ================= */
 // Enemy pressure. Early waves (1-10) are the old ramp; after that nothing gets more HP, only sharper:
 // fire rate, aim, lead, speed and damage keep creeping up slowly, and buildRoster adds heavies / Avcı / tanks alive at once.
+// 1.5.3: with sight limited to the screen and the player's shells cut to ~14 tiles, tanks fire a little faster and truer to keep the pressure of 1.5.2
+const SHARP = { cool: 0.88, err: 0.75 };
 function waveMods(w) {
   const D = G.D, late = Math.max(0, w - 10), rn = removedN();
   const err0 = Math.max(0.035, 0.13 - (w - 1) * 0.010);
-  return { speed: 1 + Math.min(0.3, (w - 1) * 0.03) + Math.min(0.3, late * 0.015), cool: Math.max(0.35, 1 - 0.05 * Math.min(9, w - 1) - 0.013 * late) * D.cool * (1 - 0.07 * rn),
-    err: Math.max(0.012, err0 - Math.max(0, w - 9) * 0.0008) * D.err * (1 - 0.1 * rn),
+  return { speed: 1 + Math.min(0.3, (w - 1) * 0.03) + Math.min(0.3, late * 0.015), cool: Math.max(0.35, 1 - 0.05 * Math.min(9, w - 1) - 0.013 * late) * D.cool * (1 - 0.07 * rn) * SHARP.cool,
+    err: Math.max(0.012, err0 - Math.max(0, w - 9) * 0.0008) * D.err * (1 - 0.1 * rn) * SHARP.err,
     lead: Math.min(0.85, (w - 1) * 0.14) + Math.min(0.15, Math.max(0, w - 7) * 0.01),
     dmg: D.dmg * (1 + Math.min(0.6, Math.max(0, w - 13) * 0.018) + Math.max(0, w - 25) * 0.04),
     dodge: Math.min(0.75, D.dodge + late * 0.005), // Avcı sidesteps more of the player's shells as waves go on
@@ -1738,30 +1737,50 @@ function buildRoster(w) {
   return { list, maxAlive: Math.min(D.maxAlive, alive) };
 }
 /* ================= awareness: enemies only know where the player was last seen / heard ================= */
-// e.lk = last-known player position {x, y, t}; e.goal = where the tank is walking now (first lk, then search points around it); e.tf = its own flow field to that goal.
-// Seeing the player (canSee: bush, stealth and walls already apply) updates lk to the true position; a shot of the player is heard within HEAR tiles (with error); a hit tells the target roughly where the shooter is.
-// No contact for HINT_T s: a rough hint (a circle of HINT_R tiles around the player) so a wave can never stall. Boss and Tamirci have their own logic.
-const AWARE = { hear: 9, hearErr: 1.8, hintT: 9, hintAgain: 6, hintR: 4, searchMin: 2, searchMax: 6, reach: 0.9 };
+// e.lk = last-known player position {x, y, t}; e.goal = where the tank is walking now (lk, then search points around it, or a patrol point while it knows nothing); e.tf = its own flow field to that goal.
+// Sight: SIGHT tiles (about the visible screen) inside a cone of CONE (full angle) around the turret, plus a 360-degree NEAR radius; a tank that already sees the player keeps seeing him (its turret tracks him).
+// A shot is heard within HEAR tiles (error HEAR_ERR); a hit tells the target only the direction the shell came from (HIT_BACK tiles back along its path, error HIT_ERR) and turns its turret that way.
+// Silence for HINT_T s: one or two tanks get a coarse hint (circle of HINT_R tiles around the player, HINT_R2 after HINT_T2 s) so a hidden passive player is still found. New tanks patrol (toward the map centre). Boss and Tamirci have their own logic.
+const AWARE = { sight: 8.5, near: 2.5, cone: 2.1, hear: 6, hearErr: 3, hitBack: 5, hitErr: 2, hintT: 15, hintT2: 30, hintR: 7, hintR2: 4, searchMin: 2, searchMax: 6, reach: 0.9 };
 function setLk(e, x, y, err) {
   const a = rand(0, TAU), r = err ? rand(0.3, 1) * err * T : 0, m = G.map, n = m.n;
   let px = x + Math.cos(a) * r, py = y + Math.sin(a) * r;
   if (blocksTank(m.at(px, py))) { px = x; py = y; }
   e.lk = { x: clamp(px, T * 1.5, (n - 1.5) * T), y: clamp(py, T * 1.5, (n - 1.5) * T), t: G.time };
-  e.goal = null; e.sn = 0; e.search = false;
+  e.goal = null; e.sn = 0; e.search = false; e.lookA = Math.atan2(e.lk.y - e.y, e.lk.x - e.x); e.lookT = 1.5;
 }
-function hintAt(e, p) { // a rough idea: somewhere within AWARE.hintR tiles of the player (on a free tile)
+function hintAt(e, p) { // a coarse idea: somewhere within hintR tiles of the player (on a free tile); closer once the silence has gone on
+  const R = (G.time - G.contactT > AWARE.hintT2 ? AWARE.hintR2 : AWARE.hintR) * T;
   for (let k = 0; k < 8; k++) {
-    const a = rand(0, TAU), r = Math.sqrt(Math.random()) * AWARE.hintR * T, x = p.x + Math.cos(a) * r, y = p.y + Math.sin(a) * r;
+    const a = rand(0, TAU), r = Math.sqrt(Math.random()) * R, x = p.x + Math.cos(a) * r, y = p.y + Math.sin(a) * r;
     if (!blocksTank(G.map.at(x, y))) { setLk(e, x, y, 0); e.hintT = G.time; return; }
   }
-  setLk(e, p.x, p.y, 1); e.hintT = G.time;
+  setLk(e, p.x, p.y, 2); e.hintT = G.time;
 }
-function alertHit(e, b) { // a player's shell hit e: it knows roughly where the shot came from (the muzzle)
+function alertHit(e, b) { // a player's shell hit e: it knows the direction the shot came from, not the shooter's position
   if (b.owner !== 0 || e.dead || e.isBoss || e.type === 'boss' || e.spec.medic) return;
-  setLk(e, b.sx !== undefined ? b.sx : G.player.x, b.sy !== undefined ? b.sy : G.player.y, 0.6); G.contactT = G.time;
+  const sp = Math.hypot(b.vx, b.vy) || 1, back = AWARE.hitBack * T;
+  setLk(e, e.x - b.vx / sp * back, e.y - b.vy / sp * back, AWARE.hitErr); G.contactT = G.time;
   if (e.spec.smart && b.sx !== undefined && Math.hypot(b.sx - e.x, b.sy - e.y) > 7 * T) { // Avcı: a hit from far away sends it to cover for a moment
     e.mode = 'cover'; e.path = null; e.coverT = 1.8; e.coverFar = true; G.covers++;
   }
+}
+function patrolSpot(e) { // a free tile 6-18 tiles away, the map centre favoured (not the player)
+  const m = G.map, n = m.n, mid = n * T / 2; let best = null, bs = 1e9;
+  for (let k = 0; k < 10; k++) {
+    const a = rand(0, TAU), r = rand(6, 18) * T, x = e.x + Math.cos(a) * r, y = e.y + Math.sin(a) * r, c = Math.floor(x / T), rr = Math.floor(y / T);
+    if (c < 2 || rr < 2 || c > n - 3 || rr > n - 3 || blocksTank(m.get(c, rr))) continue;
+    const sc = Math.hypot(x - mid, y - mid) / T * 0.2 + Math.random() * 9;
+    if (sc < bs) { bs = sc; best = { c, r: rr, x: c * T + T / 2, y: rr * T + T / 2 }; }
+  }
+  return best;
+}
+function sees(e, p, fov) { // sight check from e toward the player: range (hidden / stealth shorten it), cone around the turret, line of sight
+  const d = Math.hypot(p.x - e.x, p.y - e.y);
+  const hid = G.map.at(p.x, p.y) === BUSH && G.time - p.lastShot > 1.2, rng = G.buffs.stealth > 0 ? T * 1.6 : hid ? T * 2.3 : T * (AWARE.sight + (fov || 0));
+  if (d >= rng) return false;
+  if (!e.canSee && d > AWARE.near * T && Math.abs(angDiff(e.turret, Math.atan2(p.y - e.y, p.x - e.x))) > AWARE.cone / 2) return false;
+  return los(e.x, e.y, p.x, p.y);
 }
 function searchSpot(e) { // a free tile 2-6 tiles around the last-known spot: bushes and corners preferred, away from other searchers' goals
   const m = G.map, n = m.n, lk = e.lk; let best = null, bs = 1e9;
@@ -1783,19 +1802,24 @@ function setGoal(e, g) {
   const n = G.map.n; if (!e.tf || e.tf.length !== n * n) e.tf = new Float32Array(n * n);
   dijkstra(G.map, clamp(Math.floor(g.y / T), 0, n - 1) * n + clamp(Math.floor(g.x / T), 0, n - 1), e.tf, null);
 }
-function updateAware(e) { // called after the sense step; fills e.lk / e.goal / e.tf for an enemy that cannot see the player
+function updateAware(e, dt) { // called after the sense step; fills e.lk / e.goal / e.tf for an enemy that cannot see the player
   const p = G.player, now = G.time;
   if (!p.alive) return;
   if (G.contactT === undefined) G.contactT = now;
-  if (e.canSee) { e.lk = { x: p.x, y: p.y, t: now }; e.goal = null; e.sn = 0; e.search = false; G.contactT = now; return; }
-  if (e.heardShot !== p.lastShot && now - p.lastShot < 0.3 && Math.hypot(p.x - e.x, p.y - e.y) < AWARE.hear * T) { // heard (or saw the flash of) a shot: a position with some error
-    e.heardShot = p.lastShot; setLk(e, p.x, p.y, AWARE.hearErr); G.contactT = now;
+  if (e.lookT > 0) e.lookT -= dt || 0;
+  if (e.canSee) { e.lk = { x: p.x, y: p.y, t: now }; e.goal = null; e.sn = 0; e.search = false; e.patrol = false; G.contactT = now; return; }
+  if (e.heardShot !== p.lastShot && now - p.lastShot < 0.3 && Math.hypot(p.x - e.x, p.y - e.y) < AWARE.hear * T) { // heard (or saw the flash of) a shot: a position with a big error
+    e.heardShot = p.lastShot; setLk(e, p.x, p.y, AWARE.hearErr); e.patrol = false; G.contactT = now;
   }
-  if (!e.lk || now - Math.max(G.contactT, e.hintT || 0, e.lk.t) > ((e.hintT || 0) > G.contactT ? AWARE.hintAgain : AWARE.hintT)) hintAt(e, p);
+  if (now - Math.max(G.contactT, G.silT || 0) > AWARE.hintT && now - (e.hintT || -99) > 3) { // long silence: one or two tanks get a coarse hint
+    hintAt(e, p); e.patrol = false; G.hintN = (G.hintN || 0) + 1;
+    if (G.hintN >= 2 || G.enemies.filter(o => !o.dead && !o.spec.medic && o.type !== 'boss').length < 2) { G.silT = now; G.hintN = 0; }
+  }
   if (e.goal && now - e.goalT > 14) e.goal = null;
   if (e.goal && dist2(e.goal.x, e.goal.y, e.x, e.y) < (AWARE.reach * T) * (AWARE.reach * T)) { if (e.search) e.sn++; e.search = true; e.goal = null; }
   if (!e.goal) {
-    if (!e.search) setGoal(e, { c: Math.floor(e.lk.x / T), r: Math.floor(e.lk.y / T), x: e.lk.x, y: e.lk.y });
+    if (!e.lk) { const g = patrolSpot(e); e.patrol = true; if (g) setGoal(e, g); }
+    else if (!e.search) setGoal(e, { c: Math.floor(e.lk.x / T), r: Math.floor(e.lk.y / T), x: e.lk.x, y: e.lk.y });
     else { const g = searchSpot(e); if (g) setGoal(e, g); else e.search = false; }
     e.wp = null;
   }
@@ -1825,11 +1849,11 @@ function spawnEnemy(type, x, y) {
     addPart('ring', x, y, 0, 0, 0.4, 10, 120, 0, '224,83,58'); return e;
   }
   const e = makeTank(type, x, y), p = G.player;
-  const a = Math.atan2(p.y - y, p.x - x);
-  e.angle = Math.round(a / (Math.PI / 2)) * (Math.PI / 2); e.turret = a;
+  const a = Math.atan2(G.map.n * T / 2 - y, G.map.n * T / 2 - x); // a new tank faces the map centre (it knows nothing of the player)
+  e.angle = Math.round(a / (Math.PI / 2)) * (Math.PI / 2); e.turret = e.angle;
   e.cool = rand(0.9, 1.7) * G.mods.cool; e.speedMul = G.mods.speed; e.coolMul = G.mods.cool; e.aimErr = rand(-G.mods.err, G.mods.err);
   if (G.mods.hp > 1) e.hp = e.maxHp = Math.max(1, Math.round(e.spec.hp * G.mods.hp)); // later waves bring tougher tanks
-  hintAt(e, p); if (!(G.contactT <= G.time)) G.contactT = G.time; // a new tank knows roughly where the player is
+  if (!(G.contactT <= G.time)) G.contactT = G.time; // no hint: a new tank patrols until it sees or hears something
   G.enemies.push(e);
   const intro = NEW_FOE[type];
   if (intro && !store.get(intro[0], false)) { store.set(intro[0], true); showHint(intro[1], 6); }
@@ -1869,12 +1893,10 @@ function updateEnemy(e, dt) {
   if (e.senseT <= 0) {
     e.senseT = 0.1 + Math.random() * 0.08;
     if (p.alive) {
-      const d = Math.hypot(p.x - e.x, p.y - e.y); e.distP = d;
-      const pHidden = m.at(p.x, p.y) === BUSH && G.time - p.lastShot > 1.2;
-      e.canSee = d < (G.buffs.stealth > 0 ? T * 1.6 : pHidden ? T * 2.3 : T * 13) && los(e.x, e.y, p.x, p.y);
+      e.distP = Math.hypot(p.x - e.x, p.y - e.y); e.canSee = sees(e, p, 0);
     } else e.canSee = false;
   }
-  updateAware(e);
+  updateAware(e, dt);
   const wantMove = !(e.canSee && e.distP < s.hold * T);
   e.blast = null;
   let tx = 0, ty = 0, hasT = false;
@@ -1915,7 +1937,7 @@ function updateEnemy(e, dt) {
       fireTank(e); e.cool = s.cool * e.coolMul * rand(0.85, 1.25); e.aimErr = rand(-G.mods.err, G.mods.err);
       if (e.type === 'boss') e.chargeT = 0;
     }
-  } else e.turret = turnTo(e.turret, e.angle, s.tTurn * 0.6 * dt);
+  } else e.turret = turnTo(e.turret, e.lookT > 0 ? e.lookA : e.angle, s.tTurn * 0.6 * dt);
   damageSmoke(e, dt);
 }
 
@@ -1948,14 +1970,14 @@ function checkDodge(e) {
 }
 // Nearest reachable tile the player cannot see (bushes preferred); returns the tile path from the hunter's tile
 function findCover(e, radius) {
-  const m = G.map, n = m.n, p = G.player;
+  const m = G.map, n = m.n, p = G.player, kp = e.canSee ? p : e.lk; // the player's position as the Avcı knows it
   const c0 = clamp(Math.floor(e.x / T), 0, n - 1), r0 = clamp(Math.floor(e.y / T), 0, n - 1), s0 = r0 * n + c0;
   const prev = new Map([[s0, -1]]), q = [[s0, 0]];
   let best = -1, bestScore = 1e9;
   for (let h = 0; h < q.length; h++) {
     const [i, d] = q[h], c = i % n, r = (i - c) / n, x = c * T + T / 2, y = r * T + T / 2;
-    const dp = p.alive ? Math.hypot(p.x - x, p.y - y) / T : 9;
-    const exposed = p.alive && dp < 14 && los(x, y, p.x, p.y);
+    const dp = p.alive && kp ? Math.hypot(kp.x - x, kp.y - y) / T : 9;
+    const exposed = p.alive && kp && dp < 14 && los(x, y, kp.x, kp.y);
     const taken = G.enemies.some(o => o !== e && !o.dead && dist2(o.x, o.y, x, y) < 30 * 30);
     const score = d * 1.2 + (exposed ? 100 : 0) + (dp < 2.5 ? 30 : 0) + (taken ? 20 : 0) + (m.t[i] === BUSH ? -1.5 : 0) + Math.abs(dp - 5) * 0.3;
     if (score < bestScore) { bestScore = score; best = i; }
@@ -1980,14 +2002,12 @@ function updateHunter(e, dt) {
   if (e.senseT <= 0) {
     e.senseT = 0.08 + Math.random() * 0.04;
     if (p.alive) {
-      const d = Math.hypot(p.x - e.x, p.y - e.y); e.distP = d;
-      const pHidden = m.at(p.x, p.y) === BUSH && G.time - p.lastShot > 1.2;
-      e.canSee = d < (G.buffs.stealth > 0 ? T * 1.6 : pHidden ? T * 2.8 : T * 14) && los(e.x, e.y, p.x, p.y);
+      e.distP = Math.hypot(p.x - e.x, p.y - e.y); e.canSee = sees(e, p, 0.5);
       if (e.canSee) { e.seenX = p.x; e.seenY = p.y; e.seenT = G.time; e.reconDone = false; }
     } else e.canSee = false;
     if (!e.dodge && e.dodgeCd <= 0) checkDodge(e);
   }
-  updateAware(e);
+  updateAware(e, dt);
   // modes: hunt (sneak in and shoot), cover (duck out of sight while reloading), retreat (once, when badly hurt)
   if (!e.fled && e.hp <= 1 && e.maxHp > 1) { e.fled = true; e.mode = 'retreat'; e.modeT = 3; e.path = null; }
   if (e.mode === 'retreat') { e.modeT -= dt; if (e.modeT <= 0) { e.mode = 'hunt'; e.path = null; } }
@@ -2056,7 +2076,7 @@ function updateHunter(e, dt) {
       e.aimErr = rand(-G.mods.err, G.mods.err);
       if (!e.canSee && !e.blast) e.reconDone = true;
     }
-  } else e.turret = turnTo(e.turret, e.angle, s.tTurn * 0.6 * dt);
+  } else e.turret = turnTo(e.turret, e.lookT > 0 ? e.lookA : e.angle, s.tTurn * 0.6 * dt);
   damageSmoke(e, dt);
 }
 
@@ -2172,7 +2192,7 @@ function updateTamirci(e, dt) {
   e.senseT -= dt;
   if (e.senseT <= 0) {
     e.senseT = 0.1 + Math.random() * 0.08;
-    if (p.alive) { const d = Math.hypot(p.x - e.x, p.y - e.y); e.distP = d; e.canSee = d < T * 13 && los(e.x, e.y, p.x, p.y); } else { e.canSee = false; e.distP = 1e9; }
+    if (p.alive) { const d = Math.hypot(p.x - e.x, p.y - e.y); e.distP = d; e.canSee = d < T * AWARE.sight && los(e.x, e.y, p.x, p.y); } else { e.canSee = false; e.distP = 1e9; }
   }
   const trB = !!e.pt && e.pt.tread > 0, before = e.angle, ox = e.x, oy = e.y;
   const hurt = tamTarget(e), a = hurt || tamFollow(e);
@@ -2198,7 +2218,7 @@ function updateTamirci(e, dt) {
         if (e.stuckT > 0.9) { const w = randomNeighbor(e); e.spot = w; e.spotT = 0.7; e.wpBest = 1e9; e.stuckT = 0; }
       } else { e.wpBest = 1e9; e.stuckT = 0; }
     } else { // alone: drift towards the player's side of the map, but keep out of sight range
-      if (!e.wp || dist2(e.wp.x, e.wp.y, e.x, e.y) < 25) { e.wp = nextWaypoint(e); e.wpBest = 1e9; e.stuckT = 0; }
+      if (!e.wp || dist2(e.wp.x, e.wp.y, e.x, e.y) < 25) { updateAware(e, 0); const f = e.goal && e.tf ? e.tf : null; e.wp = f ? nextWaypoint(e, f) : null; e.wpBest = 1e9; e.stuckT = 0; }
       if (e.wp && !blocksTank(m.get(e.wp.c, e.wp.r)) && !(e.canSee && e.distP < 7 * T)) {
         tamSteer(e, e.wp.x, e.wp.y, dt, 0.8);
         const dw = Math.hypot(e.wp.x - e.x, e.wp.y - e.y);
@@ -2237,27 +2257,27 @@ const themeFor = w => THEMES[Math.floor((w - 1) / 10) % THEMES.length];
 /* ---- fixed arenas (21x21 text maps: S steel, B brick, W water, G bush, . empty, X boss start, P player start) ---- */
 const ARENAS = {
   kisla: { name: 'Kışla', gate: [[9, 3], [10, 3], [11, 3]], rows: [
+    'SS...BBBB...BBBB...SS',
+    'SS...BSSB...BSSB...SS',
+    '.....BBBB.X.BBBB.....',
     '.....................',
-    '.SS..BBBB...BBBB..SS.',
-    '.SS..BSSB.X.BSSB..SS.',
+    '.....................',
+    '.....................',
+    '...S..BBB...BBB..S...',
+    '...S.............S...',
+    '.....................',
+    'SS.................SS',
+    'SS......S.S.S......SS',
+    'SS.................SS',
+    '.....................',
+    '...S.............S...',
+    '...S..BBB...BBB..S...',
+    '.....................',
+    '.....................',
+    '.....................',
     '.....BBBB...BBBB.....',
-    '.....................',
-    '..S...............S..',
-    '.....................',
-    '......BBB...BBB......',
-    '.....................',
-    '.SS...............SS.',
-    '.SS.......S.......SS.',
-    '.....................',
-    '.....................',
-    '......BBB...BBB......',
-    '.....................',
-    '..S...............S..',
-    '.....................',
-    '.....BBBB...BBBB.....',
-    '.SS..BSSB...BSSB..SS.',
-    '.SS..BBBB.P.BBBB..SS.',
-    '.....................'] }
+    'SS...BSSB.P.BSSB...SS',
+    'SS...BBBB...BBBB...SS'] }
 };
 function parseArena(a) {
   const n = a.rows.length, t = new Uint8Array(n * n); let boss = null, player = null;
@@ -2424,6 +2444,7 @@ function computeBossFlow(e) {
     const d = (c - pc) * (c - pc) + (r - pr) * (r - pr); if (d < gd) { gd = d; goal = r * n + c; }
   }
   if (goal < 0) return;
+  e.goalD = fg ? 0 : Math.hypot((goal % n) * T + T / 2 - p.x, Math.floor(goal / n) * T + T / 2 - p.y); // how far the closest tile the boss can stand on is from the player (reach fallback in updateBoss)
   const q = [goal]; e.flow[goal] = 0;
   for (let h = 0; h < q.length; h++) {
     const i = q[h], c = i % n, r = (i - c) / n;
@@ -2511,6 +2532,7 @@ function updateBoss(e, dt, halted) {
   e.distP = Math.hypot(p.x - e.x, p.y - e.y);
   e.canSee = p.alive && los(e.x, e.y, p.x, p.y);
   e.cool -= dt;
+  e.unrT = p.alive && e.goalD > e.r + p.r + T ? (e.unrT || 0) + dt : 0; // the player stands where the hull cannot go (a pocket): after ~4 s startAttack prefers the arcing attacks (a.arc)
   e.healT = (e.healT === undefined ? 30 : e.healT) - dt; // a long fight: a worn-down player gets a Tamir kit now and then (not while one still lies around)
   if (e.healT <= 0 && p.alive) { e.healT = 5; if (p.hp < p.maxHp * 0.55 && !G.pickups.some(q => q.kind === 'repair')) { dropRepairAway(e); e.healT = 35; } }
   e.glow = 0;
@@ -2525,6 +2547,7 @@ function updateBoss(e, dt, halted) {
 }
 function startAttack(e) {
   const list = e.def.attacks.filter(a => a.ok(e) && a.id !== e.lastAtk && !(e.acd[a.id] > G.time) && !(a.mov && e.treadT > 0)); // mov: an attack that needs the treads (charge)
+  if (e.unrT > 4) { const arc = list.filter(a => a.arc); if (arc.length) list.splice(0, list.length, ...arc); } // unreachable player: the mortar or bombardment reaches the pocket (normal telegraph)
   if (!list.length) { e.cool = 0.5; return; }
   let r = Math.random() * list.reduce((s, a) => s + a.w, 0), at = list[list.length - 1];
   for (const a of list) { r -= a.w; if (r <= 0) { at = a; break; } }
@@ -2869,9 +2892,9 @@ function* komBombard(e) { // bombardıman hattı: a row of circles across the ar
 const KOM_ATTACKS = [
   { id: 'triple', w: 3, ok: e => true, run: komTriple },
   { id: 'ezme', w: 2.2, ok: e => e.distP > 2.5 * T, run: komCharge, mov: true },
-  { id: 'topcu', w: 2, ok: e => e.unlock.topcu && partAlive(e, 'tower'), run: komMortar },
+  { id: 'topcu', w: 2, ok: e => e.unlock.topcu && partAlive(e, 'tower'), run: komMortar, arc: true },
   { id: 'yaylim', w: 2, ok: e => e.unlock.yaylim && e.phase >= 1, run: komSalvo },
-  { id: 'bomb', w: 1.6, ok: e => e.unlock.bomb && e.phase >= 1, run: komBombard, cd: 9 },
+  { id: 'bomb', w: 1.6, ok: e => e.unlock.bomb && e.phase >= 1, run: komBombard, cd: 9, arc: true },
   { id: 'penta', w: 2.4, ok: e => e.unlock.penta && e.phase >= 2, run: komPenta }
 ];
 BOSS_DEFS.komutan = {
@@ -2890,9 +2913,9 @@ BOSS_DEFS.komutan = {
 // Phase 2: exhausts light up (+15% speed), double charge, sand strips left on the charge path. Phase 3 "Fırtına": wind every 12 s, triple charge.
 // Per-boss state lives in e.sari; the generic hooks it uses in 11a: def.tick (every frame), def.danger (bot), def.onClear, def.drawGround (15a).
 ARENAS.kum = { name: 'Kum Çukuru', gate: [[9, 4], [10, 4], [11, 4]], rows: [ // the brick wall in front of the boss is the gate: the intro smashes it
-  '.....................',
-  '.SS...............SS.',
-  '.SS.......X.......SS.',
+  'SS.................SS',
+  'SS.................SS',
+  '..........X..........',
   '.....................',
   '....S...SBBBS...S....',
   '.....................',
@@ -2908,9 +2931,9 @@ ARENAS.kum = { name: 'Kum Çukuru', gate: [[9, 4], [10, 4], [11, 4]], rows: [ //
   '.....................',
   '....S...SBBBS...S....',
   '.....................',
-  '.SS...............SS.',
-  '.SS.......P.......SS.',
-  '.....................'] };
+  '.....................',
+  'SS........P........SS',
+  'SS.................SS'] };
 
 const SARI_CHARGE_LEN = 9 * T;   // a charge covers this far (more with the wind) unless steel is in the way
 const SARI_RAM_DMG = 30;       // a clean hit; the double and triple charge can hit again
@@ -3104,15 +3127,15 @@ ARENAS.kale = { name: 'Orman Kalesi', gate: [[9, 5], [10, 5], [11, 5]], rows: [ 
   '.....................',
   '....SS.........SS....',
   '....SSBBB...BBBSS....',
-  '.....B.........B.....',
-  '.....B.SS...SS.B.....',
+  '.....BSS.....SSB.....',
+  '.....BSS.....SSB.....',
   '.....B.SS...SS.B.....',
   'GG.................GG',
   'GG.................GG',
   'GG.................GG',
   '.....B.SS...SS.B.....',
-  '.....B.SS...SS.B.....',
-  '.....B.........B.....',
+  '.....BSS.....SSB.....',
+  '.....BSS.....SSB.....',
   '....SSBBB...BBBSS....',
   '....SS.........SS....',
   '.....................',
@@ -3408,7 +3431,7 @@ BOSS_DEFS.demirkok = {
     { id: 'agir', w: 2.4, ok: e => demirMob(e), run: demirHeavy },
     { id: 'ezme', w: 2.2, ok: e => e.phase < 2 && e.distP > 3 * T, run: demirCrush, mov: true },
     { id: 'deprem', w: 2.6, ok: e => e.phase === 1 && e.distP < 7 * T, run: demirQuake },
-    { id: 'havan', w: 2.6, ok: e => e.phase >= 1 && demirMob(e), run: demirMortar },
+    { id: 'havan', w: 2.6, ok: e => e.phase >= 1 && demirMob(e), run: demirMortar, arc: true },
     { id: 'kok', w: 100, ok: e => e.phase >= 2 && !e.rooted, run: demirRoot, mov: true },
     { id: 'koker', w: 3, ok: e => e.rooted, run: demirRoots, cd: 5 },
     { id: 'doner', w: 2.4, ok: e => e.rooted, run: demirSweep, cd: 11 }
@@ -5378,6 +5401,20 @@ if (DEBUG) {
       }
       bot.on = false; G.noEvo = false; G.god = false;
       return { worst: +worst.toFixed(2), at, win: !!(e.dead || e.dying), secs: +(n / 60).toFixed(1), moving: +(moving / 60).toFixed(1) };
+    },
+    // reach probe: the player sits still on tile (c, r) (god mode, no bot); returns the closest the boss got (hull edge to hull edge, px) and whether it fired at or touched the player within maxSec
+    bossReach(w, c, r, maxSec) {
+      store.set(BOSS_SEEN_KEY, true); bot.on = false; G.god = false; G.noEvo = true; G.up = {}; G.tank = 'std'; refreshPlayer(); G.player.maxHp = G.player.hp = 1e6;
+      G.wave = w - 1; nextWave(); G.introSeen = true; endBossIntro(true);
+      const p = G.player, e = G.boss, max = Math.round(maxSec * 60); p.x = c * T + T / 2; p.y = r * T + T / 2; let n = 0, best = 1e9, hit = -1, hp0 = p.hp, seen = 0;
+      while (n < max && G.state === 'play' && !e.dead && !e.dying) {
+        p.x = c * T + T / 2; p.y = r * T + T / 2; update(1 / 60); n++;
+        best = Math.min(best, Math.hypot(e.x - p.x, e.y - p.y) - e.r - p.r);
+        if (e.canSee && e.distP < 9 * T) seen++;
+        if (hit < 0 && p.hp < hp0) hit = n / 60;
+      }
+      G.noEvo = false;
+      return { closest: Math.round(best), seen: +(seen / 60).toFixed(1), hit: +hit.toFixed(1), secs: +(n / 60).toFixed(1), unr: +(e.unrT || 0).toFixed(1) };
     },
     drop(kind, dx, dy) { const p = G.player; dropPickup(p.x + (dx || 0), p.y + (dy || 0), kind); }
   };
