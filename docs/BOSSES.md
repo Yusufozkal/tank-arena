@@ -273,6 +273,13 @@ SSS...SSS...SSS...SSS
 - Geliş: ilk kez 13. dalgada tek tane ve "Yeni düşman: Tamirci" ipucu; sonra payı 0,03 + 0,015·(dalga − 13), en fazla 0,15; sahada aynı anda en fazla 2.
 - Bot: Tamirci görünüyorsa önce onu vurur.
 
+## 1.5.1'de uygulanırken değişenler
+
+- Demirkök canı 1150 + 30·(dalga − 20); taretler canın %12'si. Ağır top mermisi önündeki tuğlayı tek isabette kırar. Kökler oyuncuyu kapalı bir cebe hapsetmez.
+- Bölge kuralının telafisi: kalkan her tür için dalga +%12 kalabalık, yeniden dolum ×0,93, nişan hatası ×0,90.
+- Tek kalan Tamirci 2 sn sonra kaçmayı ve saklanmayı bırakır, oyuncunun ~5,5 kare yakınına gelir.
+- "İkinci tur" maddeleri (Demirkök taretlerinin yeniden kurulması, çift deprem) henüz yok.
+
 ## 1.5'te uygulanırken değişenler
 
 - Normal düşman parça hasarı süreleri 1,5 / 1,2 / 1,8 sn (palet / namlu / motor); şartnamedeki 2,5 / 2 / 3 sn oyunu fazla kolaylaştırdı.

@@ -21,7 +21,7 @@ Kullanıcının istekleri (19–20 Kasım 2026): işin çoğunu alt ajanlar yapa
 | Rol | Model | Okuduğu yer | Testler |
 |---|---|---|---|
 | Denge | Sonnet | `02-constants`, `11-enemies`, `04-platform` (`RULES`), `docs/BALANCE.md` | `balance_probe` + `balance_report`, `check_gameplay` |
-| Düşman ve boss | Sonnet | `11-enemies`, `11a-boss-core`, boss modülleri (`11b`, `11c`…), `09-combat-fx`, `02-constants`; çizim `15a`/`15b`…; şartname `docs/BOSSES.md` | `check_boss`, `check_sari`, `check_parts`, `boss_probe`, `check_gameplay`, `stress` |
+| Düşman ve boss | Sonnet | `11-enemies`, `11a-boss-core`, boss modülleri (`11b`, `11c`…), `09-combat-fx`, `02-constants`; çizim `15a`/`15b`…; şartname `docs/BOSSES.md` | `check_boss`, `check_sari`, `check_demirkok`, `check_parts`, `check_region`, `boss_probe`, `check_gameplay`, `stress` |
 | Tank, kart, birleşim, bomba | Sonnet | `03-data`, `07-paths-tanks`, `08-traits`, `10-nuke-bullets` | `check_tanks`, `check_tier2_*`, `check_syn`, `check_nuke` |
 | Çizim ve efekt | Sonnet | `15-render-world`, `16-render-ui`, `06-map`, `04-platform` (sprite) | `check_gameplay`, `check_crosshair`, ekran görüntüsü |
 | Telefon arayüzü ve menü | Sonnet | `style.css`, `shell.html`, `13-flow`, `14-update-hud`, `05-state` | `check_hud_mobile`, `check_hud_buttons` |
@@ -79,6 +79,8 @@ python3 tests/check_nuke.py                        # nükleer bomba: bütün har
 python3 tests/check_boss.py                        # boss etabı, arena, evreler, uyarılar, Komutan
 python3 tests/check_sari.py                        # Sarı Fırtına
 python3 tests/check_parts.py                       # parça hasarı: palet, namlu, motor; boss paletleri
+python3 tests/check_demirkok.py                    # Demirkök
+python3 tests/check_region.py                      # bölge kuralı ve Tamirci
 python3 tests/boss_probe.py                        # boss savaşı süresi ve kazanma oranı (bot)
 python3 tests/balance_probe.py survive random 40 20 && python3 tests/balance_report.py
 
@@ -119,7 +121,7 @@ Ayrıntı `docs/MODULES.md`'de. Kısaca:
 - Veriler: `SPECS`, `PU`, `UPS`, `THEMES`, `firepower` (`02-constants`); `TANKS`, `SYN` (`03-data`); `RULES` (`04-platform`).
 - Akış: `startGame` → `nextWave` → `buildRoster(w)` + `waveMods(w)` (`11-enemies`) → `waveCleared` → `rollUpgrades` / `chooseUpgrade`, evrimde `chooseTank` (`13-flow`).
 - Döngü: `update(dt)` sabit 1/60 adım (`14-update-hud`), `render()` (`15-render-world`, `16-render-ui`).
-- Bosslar: `11a-boss-core` (boss etabı, arenalar, evreler, uyarılar, boss parça hasarı; `BOSS_DEFS`, `BOSS_ON`), boss başına modül (`11b` Komutan, `11c` Sarı Fırtına), çizim `15a`/`15b`. Normal düşman parça hasarı `11-enemies` (`partBreak`).
+- Bosslar: `11a-boss-core` (boss etabı, arenalar, evreler, uyarılar, boss parça hasarı; `BOSS_DEFS`, `BOSS_ON`), boss başına modül (`11b` Komutan, `11c` Sarı Fırtına, `11d` Demirkök), çizim `15a`/`15b`/`15c`. Bölge kuralı ve Tamirci `11-enemies` (`REGION_BAN`, `updateTamirci`). Normal düşman parça hasarı `11-enemies` (`partBreak`).
 - Bot `18-bot` (durum nesnesi `bot` `12-input-player`'da); `window.__tank` `19-debug`.
 
 ## Diğer

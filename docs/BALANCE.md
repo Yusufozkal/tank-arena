@@ -251,3 +251,33 @@ Ortalama bir oyunun 20. dalgaya gelmesi ~20 dk savaş (15 normal dalga ~8,6 dk +
 
 - Tank dengesi raporunda `uclu` ve `rayli` baskın çıkıyor (bu sürümün işi değildi; ayrıca bakılacak).
 - Bot savaşta insandan iyi kaçıyor (tepki gecikmesi 0,5 sn, mermiyi görmeme %40 eklendi); gerçek oyuncuda bosslar daha zor gelebilir. Ayar `18-bot.js` içindeki `BOT_REACT`, `botBlind`.
+
+## 1.5.1 sonuçları (20 Kasım 2026)
+
+Demirkök, Tamirci ve bölge kuralı (Sarı Fırtına'dan sonra Hızlı, Demirkök'ten sonra Ağır ve Tamirci gelmez). Can eklenmedi; kalkan her tür için dalga +%12 kalabalık, yeniden dolum ×0,93, nişan hatası ×0,90.
+
+### Normal dalgalar (tohum 100, 40 oyun)
+
+| | 1.5 | 1.5.1 |
+|---|---|---|
+| 10. dalgadan önce ölüm | %0 | %2 |
+| Ortalama bitiş dalgası | 26,8 | 22,6 |
+| 40'a ulaşma | %15 | %8 |
+| Dalga başına giden zırh (3'ten sonra) | %25,2 | %29,1 (4–9: %14,5, 10–19: %32,1, 20–29: %42,6, 30–40: %32,3) |
+| En çok ölünen dalga | 29, %15 | 19, %14 |
+
+21–40. dalgalar yalnızca Normal + Avcı: düşman sayısı 21'de ~33, 28'de 38, 38'de 45; Avcı payı 21'de %22, 27'den sonra ~%35. 26–29. dalgalar en zor kesim (dalga başına zırhın %50–68'i); ölümlerin 12/37'si 21–32 arasında. Kar ve Şehir'in yeni türleri gelince yeniden ölçülecek.
+
+### Bosslar (bot, orta set, 8 savaş)
+
+| Dalga | Boss | Kazanma | Ortalama | Ortanca |
+|---|---|---|---|---|
+| 10 | Sarı Fırtına | 8/8 | 199 sn | 161 sn |
+| 15 | Komutan | 8/8 | 232 sn | 193 sn |
+| 20 | Demirkök | 8/8 | 317 sn | 265 sn |
+
+Demirkök ayrı ölçümde (20 savaş, can 1150): orta 18/20, 295 sn; güçlü 19/20, 229 sn; kartsız (can 1000 iken) 0/20.
+
+### Açık
+- 4–9. dalgalarda dalga başına giden zırh %14,5 (hedefin hemen altında).
+- 26–29. dalgalar oyuncuda sert gelirse ilk ayar Avcı payına tavan ya da `NUKE_WAVES`.

@@ -1,6 +1,6 @@
 # Yol haritası
 
-Durum (20 Kasım 2026): **1.5 yayında** (boss etabı, yeni Komutan, Sarı Fırtına, parça hasarı, yeni nükleer bomba). Sıradaki iş seçilmedi: Demirkök ve Orman bölgesi (bölge sırası) ya da 1.6 (çevrimiçi). Kullanıcı onaylamadan başlama.
+Durum (20 Kasım 2026): **1.5.1 yayında** (Demirkök, Orman bölgesi, Tamirci, bölge kuralı). Sıradaki iş seçilmedi: Kırağı ve Kar bölgesi (yeni Kar düşmanıyla) ya da 1.6 (çevrimiçi). Kullanıcı onaylamadan başlama.
 
 ## Kullanıcının koyduğu ilkeler
 
@@ -90,6 +90,15 @@ Bölge yapısının ilk adımı (kullanıcı onayı, 20 Kasım 2026). Şartname 
 - Nükleer bomba bütün haritayı vurur; bosslara canın en çok %30'u ya da 150 + 6·(dalga − 15) hasar (küçük olan), can en az %10'da kalır, 3 sn sersem; boss hasar almazken harcanmaz. Dolma süresi 2,5 → 3,5 dalga.
 - Kalan bölge işleri: Demirkök + Orman, Kırağı + Kar, Son Hisar + Şehir + ikinci tur; bölgelere düşman dağılımı ve yeni düşman türleri.
 
+## 1.5.1 – Demirkök, Orman bölgesi, Tamirci, bölge kuralı (yayında, 20 Kasım 2026)
+
+Kullanıcı "ikisini de yap" dedi (Demirkök + bölge yapısı). Yeni Orman düşmanı olarak Tamirci'yi ana oturum seçti (Bombacı ile değiştirilebilir). Şartname `docs/BOSSES.md` bölüm 5 ve 9.
+
+- Demirkök (20. dalga, Orman Kalesi): yan taretler (ayaktayken gövde yarı hasar), ağır top, deprem, havan; son evrede kök salma, geçici demir kökler, 360° döner ateş, arkadan 1,5 kat.
+- Tamirci (13. dalgadan): silahsız, en hasarlı müttefiki ışınla onarır ve bozuk parçasını hemen düzeltir; yaklaşınca kaçar; tek kalınca kaçmayı bırakıp yaklaşır.
+- Bölge kuralı: Sarı Fırtına yenilince Keşif tankları, Demirkök yenilince Ağır tanklar ve Tamirciler o oyunda bir daha gelmez; yeni bölgenin başında yazı çıkar. Kalkan her tür için dalga +%12 kalabalık, yeniden dolum ×0,93, nişan hatası ×0,90 (can eklenmedi).
+- Bilinen: Kar ve Şehir'in kendi yeni türleri gelene kadar 21–40. dalgalar Normal + Avcı; 26–29. dalgalar zor (dalga başına zırhın %50–68'i).
+
 ## Bölgeler ve görkemli bosslar (taslak, 20 Kasım 2026)
 
 Kullanıcının istekleri (20 Kasım 2026):
@@ -156,7 +165,7 @@ Oyun başında tank seçimi (yerine evrim), aktif yetenek, elit düşmanlar, zor
 ## Bekleyen küçük işler
 
 - Yayın sürümünden hata ayıklama modunu kaldırmak (1.6'dan önce şart).
-- Kısa telefonlarda yatay ekranda üst gösterge 740×360'ta %19,4 (hedef ~%18; 844×390'da %17,9 geçiyor). 1.4'ten beri böyle.
+- Kısa telefonlarda yatay ekranda üst gösterge 740×360'ta %19,4 (hedef ~%18; 844×390'da %17,9 geçiyor). 1.4'ten beri böyle. Dar telefonda dikeyde de 360×740'ta %14,3, boss çubuğuyla %17,0 (390×844'te %12,6 ve %14,9 geçiyor); 1.5'te de aynı.
 - Tank dengesi: 1.5 ölçümünde Üçlü ve Raylı Top baskın çıkıyor (`docs/BALANCE.md`).
 - `/.well-known/security.txt` eklemek (kullanıcı "şimdilik dursun" dedi).
 - Alan adı alınmadı; kullanıcı "almak istersek ayarlarız" dedi.
