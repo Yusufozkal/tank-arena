@@ -76,7 +76,10 @@ function hurtEnemy(e, dmg, x, y, dir, quiet) { // quiet: burn ticks and flame, n
   if (e.hp <= 0.001) { killEnemy(e); return; }
   if (!quiet) Sound.metal(volAt(e.x, e.y));
 }
-const damageEnemy = (e, b) => hurtEnemy(e, b.dmg * synDmg(b, e), b.x, b.y, Math.atan2(-b.vy, -b.vx));
+function damageEnemy(e, b) {
+  hurtEnemy(e, b.dmg * synDmg(b, e), b.x, b.y, Math.atan2(-b.vy, -b.vx));
+  if (!e.dead) partBreak(e, b); // 11: a surviving enemy tank loses a part by the hit direction
+}
 // Explosive shells (Patlayıcı mermi): a small blast that hurts every other enemy tank in reach
 function blastAt(b, x, y, skip) {
   const sp = splashFor(b); // hook (B): Seken patlama

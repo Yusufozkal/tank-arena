@@ -231,6 +231,12 @@ function drawTank(t, alpha, g) {
   for (let x = -L / 2 + o; x < L / 2 - 1.5; x += st) g.fillRect(x, -W / 2 + 1.3, 1.7, tw - 2.6);
   o = ((t.treadR % st) + st) % st;
   for (let x = -L / 2 + o; x < L / 2 - 1.5; x += st) g.fillRect(x, W / 2 - tw + 1.3, 1.7, tw - 2.6);
+  if (t.pt && t.pt.tread > 0) { // broken tread: a stretch of links is gone, the rest hangs loose
+    const y0 = t.pt.side ? W / 2 - tw : -W / 2;
+    g.fillStyle = 'rgba(8,6,4,.78)'; g.fillRect(-L * 0.3, y0 + 0.5, L * 0.46, tw - 1);
+    g.fillStyle = '#4b473e'; for (let k = 0; k < 4; k++) g.fillRect(-L * 0.34 + k * 4.2, y0 + ((k * 5) % 3) + 0.6, 2.6, 1.7);
+    g.strokeStyle = '#ffb04a'; g.lineWidth = 0.9; g.globalAlpha = alpha * (0.5 + 0.5 * Math.sin(G.time * 18)); g.beginPath(); g.moveTo(-L * 0.3, y0 + 1); g.lineTo(-L * 0.3, y0 + tw - 1); g.stroke(); g.globalAlpha = alpha;
+  }
   const hx = -L / 2 + 2.5, hw = L - 5, hy = -W / 2 + tw - 2.5, hh = W - 2 * tw + 5;
   g.fillStyle = c.dk; rrect(g, hx, hy, hw, hh, 4); g.fill();
   g.fillStyle = c.body; rrect(g, hx + 1.5, hy + 1.5, hw - 3, hh - 3, 3); g.fill();
@@ -270,6 +276,9 @@ function drawTank(t, alpha, g) {
     }
   } else if (s.triple) { for (const a of [-0.2, 0.2, 0]) { g.save(); g.rotate(a); barrel(s, rec, c, g); g.restore(); } }
   else if (s.twin) { const off = s.twinOff || s.bW * 0.62; for (const yo of [-1, 1]) { g.save(); g.translate(0, yo * off); barrel(s, rec, c, g); g.restore(); } }
+  else if (t.pt && t.pt.barrel > 0) { // jammed barrel: bent upward with a scorched tip
+    g.save(); g.rotate(-0.2); barrel(s, rec, c, g); g.fillStyle = '#17110f'; g.fillRect(s.barrel - 7, -s.bW * 0.7, 7, s.bW * 1.4); g.restore();
+  }
   else barrel(s, rec, c, g);
   if (t.type === 'boss' && t.chargeT > 0) { // Komutan telegraph: the three muzzles heat up over 0.45 s before the triple shot
     const k = clamp(t.chargeT / 0.45, 0, 1), tipX = s.barrel - rec;
@@ -314,6 +323,13 @@ function drawTank(t, alpha, g) {
   else g.fillRect(tr * 0.15, -tr * 0.12, tr * 0.5, tr * 0.24);
   if (fl) { g.globalAlpha = alpha * fl; g.fillStyle = '#fff'; rrect(g, -tr * 1.05, -tr * 0.9, tr * 1.95, tr * 1.8, tr * 0.5); g.fill(); }
   g.restore();
+  if (t.pt) for (const k of ['tread', 'barrel', 'engine']) if (t.pt[k] > 0) { const q = partWorld(t, k); repairRing(g, q.x, q.y - 15, 1 - t.pt[k] / t.pt.dur[k], alpha); } // repair progress above the part
+}
+// a small ring that fills while a broken part is being repaired (normal enemies and boss treads)
+function repairRing(g, x, y, k, alpha) {
+  g.save(); g.globalAlpha = alpha; g.lineWidth = 2.6; g.strokeStyle = 'rgba(20,16,10,.7)'; g.beginPath(); g.arc(x, y, 5.5, 0, TAU); g.stroke();
+  g.lineWidth = 2; g.strokeStyle = '#ffd24a'; g.beginPath(); g.arc(x, y, 5.5, -Math.PI / 2, -Math.PI / 2 + TAU * clamp(k, 0.02, 1)); g.stroke();
+  g.fillStyle = '#ffd24a'; g.fillRect(x - 0.9, y - 2.6, 1.8, 5.2); g.fillRect(x - 2.6, y - 0.9, 5.2, 1.8); g.restore();
 }
 // Dondurucu: an ice shell over every frozen tank, fading out in the last half second
 function drawFrost(e) {

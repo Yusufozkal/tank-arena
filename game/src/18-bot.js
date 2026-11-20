@@ -51,12 +51,14 @@ function bossAutopilot(dt) {
     if (k) { const kc = Math.floor(k.x / T), kr = Math.floor(k.y / T), d = botBfs((c, r) => c === kc && r === kr, 14); if (d) { bot.mx = d.x; bot.my = d.y; return; } }
   }
   const want = Math.max(TANKS[G.tank].botRange || 290, 150);
+  const lineWarn = e.treadT <= 0 && G.tele.some(t => t.kind === 'line' && t.t < t.dur), brk = e.treadT > 0; // part damage: a charge line is up (shoot the tread from the side) / a tread is broken (get behind)
   let best = null, bs = -1e9;
   for (let i = 0; i < 8; i++) {
     const a = i * Math.PI / 4, x = p.x + Math.cos(a) * 60, y = p.y + Math.sin(a) * 60;
     if (blocksTank(m.at(x, y)) || blocksTank(m.at(p.x + Math.cos(a) * 30, p.y + Math.sin(a) * 30))) continue;
     const dd = Math.hypot(x - e.x, y - e.y), ang = Math.atan2(e.y - p.y, e.x - p.x), tang = Math.abs(Math.sin(angDiff(a, ang)));
     let sc = -Math.abs(dd - want) * 0.8 + tang * 25 + (los(x, y, e.x, e.y) ? 20 : 0) + Math.random() * 8 + (dd < e.r + 70 ? -300 : 0);
+    if (lineWarn || brk) { const bang = Math.abs(angDiff(e.angle, Math.atan2(y - e.y, x - e.x))); if (lineWarn && bang > 0.9 && bang < 2.2) sc += 60; if (brk && bang > 2.3) sc += 40; }
     if (botDanger(x, y, 26)) sc -= 1000;
     if (sc > bs) { bs = sc; best = a; }
   }

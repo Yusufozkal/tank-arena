@@ -144,7 +144,7 @@ function drawParticles() {
   const dust = G.map.dust;
   for (const q of parts) {
     const k = q.life / q.max;
-    if (q.k === 'smoke') { const a = Math.sin(Math.PI * (1 - k)) * 0.9; if (a > 0.01) { ctx.globalAlpha = a; ctx.drawImage(SPR.smoke, q.x - q.size / 2, q.y - q.size / 2, q.size, q.size); } }
+    if (q.k === 'smoke') { const a = Math.sin(Math.PI * (1 - k)) * 0.9; if (a > 0.01) { ctx.globalAlpha = a; ctx.drawImage(q.col === 'k' ? SPR.smokeK : SPR.smoke, q.x - q.size / 2, q.y - q.size / 2, q.size, q.size); } }
     else if (q.k === 'dust') { ctx.globalAlpha = k * 0.8; ctx.drawImage(dust, q.x - q.size / 2, q.y - q.size / 2, q.size, q.size); }
     else if (q.k === 'debris') { ctx.globalAlpha = Math.min(1, k * 2.5); ctx.fillStyle = q.col; ctx.save(); ctx.translate(q.x, q.y); ctx.rotate(q.rot); ctx.fillRect(-q.size / 2, -q.size / 3, q.size, q.size * 0.66); ctx.restore(); }
     else if (q.k === 'ring') { ctx.globalAlpha = 1; ctx.strokeStyle = `rgba(${q.col},${(k * 0.9).toFixed(3)})`; ctx.lineWidth = 1 + 3 * k; ctx.beginPath(); ctx.arc(q.x, q.y, Math.max(0.5, q.size), 0, TAU); ctx.stroke(); }

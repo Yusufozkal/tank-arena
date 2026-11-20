@@ -72,6 +72,7 @@ function spawnBoss(def, x, y, angle) {
   e.phase = 0; e.trans = 0; e.invuln = false; e.dying = false; e.parts = []; e.gen = null; e.wait = 0; e.atkId = ''; e.lastAtk = ''; e.acd = {};
   e.cool = 1.5; e.pace = 1 + 0.6 / e.visit; e.scorch = []; e.lost = {}; e.broke = [false, false, false, false]; e.hitSide = [0, 0, 0, 0];
   e.glow = 0; e.fxT = 0; e.flowT = 0; e.flow = null; e.dt = 0; e.log = []; e.unlock = def.unlocks ? def.unlocks(w) : {};
+  initBossParts(e);
   def.setup(e, w);
   G.enemies.push(e); G.boss = e;
   return e;
@@ -138,7 +139,7 @@ function bossShell(e, ang, o) {
   if (blocked) hitTile(b, bx, by); else G.bullets.push(b);
 }
 function bossVolley(e, fan) { // one volley: a shell per entry of fan (radians relative to the turret), muzzle puffs, recoil
-  for (const off of fan) bossShell(e, e.turret + off);
+  for (const off of fan) if (!barrelSilent(e, off)) bossShell(e, e.turret + off); // a silent barrel does not fire
   e.recoil = 1;
   const ca = Math.cos(e.turret), sa = Math.sin(e.turret);
   for (let k = 0; k < 3; k++) {
@@ -195,6 +196,7 @@ function bossWaypoint(e) {
   best.x = best.c * T + T / 2; best.y = best.r * T + T / 2; return best;
 }
 function bossMove(e, dt, hold) {
+  if (e.treadT > 0) { e.avx = e.avy = 0; return; } // a broken tread: the boss stands still while the crew repairs it
   const s = e.spec, p = G.player, before = e.angle, ox = e.x, oy = e.y;
   e.flowT -= dt; if (e.flowT <= 0) { computeBossFlow(e); e.flowT = 0.3; }
   if (p.alive && !(e.canSee && e.distP < hold * T)) {
@@ -221,7 +223,7 @@ function updateBoss(e, dt, halted) {
   if (e.def.tick) e.def.tick(e, dt); // per-boss frame hook (Sarı Fırtına: sand strips, wind); runs in the intro and the death scene too
   if (G.phase === 'bossIntro') return; // the intro script drives the boss
   if (e.dying) { bossDeathTick(e, dt); return; }
-  bossFx(e, dt);
+  bossFx(e, dt); bossPartTick(e, dt);
   if (e.trans > 0) { // phase change: no damage, no attacks
     e.trans -= dt; e.flash = 0.05 + 0.05 * Math.sin(G.time * 30);
     if (e.trans <= 0) { e.trans = 0; e.invuln = false; e.wp = null; }
@@ -243,7 +245,7 @@ function updateBoss(e, dt, halted) {
   }
 }
 function startAttack(e) {
-  const list = e.def.attacks.filter(a => a.ok(e) && a.id !== e.lastAtk && !(e.acd[a.id] > G.time));
+  const list = e.def.attacks.filter(a => a.ok(e) && a.id !== e.lastAtk && !(e.acd[a.id] > G.time) && !(a.mov && e.treadT > 0)); // mov: an attack that needs the treads (charge)
   if (!list.length) { e.cool = 0.5; return; }
   let r = Math.random() * list.reduce((s, a) => s + a.w, 0), at = list[list.length - 1];
   for (const a of list) { r -= a.w; if (r <= 0) { at = a; break; } }
@@ -304,6 +306,67 @@ function breakPart(e, pt) {
   if (e.def.onPartBreak) e.def.onPartBreak(e, pt);
   vibrate(30);
 }
+/* ---- part damage: treads and barrels (docs/BOSSES.md section 2) ---- */
+// Treads (one per side) have their own HP (BT.tread of the boss's max HP). A shell from the side hits the tread on that side; at 0 the boss stands still for BT.halt seconds while the crew repairs it,
+// then the tread is full again and the next break needs BT.more more. Breaking a tread during a charge warning (a 'line' telegraph) cancels the charge.
+// def.barrels: [{ id, name, ang (radians against the turret), k (share of max HP before it goes silent) }]: a shell from the front adds its damage to the nearest barrel; a full barrel is silent for BT.silent seconds
+// (its shells are left out of the volleys) and a glow telegraph in progress is cancelled. Attacks with mov: true do not start while a tread is broken.
+const BT = { tread: 0.08, halt: 4, more: 0.5, silent: 3 };
+function initBossParts(e) {
+  const mx = Math.max(2, Math.round(e.maxHp * BT.tread));
+  e.tr = [0, 1].map(() => ({ hp: mx, max: mx, br: 0, t: 0 })); e.treadT = 0; e.cancels = 0;
+  e.bars = (e.def.barrels || []).map(b => ({ id: b.id, name: b.name, ang: b.ang, thr: Math.max(2, Math.round(e.maxHp * (b.k || 0.07))), acc: 0, t: 0 }));
+}
+const barrelSilent = (e, off) => !!e.bars && e.bars.some(b => b.t > 0 && Math.abs(off - b.ang) < 0.08);
+function cancelAttack(e, why) { // the part the attack needed broke during its warning
+  e.gen = null; e.atkId = ''; e.glow = 0; clearTele(); e.cool = 1.2; e.cancels++;
+  e.log.push({ atk: 'cancel', kind: why, dur: 0, min: 0 }); if (e.log.length > 300) e.log.shift();
+  addText(e.x, e.y - e.r - 16, 'SALDIRI İPTAL', '#bfeaff', 16);
+}
+const warning = (e, kind) => G.tele.some(t => t.e === e && t.kind === kind && t.t < t.dur);
+function treadWorld(e, i) { const s = e.spec, ly = (i ? 1 : -1) * (s.wid / 2 - s.tread / 2), ca = Math.cos(e.angle), sa = Math.sin(e.angle); return { x: e.x - sa * ly, y: e.y + ca * ly }; }
+function bossPartHit(e, dmg, x, y, dir) {
+  const a = angDiff(e.angle, dir), aa = Math.abs(a);
+  if (aa >= 0.785 && aa <= 2.356) { // side hit: that side's tread
+    const i = a > 0 ? 1 : 0, tr = e.tr[i]; if (tr.t > 0) return;
+    tr.hp -= dmg; if (tr.hp > 0) return;
+    tr.hp = 0; tr.br++; tr.t = BT.halt; e.treadT = BT.halt;
+    const q = treadWorld(e, i);
+    for (let k = 0, n = Math.max(4, Math.round(10 * fxScale)); k < n; k++) { const an = rand(0, TAU), v = rand(50, 200); addPart('debris', q.x + rand(-14, 14), q.y + rand(-14, 14), Math.cos(an) * v, Math.sin(an) * v, rand(0.8, 1.5), rand(3.5, 6), 0, 3.2, k & 1 ? '#4b473e' : '#1f1d19'); }
+    sparks(q.x, q.y, 14, '#ffd27a', 300); explode(q.x, q.y, 0.5); shake(6);
+    addText(q.x, q.y - 24, 'Palet kırıldı', '#ffd27a', 16);
+    if (warning(e, 'line')) cancelAttack(e, 'palet');
+  } else if (e.bars.length && Math.abs(angDiff(e.turret, dir)) < 0.9) { // front hit: the barrel nearest to where the shell passes
+    const ct = Math.cos(e.turret), st = Math.sin(e.turret), lat = -st * (x - e.x) + ct * (y - e.y);
+    let best = null, bd = 1e9;
+    for (const b of e.bars) { if (b.t > 0) continue; const d = Math.abs(Math.sin(b.ang) * e.spec.barrel - lat); if (d < bd) { bd = d; best = b; } }
+    if (!best) return;
+    best.acc += dmg; if (best.acc < best.thr) return;
+    best.acc = 0; best.t = BT.silent;
+    const mx = e.x + Math.cos(e.turret + best.ang) * e.spec.barrel, my = e.y + Math.sin(e.turret + best.ang) * e.spec.barrel;
+    sparks(mx, my, 10, '#ffb04a', 240); explode(mx, my, 0.35); addText(mx, my - 20, best.name + ' tutukluk', '#ffd27a', 15);
+    if (warning(e, 'glow')) cancelAttack(e, 'namlu');
+  }
+}
+function bossPartTick(e, dt) {
+  if (e.dying) return;
+  e.treadT = 0;
+  for (let i = 0; i < 2; i++) {
+    const tr = e.tr[i]; if (tr.t <= 0) continue;
+    tr.t -= dt; const q = treadWorld(e, i);
+    if (tr.t <= 0) { // repaired: full again, the next break needs more
+      tr.t = 0; tr.max = Math.round(Math.max(2, Math.round(e.maxHp * BT.tread)) * (1 + BT.more * tr.br)); tr.hp = tr.max;
+      sparks(q.x, q.y, 10, '#fff0b0', 200); addPart('ring', q.x, q.y, 0, 0, 0.4, 6, 70, 0, '255,230,150');
+    } else {
+      e.treadT = Math.max(e.treadT, tr.t);
+      if (Math.random() < dt * 14) addPart('spark', q.x + rand(-16, 16), q.y + rand(-4, 4), rand(-70, 70), rand(-120, -30), rand(0.2, 0.4), 1, 0, 4, '#ffb04a');
+    }
+  }
+  for (const b of e.bars) {
+    if (b.t <= 0) continue; b.t -= dt; if (b.t < 0) b.t = 0;
+    if (Math.random() < dt * 10) { const mx = e.x + Math.cos(e.turret + b.ang) * e.spec.barrel, my = e.y + Math.sin(e.turret + b.ang) * e.spec.barrel; addPart('smoke', mx, my, rand(-10, 10), rand(-30, -12), rand(0.7, 1.1), rand(10, 15), 22, 1.5); }
+  }
+}
 const partAlive = (e, id) => e.parts.some(pt => pt.id === id && pt.alive);
 
 /* ---- damage ---- */
@@ -319,6 +382,7 @@ function bossHurt(e, dmg, x, y, dir, quiet) {
     if (pt.hp <= 0) breakPart(e, pt);
     return;
   }
+  if (direct && dir !== undefined && !quiet) bossPartHit(e, dmg * k, x, y, dir); // treads and barrels: own HP / accumulated hits (the hull takes the damage too)
   const applied = Math.min(dmg * k, e.hp);
   e.hp -= dmg * k; e.flash = 0.1;
   if (typeof nukeOnBossDamage === 'function') nukeOnBossDamage(e, applied); // hook (C): the nuke meter fills with the damage dealt to the boss

@@ -245,6 +245,7 @@ const TT_obus = {
 // Enemy status effects, once per frame per enemy before its AI. Returns true while the tank is stunned (it stands still and holds fire, like Dondurucu).
 // stunT: Ikiz.   kvx/kvy: knockback velocity (px/s, divided by mass where it is set), decays quickly.   burnT/burnDps: Alev Topu burn, ticks every 0.25 s.
 function tickStatus(e, dt) {
+  if (e.pt) partTick(e, dt); // 11: part damage timers
   if (e.kvx || e.kvy) { // D1: Sarapnel / Cift knockback
     moveTank(e, e.kvx * dt, e.kvy * dt);
     const k = Math.exp(-8 * dt); e.kvx *= k; e.kvy *= k;
