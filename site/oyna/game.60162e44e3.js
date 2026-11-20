@@ -1817,7 +1817,7 @@ function chooseSpawn() {
 const NEW_FOE = {
   fast: ['tankArena.seenFast', 'Yeni düşman: Hızlı. Küçük ve çevik, hızla yaklaşır ama az dayanır.'],
   heavy: ['tankArena.seenHeavy', 'Yeni düşman: Ağır. Yavaş ama çok sağlam, çift namlu ateş eder.'],
-  hunter: ['tankArena.seenHunter', 'Yeni düşman: Avcı. Mermilerden kaçar, siperden ateş eder; ateş etmeden önce yeşil hedef ışığı yakar.'],
+  hunter: ['tankArena.seenHunter', 'Yeni düşman: Avcı. Yakından gelen mermiden kaçar, uzaktan vurulunca siper alır; ateş etmeden önce yeşil hedef ışığı yakar.'],
   tamirci: ['tankArena.seenTamirci', 'Yeni düşman: Tamirci. Silahı yok; yanındaki tankları onarır. Önce onu vur.'] };
 function spawnEnemy(type, x, y) {
   if (type === 'boss') { // debug / old paths: a boss in an ordinary wave (no phases, no stage)
