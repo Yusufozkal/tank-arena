@@ -1,5 +1,5 @@
 """Package B: the six card synergies (Birleşimler). For each one the two cards are set with __tank.setUp, syn() must list it and the effect is measured against
-the same setup without one of the two cards. Also checks the workshop badge/hint texts, the unlock banner, the pause list, the Rehber list and phone layouts.
+the same setup without one of the two cards. Also checks the workshop card blocks (shown only when the partner is owned), the unlock banner, the pause list, the Rehber list and phone layouts.
 Screenshots go to .tmp/shots (syn_*.png)."""
 from common import *  # noqa: F401,F403
 
@@ -107,10 +107,14 @@ with sync_playwright() as pw:
       engine: __tank.synBadgeHTML('engine'), fix: __tank.synBadgeHTML('fix'), armor: __tank.synBadgeHTML('armor') })""")
     ck('badge_completes', 'Birleşim: Seken patlama' in txt['blast'] and 'class="up-syn on"' in txt['blast'], txt)
     ck('badge_loader_completes_kale', 'Birleşim: Kale' in txt['loader'], txt)
-    ck('hint_other', 'ile birleşir' in txt['caliber'] and 'Büyük kalibre' not in txt['caliber'] and 'up-syn on' not in txt['caliber'] and 'Uzun namlu ile birleşir' in txt['caliber'], txt)
-    ck('hint_owned_partner_missing', txt['armor'].count('Otomatik yükleyici ile birleşir') == 1, txt)
+    # 1.5.3: no block at all for a card whose partner is not owned (no "ile birleşir" hint either)
+    ck('no_block_partner_missing', txt['caliber'] == '' and txt['armor'] == '' and txt['engine'] == '', txt)
     ck('no_badge_without_synergy', txt['fix'] == '', txt)
     ck('no_badge_when_already_active', ev("() => { __tank.setUp({ ricochet: 1, blast: 1 }); return __tank.synBadgeHTML('blast'); }") == '')
+    # several synergies on one card: only those whose partner is owned are listed
+    multi = ev("""() => { const t = __tank; t.setUp({ barrel: 1 }); const one = t.synBadgeHTML('caliber');
+      t.setUp({ barrel: 1, thermal: 1 }); const two = t.synBadgeHTML('caliber'); return [one, two]; }""")
+    ck('multi_only_owned_partner', 'Birleşim: Uzak vuruş' in multi[0] and 'Pusu' not in multi[0] and multi[1].count('<b>Birleşim:') == 2 and 'Birleşim: Pusu' in multi[1], multi)
 
     # draw a workshop with a completing card, choose it, check the banner survives the next wave intro
     def workshop(pg):
@@ -122,7 +126,10 @@ with sync_playwright() as pw:
     ck('workshop_roll', ch is not None, ch)
     page.wait_for_timeout(700)
     html = page.inner_html('#upCards')
-    ck('dom_badge', 'Birleşim: Seken patlama' in html and 'ile birleşir' in html, html[:200])
+    ck('dom_badge', 'Birleşim: Seken patlama' in html and 'ile birleşir' not in html, html[:200])
+    # a card shows the block exactly when its partner is owned: with ricochet + engine owned, only blast and repair may carry one
+    dom = ev("() => [...document.querySelectorAll('#upCards .up-card')].map(c => [c.dataset.k, !!c.querySelector('.up-syn')])")
+    ck('dom_block_only_owned_partner', all(has == (k in ('blast', 'repair')) for k, has in dom), dom)
     page.screenshot(path=f'{OUT}/syn_workshop_desktop.png')
     ev("() => { __tank.choose('blast'); }")
     page.wait_for_timeout(250)
@@ -162,7 +169,7 @@ with sync_playwright() as pw:
           return { panel: [P.scrollHeight, P.clientHeight], vh: innerHeight, vw: innerWidth, cards: cs.map(c => { const r = c.getBoundingClientRect(); const s = c.querySelector('.up-syn');
             return { k: c.dataset.k, syn: s ? s.textContent : null, over: [c.scrollWidth - c.clientWidth, c.scrollHeight - c.clientHeight], r: [Math.round(r.left), Math.round(r.top), Math.round(r.right), Math.round(r.bottom)], synOver: s ? s.scrollWidth - s.clientWidth : 0 }; }) }; }""")
         ck(f'{tag}_cards_unclipped', all(c['over'][0] <= 0 and c['over'][1] <= 0 and c['synOver'] <= 0 and c['r'][0] >= 0 and c['r'][2] <= w for c in m['cards']) and len(m['cards']) == 3, m)
-        ck(f'{tag}_has_badge_and_hint', any(c['syn'] and c['syn'].startswith('Birleşim') for c in m['cards']) and any(c['syn'] and 'ile birleşir' in c['syn'] for c in m['cards']), m)
+        ck(f'{tag}_block_only_owned', any(c['syn'] and c['syn'].startswith('Birleşim') for c in m['cards']) and not any(c['syn'] and 'ile birleşir' in c['syn'] for c in m['cards']), m)
         pg.screenshot(path=f'{OUT}/syn_workshop_{tag}.png')
         if tag in ('p390', 'l740'):
             pg.evaluate("() => { const t = __tank; t.G.phase = 'fight'; t.setUp({ ricochet: 1, blast: 1, armor: 1, loader: 1, engine: 1, repair: 1 }); t.pauseGame(); }")
