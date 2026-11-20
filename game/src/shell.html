@@ -93,7 +93,7 @@
       </div>
     </div>
     <button type="button" class="btn primary" id="btnSettingsBack">TAMAM</button>
-    <p class="version">Tank Arena 1.5.1</p>
+    <p class="version">Tank Arena 1.5.2</p>
   </section>
 </div>
 
@@ -117,7 +117,7 @@
       <li><canvas data-tank="basic" aria-hidden="true"></canvas><div><b>Standart tank</b><span>2 isabet. Mesafesini koruyup ateş eder.</span></div></li>
       <li><canvas data-tank="fast" aria-hidden="true"></canvas><div><b>Keşif tankı</b><span>1 isabet. Çok hızlıdır, üzerine doğru gelir.</span></div></li>
       <li><canvas data-tank="heavy" aria-hidden="true"></canvas><div><b>Ağır tank</b><span>5 isabet. Çift namlulu, iri mermisi çok can yakar.</span></div></li>
-      <li><canvas data-tank="hunter" aria-hidden="true"></canvas><div><b>Avcı</b><span>3 isabet. Mermilerden kaçar, siperden ateş eder, seni kaybettiği yere ateş açar. Ateş etmeden önce yeşil hedef ışığı yakar.</span></div></li>
+      <li><canvas data-tank="hunter" aria-hidden="true"></canvas><div><b>Avcı</b><span>3 isabet. Yakından gelen mermiden kaçar ama uzaktan gelenden kaçamaz; uzaktan vurulunca siper alır. Seni kaybedince son gördüğü yeri arar. Ateş etmeden önce yeşil hedef ışığı yakar.</span></div></li>
       <li><canvas data-tank="tamirci" aria-hidden="true"></canvas><div><b>Tamirci</b><span>3 isabet. Silahı yok; yanındaki tankları onarır, bozulan paletini ve namlusunu hemen düzeltir. Önce onu vur.</span></div></li>
       <li><canvas data-tank="boss" aria-hidden="true"></canvas><div><b>Komutan</b><span>Normal tankın boss'u. Her bölgenin ortasında (5, 15, 25, 35. dalga) kendi arenasında gelir. Üç evresi var; sırtındaki komuta kulesi topçu çağırır. Her gelişinde yeni saldırılar açar.</span></div></li>
       <li><canvas data-tank="fast" aria-hidden="true"></canvas><div><b>Sarı Fırtına</b><span>Keşif tankının boss'u, 10. dalgada Kum Çukuru'nda. Kırmızı çizgi boyunca hücum eder; onu çeliğe çarptırırsan sersemler.</span></div></li>
@@ -133,13 +133,13 @@
     <ul class="syn-guide" id="guideSyn" aria-label="Birleşimler"></ul>
     <h3 class="gh">İPUÇLARI</h3>
     <ul class="tips-list">
-      <li>Çalının içindeyken düşmanlar seni ancak yakından görebilir; ateş edince yerin belli olur.</li>
+      <li>Çalının içindeyken düşmanlar seni ancak yakından görebilir; seni kaybedince son gördükleri yere gidip etrafı ararlar. Ateş edince yerin kabaca belli olur.</li>
       <li>Kendi mermin, sana gelen düşman mermisini havada patlatır.</li>
       <li>Tuğlalar üç isabette yıkılır, çelik bloklar hiç yıkılmaz.</li>
-      <li>Avcı mermilerden kaçar: onu yakından ya da üçlü atışla vur.</li>
+      <li>Avcı yalnızca yakından gelen mermiden kaçar: onu uzaktan vur.</li>
       <li>Delici mermi tuğlaların ve tankların içinden geçer, arkadaki düşmanı da vurur.</li>
       <li>Bosslar saldırmadan önce uyarır: parlayan namlu düz atış, kırmızı çizgi hücum, kırmızı daire havan, büyüyen halka şok dalgası demektir. Çelik seni korur.</li>
-      <li>Düşmanı yandan vurursan paleti kırılır, önden vurursan namlusu tutukluk yapar, arkadan vurursan motoru yavaşlar; kısa süre sonra onarır.</li>
+      <li>Düşmanı yeterince vurursan parçası bozulur: yandan paleti kırılır, önden namlusu tutukluk yapar, arkadan motoru yavaşlar; kısa süre sonra onarır.</li>
       <li>Nükleer bomba bütün haritayı vurur. Bossları öldürmez ama canlarının büyük bir kısmını alır ve onları sersemletir.</li>
       <li>Zırhın azken atölyeye girersen kartlardan biri acil onarım olur.</li>
       <li>Bir boss'u yenince onun türünden tanklar oyunun geri kalanında gelmez: Sarı Fırtına'dan sonra Keşif tankları, Demirkök'ten sonra Ağır tanklar ve Tamirciler.</li>
