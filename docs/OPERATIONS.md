@@ -52,3 +52,4 @@ Notlar: kalıcı engelleme (persistent actions) Hobby'de yok, engel pencere bite
 | 1.2.1 | 4 | Karda ve çölde görünen nişangâh, telefonda küçülen üst gösterge |
 | 1.3 | 5 | Tek mod, Komutan her gelişte güçlenir ve ateşten önce namlusu parlar, kartlar toplanır (en fazla ~4 kat), zayıf kartlara ikinci etki, yeni denge |
 | 1.4 | 6 | Tank evrimi (10 tank, 5. ve 10. dalgada seçim, her birinin imza özelliği), 6 kart birleşimi, nükleer bomba, Çift namlu kartı kalktı, yeni denge |
+| 1.4.1 | 7 | Hızlı, Ağır ve Avcı kademeli gelir (4., 7., 12. dalga; ilk gelişte "Yeni düşman" yazısı), sahada aynı anda en fazla 8 düşman, harita 25×25, yeni denge |

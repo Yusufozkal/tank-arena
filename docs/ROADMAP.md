@@ -1,6 +1,6 @@
 # Yol haritası
 
-Durum (20 Kasım 2026): **1.4 yayında.** Sıradaki iş seçilmedi: 1.5 (çevrimiçi) ya da bölgeler ve bosslar; öneri bossların önce gelmesi. Kullanıcı onaylamadan başlama.
+Durum (20 Kasım 2026): **1.4.1 yayında.** Sıradaki iş seçilmedi: 1.5 (çevrimiçi) ya da bölgeler ve bosslar; öneri bossların önce gelmesi (ortak altyapı, Komutan'ın yeni hali, Sarı Fırtına, Çöl). Kullanıcı onaylamadan başlama.
 
 ## Kullanıcının koyduğu ilkeler
 
@@ -10,6 +10,8 @@ Durum (20 Kasım 2026): **1.4 yayında.** Sıradaki iş seçilmedi: 1.5 (çevrim
 - **Sıralama puanı = ulaşılan dalga.**
 - Tank seçimi **diep.io gibi**: oyun içinde aşama geçtikçe yeni tank seçimleri açılır.
 - Kazanılan parayla **kalıcı geliştirmeler**; **doğrulanmış hesap** zorunlu; **nükleer bomba**; **co-op**.
+- **Zorluk:** ne oyuncuyu bıraktıracak kadar zor, ne sıkacak kadar kolay. Yeni düşman türleri kademeli gelir; sahada kalabalık oyuncuyu sıkıştırmaz. Ölçütler `docs/BALANCE.md`, "1.4.1 sonuçları".
+- **Parça hasarı** (20 Kasım 2026, kullanıcının fikri): öldürmeyen isabet düşmanın bir parçasını bir süreliğine bozar (yandan palet, önden namlu, arkadan motor), sonra onarılır; bosslarda daha kapsamlı. Oyuncunun tankında yok (öneri). Ayrıntı "Boss mekanikleri" belgesinde.
 
 ## 1.3 – Tek mod ve denge (yayında, 19 Kasım 2026)
 
@@ -70,6 +72,13 @@ Atölye, kartın elindeki hangi parçayla birleşebileceğini gösterir: birleş
 ### Nükleer bomba
 
 Düşman öldürdükçe dolan sayaç; dolunca düğme yanar, kısa bir uyarıdan sonra ekrandaki bütün düşmanlar yok olur, Komutan canının dörtte birini kaybeder. Yaklaşık 3 dalgada bir dolacak şekilde ayarlanır.
+
+## 1.4.1 – Kademeli düşmanlar ve büyük harita (yayında, 20 Kasım 2026)
+
+- Hızlı 4., Ağır 7., Avcı 12. dalgada gelir (önce 2, 3, 4); ilk gelişinde tek tane ve bir kez "Yeni düşman" yazısı.
+- Sahada aynı anda en fazla 8 düşman (önce 12'ye kadar); harita 21×21 → 25×25.
+- Denge yeniden ölçüldü: 10. dalgadan önce ölüm %35 → %2,5, ortalama bitiş 18 → 24, dalga başına giden zırh ~%23. Ayrıntı `docs/BALANCE.md`.
+- Aynı gün altyapı: oyun kaynağı `game/src/` modüllerine bölündü (`docs/MODULES.md`), testler kısa özet yazıyor.
 
 ## Bölgeler ve görkemli bosslar (taslak, 20 Kasım 2026)
 

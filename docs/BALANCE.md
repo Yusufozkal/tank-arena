@@ -171,3 +171,37 @@ Tutanlar: hiçbir dalga %25'i bitirmiyor (en kötü %13), 1–4. dalgalar 0/350,
 
 ### Not: bot insan değil
 1.3 notları geçerli. Ek olarak: bot bombayı yalnızca ekranda ≥3 düşman varken ya da Komutan canlıyken basıyor, insan stratejik tutar. Bot Obüs'ün mesafe ayarını ve Raylı Top'un lazerini insan gibi kullanamaz, Alev Topu'nu ise yakın dövüşte fazla iyi kullanır; tank sıralaması yön gösterir, hüküm değildir. Ölçüm gürültüsü (25–36 oyun) ±3 dalga; ince ayar için yeterli değil.
+
+## 1.4.1 sonuçları (20 Kasım 2026)
+
+Kullanıcının isteği: oyun ne bıraktıracak kadar zor ne sıkacak kadar kolay olsun; Avcı, Hızlı ve Ağır kademeli ve daha geç gelsin; sahada çok tank oyuncuyu sıkıştırmasın, harita büyüsün.
+
+### Hedefler (rastgele kart, `survive random 40 20`; `balance_report.py` "Pacing" bölümü)
+
+- 10. dalgadan önce ölüm en fazla ~%15 (yeni oyuncu ilk boss'u ve evrimi görsün).
+- 3. dalgadan sonra dalga başına giden zırh en az ~%15 (dalgalar boş geçmesin).
+- Tek bir dalga ölümlerin en fazla ~%12'si.
+- 40'a ulaşma en fazla ~%15.
+
+### Sonuç (1.4 tohum 7, 20 oyun → 1.4.1 tohum 7 ve 31, 40 oyun)
+
+| | 1.4 | 1.4.1 |
+|---|---|---|
+| 10. dalgadan önce ölüm | %35 (7/20, 4'ü 9. dalgada) | %2,5 (1/40) |
+| Ortalama bitiş dalgası | 17,9 | 24,1 |
+| 40'a ulaşma | %5 | %10 |
+| Dalga başına giden zırh (3. dalgadan sonra) | %28,4 | %23,2 (4–9: %21, 10–19: %23, 20–29: %27, 30–40: %20) |
+| En çok ölünen dalga | 9. dalga, %21 | 27. dalga, %14 |
+
+Tutmayan tek hedef en çok ölünen dalganın payı (%14, hedef %12); 20'şer oyunluk örnekte en büyük pay tohumdan tohuma dalga değiştiriyor.
+
+### Değişen sabitler (eski → yeni)
+
+- `MAP_N` 21 → 25; harita damga sayısı `randInt(9,13)` → `randInt(13,19)` (yoğunluk aynı).
+- `RULES`: `hunterFrom` 4 → 12; yeni `fastFrom` 4, `heavyFrom` 7, `maxAlive` 8; `count` 1 → 1,25.
+- `typeShares(w)`: tür kendi dalgasından sonra 0,04 + 0,02·(w − başlangıç) ile artar (tavan Hızlı 0,28, Ağır 0,45, Avcı 0,35). İlk dalgasında tam bir tane.
+- Komutan dalgası eşlikçileri: Hızlı 4'ten, Avcı 20'den (önce 10), Ağır 20'den.
+- `waveMods`: geç ateş hızı terimi 0,009 → 0,013; 25. dalgadan sonra hasar terimi 0,04 → 0,07. Geç dalga can artışı değişmedi (kullanıcı kararı, 19 Kasım).
+- İlk gelişte bir kez "Yeni düşman: …" ipucu (cihazda saklanır).
+
+İlk denemede (sadece kademeli geliş, 8 düşman, büyük harita) oyun fazla kolaydı: 40'a ulaşma %20–25, ortalama 29. Dalga büyüklüğü ve geç dalga ateşi bunu geri getirdi.
