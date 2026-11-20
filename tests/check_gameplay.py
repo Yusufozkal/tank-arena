@@ -2,6 +2,8 @@
 rotation, a long autopilot run. Prints a JSON report to read through; screenshots go to .tmp/shots."""
 from common import *  # noqa: F401,F403
 
+report_on_exit('check_gameplay', R)
+
 # ---- twin block (1.4): the twin card became the Ikiz tank ----
 # The JS snippets below use @@TOKENS@@ that A() expands. The pool lists no longer contain 'twin'; the shell-type sample switches to the Ikiz tank.
 TWIN_RARES = "'ricochet','blast','thermal'"   # rare-card list in the boss-wave check
@@ -220,5 +222,6 @@ with sync_playwright() as p:
     ctx.close()
     b.close()
 
-print(json.dumps(R, ensure_ascii=False, indent=1))
+report('check_gameplay', R)
+show_items(R)
 print('ERRORS:', real_errors() or 'none')  # 404s are the seed page and favicon

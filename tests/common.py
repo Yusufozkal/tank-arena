@@ -6,6 +6,7 @@ The game exposes its debug API as window.__tank when the URL contains #debug (se
 
 Usage in a check:  from common import *   (then: with sync_playwright() as p: ...)
 """
+import atexit
 import http.server
 import json  # noqa: F401  (re-exported for the checks)
 import os
@@ -70,6 +71,83 @@ def seed(page, settings=None):
 
 def real_errors():
     return [e for e in errors if '404' not in e]
+
+
+# ---- short output ----
+# By default a check prints one line per group plus its status lines; the full report goes to .tmp/<name>.json.
+# TANK_VERBOSE=1 restores the full printed output.
+VERBOSE = os.environ.get('TANK_VERBOSE') == '1'
+_written = set()
+
+
+def vprint(*a, **k):
+    """A detail line that is printed only with TANK_VERBOSE=1."""
+    if VERBOSE:
+        print(*a, **k)
+
+
+def short(v, n=60):
+    s = v if isinstance(v, str) else json.dumps(v, ensure_ascii=False, default=str)
+    return s if len(s) <= n else s[:n - 3] + '...'
+
+
+def pack(items, width=110, sep=' | '):
+    """Joins short items into lines no wider than `width`."""
+    lines, cur = [], ''
+    for it in items:
+        nxt = it if not cur else cur + sep + it
+        if len(nxt) > width and cur:
+            lines.append(cur)
+            cur = it
+        else:
+            cur = nxt
+    if cur:
+        lines.append(cur)
+    return lines
+
+
+def write_report(name, data):
+    TMP.mkdir(parents=True, exist_ok=True)
+    path = TMP / f'{name}.json'
+    path.write_text(json.dumps(data, ensure_ascii=False, indent=1, default=str), encoding='utf-8')
+    _written.add(name)
+    return path
+
+
+def report(name, data):
+    """The full report goes to .tmp/<name>.json. With TANK_VERBOSE=1 it is printed in full too; otherwise only its path."""
+    path = write_report(name, data)
+    if VERBOSE:
+        print(json.dumps(data, ensure_ascii=False, indent=1, default=str))
+    else:
+        print(f'full report: {path}')
+
+
+def report_on_exit(name, data):
+    """For a script that stops at an assert: the report file is still written."""
+    atexit.register(lambda: name not in _written and write_report(name, data))
+
+
+def show_checks(checks):
+    """Check results ({name: bool or {'ok', 'info'}}): PASS names packed into a few lines, one line per FAIL with its details."""
+    if VERBOSE:
+        return
+    passed = []
+    for name, v in checks.items():
+        ok, info = (v['ok'], v.get('info')) if isinstance(v, dict) else (v, None)
+        if ok:
+            passed.append(name)
+        else:
+            print(f'FAIL {name}' + (f': {short(info, 400)}' if info is not None else ''))
+    for line in pack([f'PASS ({len(passed)}):'] + passed, sep=' '):
+        print(line)
+
+
+def show_items(d):
+    """Measured values as packed 'key=value' lines (default output only)."""
+    if not VERBOSE:
+        for line in pack([f'{k}={short(v, 28)}' for k, v in d.items()]):
+            print(line)
 
 
 # finish the current wave and run until the workshop opens

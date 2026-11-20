@@ -7,6 +7,7 @@ PREP = """() => { const t = __tank, G = t.G, p = G.player;
   t.wave(3); G.queue = ['basic']; G.maxAlive = 0; G.portals.length = 0; G.enemies.length = 0; G.phase = 'fight'; t.hold(true);
   t.clearArena(); p.x = 10.5 * 48; p.y = 10.5 * 48; p.turret = 0; p.angle = 0; p.vx = p.vy = 0; p.hp = p.maxHp = 100; G.bullets.length = 0; G.texts.length = 0; }"""
 CK = {}
+report_on_exit('check_syn', CK)
 
 
 def ck(name, ok, info=None):
@@ -170,6 +171,7 @@ with sync_playwright() as pw:
         c2.close()
     b.close()
 
-print(json.dumps(CK, ensure_ascii=False, indent=1)[:6000])
+report('check_syn', CK)
+show_checks(CK)
 print('CHECKS:', len(CK), 'all ok')
 print('ERRORS:', [e for e in errors if '404' not in e] or 'none')

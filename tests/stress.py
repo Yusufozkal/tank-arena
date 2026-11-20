@@ -29,5 +29,7 @@ with sync_playwright() as p:
         out[id === 'std' && out.std ? 'std_again' : id] = +t.bench(80).toFixed(2); }
       t.dbg.freeze = false; G.god = false; out.worst_vs_std = +(Math.max(...Object.values(out)) / Math.min(out.std, out.std_again)).toFixed(2); return out; }""")
     page.screenshot(path=f'{OUT}/m_stress_end.png')
-    print(json.dumps(R, ensure_ascii=False, indent=1)); print('ERRORS:', [e for e in errors if '404' not in e] or 'none')
+    report('stress', R)
+    show_items(R)
+    print('ERRORS:', [e for e in errors if '404' not in e] or 'none')
     b.close()

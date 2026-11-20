@@ -2,6 +2,7 @@
 Waves-to-fill is measured with the autopilot and bot.nuke off (kills made by the nuke itself never count). Screenshots under .tmp/shots."""
 from common import *  # noqa: F401,F403
 
+report_on_exit('check_nuke', R)
 FIND_FILL = """(w0) => { const t = __tank, G = t.G; t.wave(w0); G.nuke.meter = 0; const k0 = G.kills; let wStart = w0, killsAtWave = G.kills, last = G.wave, total = 0;
   for (let i = 0; i < 40000 && !t.nuke().ready; i++) {
     t.sim(1 / 60, true);
@@ -23,7 +24,7 @@ with sync_playwright() as p:
     R['fill'] = fills
     for f in fills:
         assert f['ready'] and 2.0 <= f['waves'] <= 4.2, f'meter should fill in about 3 waves: {f}'
-    print('waves to fill (start wave -> waves):', [(f['start'], f['waves']) for f in fills])
+    vprint('waves to fill (start wave -> waves):', [(f['start'], f['waves']) for f in fills])
 
     # 2. effect on a normal wave
     page.evaluate("__tank.G.god = true; __tank.wave(3);"); page.wait_for_timeout(2700)
@@ -43,7 +44,7 @@ with sync_playwright() as p:
     assert R['effect']['meter'] == 0 and R['effect']['used'] == 1, R['effect']
     assert R['effect']['alive'] == 1 and R['effect']['shells'] == 0 and R['effect']['pickups'] == 0 and R['effect']['dropMod'] == 1000, R['effect']
     assert R['effect']['kills'] - k0 == 3, R['effect']
-    print('effect:', R['effect'])
+    vprint('effect:', R['effect'])
 
     # 3. kills made by the nuke do not refill the meter; ordinary kills do
     page.evaluate("(() => { const t = __tank, p = t.G.player; t.G.nuke.meter = 0; t.spawn('basic', p.x + 60, p.y - 90); t.killAll(); })()")
@@ -58,7 +59,7 @@ with sync_playwright() as p:
     assert abs(R['boss']['frac'] - 0.75) < 0.01 and not R['boss']['dead'] and not R['boss']['enraged'], R['boss']
     assert not R['boss']['dead2'] and R['boss']['enraged2'] and R['boss']['frac2'] < 0.28, R['boss']
     assert not R['boss']['dead3'] and R['boss']['hpLow'] > 0, R['boss']
-    print('boss:', R['boss'])
+    vprint('boss:', R['boss'])
 
     # 5. conditions: not ready, no enemy on screen, outside the fight phase
     R['cond'] = page.evaluate("""() => { const t = __tank, G = t.G, p = G.player, o = {}; G.enemies.length = 0; G.queue.length = 0; G.portals.length = 0;
@@ -102,5 +103,8 @@ with sync_playwright() as p:
     page.evaluate("(() => { const t = __tank, p = t.G.player; t.G.enemies.length = 0; t.G.queue.length = 0; t.spawn('basic', p.x + 60, p.y - 90); t.nukeCharge(1); t.nukeFire(); t.step(1.3); })()")
     R['low_fx'] = page.evaluate("[__tank.nuke().used, __tank.SET.effects]"); assert R['low_fx'][0] == 1
     ctx.close(); b.close()
-print(json.dumps(R, indent=1, default=str))
+report('check_nuke', R)
+if not VERBOSE:
+    print('asserts: all passed')
+    show_items(R)
 print('ERRORS:', real_errors() or 'none')

@@ -183,7 +183,8 @@ with sync_playwright() as pw:
     ctx.close()
     b.close()
 
-print(json.dumps(R, ensure_ascii=False, indent=1))
+report('check_tier2_d1', R)
+show_checks(R.get('checks', {}))
 print('FAILED CHECKS:', FAILS or 'none')
 print('ERRORS:', real_errors() or 'none')
 assert not FAILS, FAILS

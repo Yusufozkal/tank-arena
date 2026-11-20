@@ -183,6 +183,7 @@ with sync_playwright() as pw:
     ctx.close()
     R['screens'] = [f'{OUT}/d2_{t}_{l}.png' for l in ('desert', 'snow', 'city') for t in ('rayli', 'obus')] + [f'{OUT}/d2_obus_flight.png', f'{OUT}/d2_obus_boom.png']
 
-print(json.dumps(R, indent=1, ensure_ascii=False))
+report('check_tier2_d2', R)
+show_checks(R.get('checks', {}))
 print('FAILS:', FAILS or 'none')
 print('ERRORS:', real_errors() or 'none')
