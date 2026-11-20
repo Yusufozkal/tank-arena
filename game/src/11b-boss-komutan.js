@@ -1,11 +1,12 @@
 /* ================= Komutan (docs/BOSSES.md section 3) ================= */
 // Attacks are generators: `yield n` waits n seconds (0 = next frame), e.dt is the frame time. Each one shows its telegraph first (see TELE_MIN).
+const RAM_DMG = 40; // ezme: a clean hit takes about a third of a mid-game tank's armour and hull
 const KOM_FAN3 = [-0.2, 0, 0.2], KOM_FAN5 = [-0.34, -0.17, 0, 0.17, 0.34];
 function* komTriple(e) { yield* glowAim(e, 'triple', 0.45, KOM_FAN3); bossVolley(e, KOM_FAN3); yield 0.4; }
 function* komPenta(e) { yield* glowAim(e, 'penta', 0.45, KOM_FAN5); bossVolley(e, KOM_FAN5); yield 0.5; }
 function* komSalvo(e) { // yaylım: three triple volleys, the fan turning a little each time, each with its own glow
   for (let k = 0; k < 3; k++) {
-    const tl = addTele(e, { kind: 'glow', dur: 0.45, fan: KOM_FAN3 }), p = G.player, base = Math.atan2(p.y - e.y, p.x - e.x) + (k - 1) * 0.3;
+    const tl = addTele(e, { kind: 'glow', dur: 0.45, fan: KOM_FAN3 }), p = G.player, base = leadAng(e.x, e.y, e.spec.bSpeed, e.def.lead) + (k - 1) * 0.3;
     while (tl.t < tl.dur) { e.turret = turnTo(e.turret, base, e.spec.tTurn * 2.2 * e.dt); yield 0; }
     release(e, 'yaylim', tl); removeTele(tl); bossVolley(e, KOM_FAN3); yield 0.15;
   }
@@ -36,7 +37,7 @@ function* komCharge(e) { // ezme hücumu: red line (last 0.3 s locked), then a 6
     trackUpdate(e, moved, 0); trav += moved;
     if (fxScale === 1 && Math.random() < 0.6) addPart('dust', e.x - ca * e.r, e.y - sa * e.r + rand(-14, 14), rand(-30, 30), rand(-30, 30), rand(0.4, 0.8), rand(14, 24), 26, 2);
     if (!hurt && p.alive && dist2(e.x, e.y, p.x, p.y) < (e.r + p.r + 2) * (e.r + p.r + 2)) {
-      hurt = true; damagePlayer({ x: p.x, y: p.y, dmg: bossDmg(26), owner: 1, vx: 0, vy: 0 });
+      hurt = true; damagePlayer({ x: p.x, y: p.y, dmg: bossDmg(RAM_DMG), owner: 1, vx: 0, vy: 0 });
       moveTank(p, -sa * 36, ca * 36 * (Math.random() < 0.5 ? 1 : -1)); shake(8);
     }
     if (moved < step * 0.35) break; // jammed against something
@@ -99,7 +100,7 @@ const KOM_ATTACKS = [
 BOSS_DEFS.komutan = {
   id: 'komutan', name: 'KOMUTAN', arena: 'kisla', introSub: 'Kışla', hold: 4.5, phases: [66, 33], plates: ['shoulder', 'skirt'],
   deathText: 'KOMUTAN DÜŞTÜ', loot: 'KOMUTAN GANİMETİ',
-  hp: bossHp, attacks: KOM_ATTACKS, barrels: [{ id: 'mid', name: 'Orta namlu', ang: 0, k: 0.07 }],
+  lead: 0.35, hp: bossHp, attacks: KOM_ATTACKS, barrels: [{ id: 'mid', name: 'Orta namlu', ang: 0, k: 0.07 }],
   unlocks: w => ({ tower: w >= 15, topcu: w >= 15, yaylim: w >= 25, bomb: w >= 25, penta: w >= 35, shock: w >= 35 }),
   setup(e, w) {
     if (e.unlock.tower) e.parts.push({ id: 'tower', name: 'Komuta kulesi', atk: 'topcu', ox: -24, oy: 0, r: 15, maxHp: Math.max(2, Math.round(e.maxHp * 0.1)), hp: Math.max(2, Math.round(e.maxHp * 0.1)), alive: true, flash: 0 });

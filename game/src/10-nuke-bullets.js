@@ -197,7 +197,7 @@ function updateBullets(dt) {
   for (const a of G.bullets) {
     if (a.dead || a.owner !== 0 || a.lob) continue; // lob shells fly above enemy shells
     for (const c of G.bullets) {
-      if (c.dead || c.owner !== 1) continue;
+      if (c.dead || c.owner !== 1 || c.boss) continue; // boss shells are not shot down by the player's shells
       const rr = a.r + c.r + 3;
       if (dist2(a.x, a.y, c.x, c.y) < rr * rr) { c.dead = true; if (!a.pierce) a.dead = true; sparks((a.x + c.x) / 2, (a.y + c.y) / 2, 8, '#fff0c0', 200); Sound.metal(volAt(a.x, a.y)); if (a.dead) break; }
     }

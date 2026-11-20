@@ -134,7 +134,7 @@ function bossShell(e, ang, o) {
   let bx = ox, by = oy, blocked = false;
   for (let d = 6; d <= len; d += 6) { bx = ox + ca * d; by = oy + sa * d; if (isWall(m.at(bx, by))) { blocked = true; break; } }
   const sp = s.bSpeed * (o.speed || 1);
-  const b = { x: bx, y: by, vx: ca * sp, vy: sa * sp, r: s.bR, owner: 1, dmg: bossDmg(s.dmg * (o.dmgK || 1)), life: 2.4, big: true, dead: false,
+  const b = { x: bx, y: by, vx: ca * sp, vy: sa * sp, r: s.bR, owner: 1, dmg: bossDmg(s.dmg * (o.dmgK || 1)), life: 3.2, big: true, dead: false,
     pierce: false, bounce: 0, splash: null, look: 'enemy', hits: null, bricks: null, sx: bx, sy: by, dist: 0, bounced: false, vol: 0, volN: 0, pn: 0, boss: true };
   if (blocked) hitTile(b, bx, by); else G.bullets.push(b);
 }
@@ -157,24 +157,42 @@ function bossBlast(x, y, r, dmg) {
   addDecals(G.map, [{ k: 'scorch', x, y, r: r * 0.8 }]);
   if (p.alive && dist2(x, y, p.x, p.y) < (r + p.r * 0.4) * (r + p.r * 0.4)) damagePlayer({ x: p.x, y: p.y, dmg: bossDmg(dmg), owner: 1, vx: 0, vy: 0 });
 }
-const aimAtPlayer = (e, dt, k) => { const p = G.player; if (p.alive) e.turret = turnTo(e.turret, Math.atan2(p.y - e.y, p.x - e.x), e.spec.tTurn * (k || 1) * dt); };
+// angle from (x, y) to where the player will be when a shell of this speed arrives (k: share of the full lead; the player's smoothed velocity, flight time capped)
+function leadAng(x, y, speed, k) {
+  const p = G.player, t = Math.min(0.8, Math.hypot(p.x - x, p.y - y) / speed) * (k || 0);
+  return Math.atan2(p.y + (p.vy || 0) * t - y, p.x + (p.vx || 0) * t - x);
+}
+const aimAtPlayer = (e, dt, k, lead) => { const p = G.player; if (p.alive) e.turret = turnTo(e.turret, lead ? leadAng(e.x, e.y, e.spec.bSpeed, lead) : Math.atan2(p.y - e.y, p.x - e.x), e.spec.tTurn * (k || 1) * dt); };
 function* glowAim(e, id, dur, fan) { // barrel glow telegraph while the turret keeps aiming; the shot itself is the caller's
   const tl = addTele(e, { kind: 'glow', dur, fan });
-  while (tl.t < tl.dur) { aimAtPlayer(e, e.dt, 1.6); yield 0; }
+  while (tl.t < tl.dur) { aimAtPlayer(e, e.dt, 1.6, e.def.lead); yield 0; }
   release(e, id, tl); removeTele(tl);
 }
 
-/* ---- movement: a flow field over the tiles where the boss's body fits ---- */
-const bossFits = (m, c, r) => { for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if (blocksTank(m.get(c + dx, r + dy))) return false; return true; };
+/* ---- movement: a flow field over the tiles where the boss's round hull fits ---- */
+// a tile centre fits when a circle of the hull radius (+2) around it touches no wall, water or the map edge (the same test collideWalls uses, so the boss never wedges on the way)
+function bossFitMap(e) {
+  const m = G.map, n = m.n, rad = e.r + 2, k = Math.ceil(rad / T), fit = e.fit && e.fit.length === n * n ? e.fit : (e.fit = new Uint8Array(n * n));
+  for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) {
+    const cx = c * T + T / 2, cy = r * T + T / 2; let ok = 1;
+    for (let dy = -k; dy <= k && ok; dy++) for (let dx = -k; dx <= k; dx++) {
+      if (!blocksTank(m.get(c + dx, r + dy))) continue;
+      const bx = (c + dx) * T, by = (r + dy) * T, ex = cx - clamp(cx, bx, bx + T), ey = cy - clamp(cy, by, by + T);
+      if (ex * ex + ey * ey < rad * rad) { ok = 0; break; }
+    }
+    fit[r * n + c] = ok;
+  }
+  return fit;
+}
 function computeBossFlow(e) {
-  const m = G.map, n = m.n, p = G.player, N = n * n;
+  const m = G.map, n = m.n, p = G.player, N = n * n, fit = bossFitMap(e);
   if (!e.flow || e.flow.length !== N) e.flow = new Float32Array(N);
   e.flow.fill(1e9);
   const fg = e.def.flowGoal ? e.def.flowGoal(e) : null; // hook: a fixed place to walk to instead of the player (Demirkök walks to the castle centre)
   const pc = clamp(Math.floor((fg ? fg.x : p.x) / T), 0, n - 1), pr = clamp(Math.floor((fg ? fg.y : p.y) / T), 0, n - 1);
   let goal = -1, gd = 1e9;
   for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) {
-    if (!bossFits(m, c, r)) continue;
+    if (!fit[r * n + c]) continue;
     const d = (c - pc) * (c - pc) + (r - pr) * (r - pr); if (d < gd) { gd = d; goal = r * n + c; }
   }
   if (goal < 0) return;
@@ -182,25 +200,47 @@ function computeBossFlow(e) {
   for (let h = 0; h < q.length; h++) {
     const i = q[h], c = i % n, r = (i - c) / n;
     for (const [dx, dy] of DIRS) {
-      const x = c + dx, y = r + dy; if (x < 0 || y < 0 || x >= n || y >= n || !bossFits(m, x, y)) continue;
+      const x = c + dx, y = r + dy; if (x < 0 || y < 0 || x >= n || y >= n || !fit[y * n + x]) continue;
       const j = y * n + x; if (e.flow[j] < 1e8) continue;
       e.flow[j] = e.flow[i] + 1; q.push(j);
     }
   }
 }
+// the next tile centre to head for. A boss standing on a tile where its hull does not fit (wall hugging, pushed into a pocket) first heads for the best fitting tile nearby
 function bossWaypoint(e) {
-  const m = G.map, n = m.n, c = clamp(Math.floor(e.x / T), 0, n - 1), r = clamp(Math.floor(e.y / T), 0, n - 1);
-  if (!e.flow || e.flow[r * n + c] > 1e8) return nextWaypoint(e); // squeezed outside the field: the ordinary tile flow
-  let best = null, bv = e.flow[r * n + c];
+  const m = G.map, n = m.n, c = clamp(Math.floor(e.x / T), 0, n - 1), r = clamp(Math.floor(e.y / T), 0, n - 1), here = e.flow ? e.flow[r * n + c] : 1e9;
+  if (!e.flow || e.flow[r * n + c] > 1e8) return bossEscapeTarget(e);
+  let best = null, bv = here;
   for (const [dx, dy] of shuffle(DIRS.slice())) { const x = c + dx, y = r + dy; if (x < 0 || y < 0 || x >= n || y >= n) continue; const f = e.flow[y * n + x]; if (f < bv) { bv = f; best = { c: x, r: y }; } }
   if (!best) return null;
   best.x = best.c * T + T / 2; best.y = best.r * T + T / 2; return best;
+}
+// nearest fitting tile (breadth first through open ground), preferring the ones closer to the goal; null when the boss is sealed in
+function bossEscapeTarget(e) {
+  const m = G.map, n = m.n, fit = e.fit; if (!fit || !e.flow) return null;
+  const c0 = clamp(Math.floor(e.x / T), 0, n - 1), r0 = clamp(Math.floor(e.y / T), 0, n - 1), seen = new Map([[r0 * n + c0, 0]]), q = [[c0, r0]]; let best = null, bs = 1e9;
+  for (let h = 0; h < q.length; h++) {
+    const [c, r] = q[h], d = seen.get(r * n + c);
+    if (fit[r * n + c] && e.flow[r * n + c] < 1e8) { const sc = d * 1.5 + e.flow[r * n + c] * 0.2 + Math.hypot(c * T + T / 2 - e.x, r * T + T / 2 - e.y) / T; if (sc < bs) { bs = sc; best = { c, r }; } }
+    if (d >= 4) continue;
+    for (const [dx, dy] of DIRS) { const x = c + dx, y = r + dy; if (x < 0 || y < 0 || x >= n || y >= n || seen.has(y * n + x) || blocksTank(m.t[y * n + x])) continue; seen.set(y * n + x, d + 1); q.push([x, y]); }
+  }
+  if (!best) return null;
+  best.x = best.c * T + T / 2; best.y = best.r * T + T / 2; best.esc = true; return best;
+}
+// no progress for a while: slide the hull toward the nearest fitting tile centre, through the corner it is caught on (a gentle depenetration, a few px per frame)
+function bossUnjam(e, dt) {
+  const t = e.jam && e.jam.esc ? e.jam : (e.jam = bossEscapeTarget(e)); if (!t) return;
+  const d = Math.hypot(t.x - e.x, t.y - e.y); if (d < 3) { e.jam = null; return; }
+  const sp = Math.min(d, 140 * dt); e.x += (t.x - e.x) / d * sp; e.y += (t.y - e.y) / d * sp;
 }
 function bossMove(e, dt, hold) {
   if (e.treadT > 0) { e.avx = e.avy = 0; return; } // a broken tread: the boss stands still while the crew repairs it
   const s = e.spec, p = G.player, before = e.angle, ox = e.x, oy = e.y;
   e.flowT -= dt; if (e.flowT <= 0) { computeBossFlow(e); e.flowT = 0.3; }
   if (p.alive && !(e.canSee && e.distP < hold * T)) {
+    if (e.jamT > 1.8) { bossUnjam(e, dt); e.stuckT = 0; } // side-steps did not help: depenetrate
+    else if (e.jam) e.jam = null;
     if (!e.wp || dist2(e.wp.x, e.wp.y, e.x, e.y) < 30) { e.wp = bossWaypoint(e); e.wpBest = 1e9; e.stuckT = 0; }
     if (e.wp) {
       const desired = Math.atan2(e.wp.y - e.y, e.wp.x - e.x);
@@ -209,11 +249,19 @@ function bossMove(e, dt, hold) {
       moveTank(e, Math.cos(e.angle) * spd * dt, Math.sin(e.angle) * spd * dt);
       const dw = Math.hypot(e.wp.x - e.x, e.wp.y - e.y);
       if (dw < e.wpBest - 0.5) { e.wpBest = dw; e.stuckT = 0; } else e.stuckT += dt;
-      if (e.stuckT > 1.2) { e.wp = randomNeighbor(e); e.wpBest = 1e9; e.stuckT = 0; }
+      if (e.stuckT > 0.8) { e.wp = bossSideStep(e); e.wpBest = 1e9; e.stuckT = 0; }
     }
-  }
+    if (e.jx === undefined || Math.hypot(e.x - e.jx, e.y - e.jy) >= 10) { e.jx = e.x; e.jy = e.y; e.jamT = 0; } else e.jamT = (e.jamT || 0) + dt; // moved less than 10 px in 1.8 s: wedged
+  } else e.jamT = 0;
   if (dt > 0) { e.avx = (e.x - ox) / dt; e.avy = (e.y - oy) / dt; }
   trackUpdate(e, (e.x - ox) * Math.cos(e.angle) + (e.y - oy) * Math.sin(e.angle), angDiff(before, e.angle));
+}
+// a different fitting neighbour tile (not the one just failed), or the escape target when none is left
+function bossSideStep(e) {
+  const m = G.map, n = m.n, fit = e.fit, c = clamp(Math.floor(e.x / T), 0, n - 1), r = clamp(Math.floor(e.y / T), 0, n - 1), opts = [];
+  if (fit) for (const [dx, dy] of DIRS) { const x = c + dx, y = r + dy; if (x >= 0 && y >= 0 && x < n && y < n && fit[y * n + x] && !(e.wp && e.wp.c === x && e.wp.r === y)) opts.push({ c: x, r: y }); }
+  if (!opts.length) return bossEscapeTarget(e);
+  const o = pick(opts); o.x = o.c * T + T / 2; o.y = o.r * T + T / 2; return o;
 }
 
 /* ---- per-frame boss update ---- */
@@ -235,6 +283,8 @@ function updateBoss(e, dt, halted) {
   e.distP = Math.hypot(p.x - e.x, p.y - e.y);
   e.canSee = p.alive && los(e.x, e.y, p.x, p.y);
   e.cool -= dt;
+  e.healT = (e.healT === undefined ? 30 : e.healT) - dt; // a long fight: a worn-down player gets a Tamir kit now and then (not while one still lies around)
+  if (e.healT <= 0 && p.alive) { e.healT = 5; if (p.hp < p.maxHp * 0.55 && !G.pickups.some(q => q.kind === 'repair')) { dropRepairAway(e); e.healT = 35; } }
   e.glow = 0;
   for (const tl of G.tele) { tl.t += dt; if (tl.kind === 'glow') e.glow = Math.max(e.glow, tl.t / tl.dur); }
   if (e.gen) {

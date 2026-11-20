@@ -26,10 +26,11 @@ ARENAS.kum = { name: 'Kum Çukuru', gate: [[9, 4], [10, 4], [11, 4]], rows: [ //
   '.....................'] };
 
 const SARI_CHARGE_LEN = 9 * T;   // a charge covers this far (more with the wind) unless steel is in the way
+const SARI_RAM_DMG = 30;       // a clean hit; the double and triple charge can hit again
 const SARI_RUSH = 650;           // charge speed, px/s
 const SARI_SAND_LIFE = 4, SARI_SAND_SLOW = 0.35, SARI_SAND_W = 64;
 const SARI_WIND_WARN = 1.5, SARI_WIND_BLOW = 5, SARI_WIND_EVERY = 12, SARI_WIND_PUSH = 75;
-const SARI_SPEC = { speed: 175, turn: 5, tTurn: 5.5, len: 72, wid: 48, r: 27, tread: 9, tR: 12, barrel: 44, bW: 8, cool: 1, bSpeed: 420, dmg: 5, bR: 5, mass: 3, score: 1500,
+const SARI_SPEC = { speed: 175, turn: 5, tTurn: 5.5, len: 72, wid: 48, r: 27, tread: 9, tR: 12, barrel: 44, bW: 8, cool: 1, bSpeed: 450, dmg: 4, bR: 5, mass: 3, score: 1500,
   col: { body: '#cf9f30', dk: '#8c691b', hi: '#efca60', acc: '#f08a2c' } };
 
 const sariWindVec = e => { const W = e.sari.wind; return W.st === 'blow' ? { x: Math.cos(W.a) * SARI_WIND_PUSH, y: Math.sin(W.a) * SARI_WIND_PUSH } : null; };
@@ -61,13 +62,13 @@ function sariOrbit(e, st, dt, R) { // circle the player at about R px, tangent p
 function* sariShots(e) { // çevik atış: two bursts of three shots while circling 5-7 tiles from the player; each burst warned by a 0.45 s glow
   const st = { sign: Math.random() < 0.5 ? 1 : -1, stuck: 0 }, R = rand(5, 7) * T;
   for (let b = 0; b < 2; b++) {
-    for (let t = 0; t < (b ? 0.5 : 0.9); t += e.dt) { sariOrbit(e, st, e.dt, R); aimAtPlayer(e, e.dt, 1.4); yield 0; }
+    for (let t = 0; t < (b ? 0.5 : 0.9); t += e.dt) { sariOrbit(e, st, e.dt, R); aimAtPlayer(e, e.dt, 1.4, e.def.lead); yield 0; }
     const tl = addTele(e, { kind: 'glow', dur: 0.45, fan: [0] });
-    while (tl.t < tl.dur) { sariOrbit(e, st, e.dt, R); aimAtPlayer(e, e.dt, 1.8); yield 0; }
+    while (tl.t < tl.dur) { sariOrbit(e, st, e.dt, R); aimAtPlayer(e, e.dt, 1.8, e.def.lead); yield 0; }
     release(e, 'cevik', tl); removeTele(tl);
     for (let k = 0; k < 3; k++) {
       bossVolley(e, [0]);
-      for (let t = 0; t < 0.13; t += e.dt) { sariOrbit(e, st, e.dt, R); aimAtPlayer(e, e.dt, 1.8); yield 0; }
+      for (let t = 0; t < 0.13; t += e.dt) { sariOrbit(e, st, e.dt, R); aimAtPlayer(e, e.dt, 1.8, e.def.lead); yield 0; }
     }
   }
   yield 0.2;
@@ -103,7 +104,7 @@ function* sariRush(e) {
     if (strip) { strip.x2 = e.x - ca * e.r * 0.6; strip.y2 = e.y - sa * e.r * 0.6; }
     if (fxScale === 1) for (let k = 0; k < 2; k++) addPart('dust', e.x - ca * e.r + rand(-6, 6), e.y - sa * e.r + rand(-18, 18), -ca * rand(40, 120) + rand(-30, 30), -sa * rand(40, 120) + rand(-30, 30), rand(0.4, 0.8), rand(14, 24), 26, 2);
     if (!hurt && p.alive && dist2(e.x, e.y, p.x, p.y) < (e.r + p.r + 2) * (e.r + p.r + 2)) { // ağır hasar + geri itme
-      hurt = true; damagePlayer({ x: p.x, y: p.y, dmg: bossDmg(15), owner: 1, vx: 0, vy: 0 });
+      hurt = true; damagePlayer({ x: p.x, y: p.y, dmg: bossDmg(SARI_RAM_DMG), owner: 1, vx: 0, vy: 0 });
       const side = (p.x - e.x) * -sa + (p.y - e.y) * ca < 0 ? -1 : 1;
       moveTank(p, -sa * 64 * side + ca * 30, ca * 64 * side + sa * 30); shake(9); vibrate(40);
     }
@@ -179,10 +180,10 @@ function sariTick(e, dt) {
 }
 
 BOSS_DEFS.sari = {
-  id: 'sari', name: 'SARI FIRTINA', arena: 'kum', introSub: 'Kum Çukuru', hold: 4, phases: [66, 33], plates: ['plate', 'fender'], r: SARI_SPEC.r,
+  id: 'sari', lead: 0.35, name: 'SARI FIRTINA', arena: 'kum', introSub: 'Kum Çukuru', hold: 4, phases: [66, 33], plates: ['plate', 'fender'], r: SARI_SPEC.r,
   deathText: 'SARI FIRTINA DİNDİ', loot: 'SARI FIRTINA GANİMETİ',
   barrels: [{ id: 'main', name: 'Namlu', ang: 0, k: 0.1 }],
-  hp: w => Math.round(510 + (w - 10) * 25),
+  hp: w => Math.round(460 + (w - 10) * 23),
   attacks: [
     { id: 'cevik', w: 3, ok: e => true, run: sariShots },
     { id: 'hucum', w: 3, ok: e => e.distP > 2.5 * T && e.phase < 2, run: sariCharge, mov: true },
