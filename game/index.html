@@ -557,7 +557,7 @@ const SPECS = {
 };
 
 // Komutan HP per boss wave, tuned with tests/boss_probe.py so that a medium card set (and the bot) takes about 3-4 minutes from wave 15 on; the wave-5 Komutan is the easy one
-const BOSS_HP_AT = [[5, 185], [15, 550], [25, 840], [35, 1090]];
+const BOSS_HP_AT = [[5, 185], [15, 960], [25, 1130], [35, 1350]];
 const bossHp = w => {
   const P = BOSS_HP_AT, last = P[P.length - 1];
   if (w <= P[0][0]) return P[0][1];
@@ -2706,27 +2706,27 @@ const themeFor = w => THEMES[Math.floor((w - 1) / 10) % THEMES.length];
 /* ---- fixed arenas (21x21 text maps: S steel, B brick, W water, G bush, . empty, X boss start, P player start) ---- */
 const ARENAS = {
   kisla: { name: 'Kışla', gate: [[9, 3], [10, 3], [11, 3]], rows: [
+    'SS...BBBB...BBBB...SS',
+    'SS...BSSB...BSSB...SS',
+    '.....BBBB.X.BBBB.....',
     '.....................',
-    '.SS..BBBB...BBBB..SS.',
-    '.SS..BSSB.X.BSSB..SS.',
+    '.....................',
+    '.....................',
+    '...S..BBB...BBB..S...',
+    '...S.............S...',
+    '.....................',
+    'SS.................SS',
+    'SS......S.S.S......SS',
+    'SS.................SS',
+    '.....................',
+    '...S.............S...',
+    '...S..BBB...BBB..S...',
+    '.....................',
+    '.....................',
+    '.....................',
     '.....BBBB...BBBB.....',
-    '.....................',
-    '..S...............S..',
-    '.....................',
-    '......BBB...BBB......',
-    '.....................',
-    '.SS...............SS.',
-    '.SS.......S.......SS.',
-    '.....................',
-    '.....................',
-    '......BBB...BBB......',
-    '.....................',
-    '..S...............S..',
-    '.....................',
-    '.....BBBB...BBBB.....',
-    '.SS..BSSB...BSSB..SS.',
-    '.SS..BBBB.P.BBBB..SS.',
-    '.....................'] }
+    'SS...BSSB.P.BSSB...SS',
+    'SS...BBBB...BBBB...SS'] }
 };
 function parseArena(a) {
   const n = a.rows.length, t = new Uint8Array(n * n); let boss = null, player = null;
@@ -2893,6 +2893,7 @@ function computeBossFlow(e) {
     const d = (c - pc) * (c - pc) + (r - pr) * (r - pr); if (d < gd) { gd = d; goal = r * n + c; }
   }
   if (goal < 0) return;
+  e.goalD = fg ? 0 : Math.hypot((goal % n) * T + T / 2 - p.x, Math.floor(goal / n) * T + T / 2 - p.y); // how far the closest tile the boss can stand on is from the player (reach fallback in updateBoss)
   const q = [goal]; e.flow[goal] = 0;
   for (let h = 0; h < q.length; h++) {
     const i = q[h], c = i % n, r = (i - c) / n;
@@ -2980,6 +2981,7 @@ function updateBoss(e, dt, halted) {
   e.distP = Math.hypot(p.x - e.x, p.y - e.y);
   e.canSee = p.alive && los(e.x, e.y, p.x, p.y);
   e.cool -= dt;
+  e.unrT = p.alive && e.goalD > e.r + p.r + T ? (e.unrT || 0) + dt : 0; // the player stands where the hull cannot go (a pocket): after ~4 s startAttack prefers the arcing attacks (a.arc)
   e.healT = (e.healT === undefined ? 30 : e.healT) - dt; // a long fight: a worn-down player gets a Tamir kit now and then (not while one still lies around)
   if (e.healT <= 0 && p.alive) { e.healT = 5; if (p.hp < p.maxHp * 0.55 && !G.pickups.some(q => q.kind === 'repair')) { dropRepairAway(e); e.healT = 35; } }
   e.glow = 0;
@@ -2994,6 +2996,7 @@ function updateBoss(e, dt, halted) {
 }
 function startAttack(e) {
   const list = e.def.attacks.filter(a => a.ok(e) && a.id !== e.lastAtk && !(e.acd[a.id] > G.time) && !(a.mov && e.treadT > 0)); // mov: an attack that needs the treads (charge)
+  if (e.unrT > 4) { const arc = list.filter(a => a.arc); if (arc.length) list.splice(0, list.length, ...arc); } // unreachable player: the mortar or bombardment reaches the pocket (normal telegraph)
   if (!list.length) { e.cool = 0.5; return; }
   let r = Math.random() * list.reduce((s, a) => s + a.w, 0), at = list[list.length - 1];
   for (const a of list) { r -= a.w; if (r <= 0) { at = a; break; } }
@@ -3338,9 +3341,9 @@ function* komBombard(e) { // bombardıman hattı: a row of circles across the ar
 const KOM_ATTACKS = [
   { id: 'triple', w: 3, ok: e => true, run: komTriple },
   { id: 'ezme', w: 2.2, ok: e => e.distP > 2.5 * T, run: komCharge, mov: true },
-  { id: 'topcu', w: 2, ok: e => e.unlock.topcu && partAlive(e, 'tower'), run: komMortar },
+  { id: 'topcu', w: 2, ok: e => e.unlock.topcu && partAlive(e, 'tower'), run: komMortar, arc: true },
   { id: 'yaylim', w: 2, ok: e => e.unlock.yaylim && e.phase >= 1, run: komSalvo },
-  { id: 'bomb', w: 1.6, ok: e => e.unlock.bomb && e.phase >= 1, run: komBombard, cd: 9 },
+  { id: 'bomb', w: 1.6, ok: e => e.unlock.bomb && e.phase >= 1, run: komBombard, cd: 9, arc: true },
   { id: 'penta', w: 2.4, ok: e => e.unlock.penta && e.phase >= 2, run: komPenta }
 ];
 BOSS_DEFS.komutan = {
@@ -3359,9 +3362,9 @@ BOSS_DEFS.komutan = {
 // Phase 2: exhausts light up (+15% speed), double charge, sand strips left on the charge path. Phase 3 "Fırtına": wind every 12 s, triple charge.
 // Per-boss state lives in e.sari; the generic hooks it uses in 11a: def.tick (every frame), def.danger (bot), def.onClear, def.drawGround (15a).
 ARENAS.kum = { name: 'Kum Çukuru', gate: [[9, 4], [10, 4], [11, 4]], rows: [ // the brick wall in front of the boss is the gate: the intro smashes it
-  '.....................',
-  '.SS...............SS.',
-  '.SS.......X.......SS.',
+  'SS.................SS',
+  'SS.................SS',
+  '..........X..........',
   '.....................',
   '....S...SBBBS...S....',
   '.....................',
@@ -3377,9 +3380,9 @@ ARENAS.kum = { name: 'Kum Çukuru', gate: [[9, 4], [10, 4], [11, 4]], rows: [ //
   '.....................',
   '....S...SBBBS...S....',
   '.....................',
-  '.SS...............SS.',
-  '.SS.......P.......SS.',
-  '.....................'] };
+  '.....................',
+  'SS........P........SS',
+  'SS.................SS'] };
 
 const SARI_CHARGE_LEN = 9 * T;   // a charge covers this far (more with the wind) unless steel is in the way
 const SARI_RAM_DMG = 30;       // a clean hit; the double and triple charge can hit again
@@ -3573,15 +3576,15 @@ ARENAS.kale = { name: 'Orman Kalesi', gate: [[9, 5], [10, 5], [11, 5]], rows: [ 
   '.....................',
   '....SS.........SS....',
   '....SSBBB...BBBSS....',
-  '.....B.........B.....',
-  '.....B.SS...SS.B.....',
+  '.....BSS.....SSB.....',
+  '.....BSS.....SSB.....',
   '.....B.SS...SS.B.....',
   'GG.................GG',
   'GG.................GG',
   'GG.................GG',
   '.....B.SS...SS.B.....',
-  '.....B.SS...SS.B.....',
-  '.....B.........B.....',
+  '.....BSS.....SSB.....',
+  '.....BSS.....SSB.....',
   '....SSBBB...BBBSS....',
   '....SS.........SS....',
   '.....................',
@@ -3877,7 +3880,7 @@ BOSS_DEFS.demirkok = {
     { id: 'agir', w: 2.4, ok: e => demirMob(e), run: demirHeavy },
     { id: 'ezme', w: 2.2, ok: e => e.phase < 2 && e.distP > 3 * T, run: demirCrush, mov: true },
     { id: 'deprem', w: 2.6, ok: e => e.phase === 1 && e.distP < 7 * T, run: demirQuake },
-    { id: 'havan', w: 2.6, ok: e => e.phase >= 1 && demirMob(e), run: demirMortar },
+    { id: 'havan', w: 2.6, ok: e => e.phase >= 1 && demirMob(e), run: demirMortar, arc: true },
     { id: 'kok', w: 100, ok: e => e.phase >= 2 && !e.rooted, run: demirRoot, mov: true },
     { id: 'koker', w: 3, ok: e => e.rooted, run: demirRoots, cd: 5 },
     { id: 'doner', w: 2.4, ok: e => e.rooted, run: demirSweep, cd: 11 }
@@ -5847,6 +5850,20 @@ if (DEBUG) {
       }
       bot.on = false; G.noEvo = false; G.god = false;
       return { worst: +worst.toFixed(2), at, win: !!(e.dead || e.dying), secs: +(n / 60).toFixed(1), moving: +(moving / 60).toFixed(1) };
+    },
+    // reach probe: the player sits still on tile (c, r) (god mode, no bot); returns the closest the boss got (hull edge to hull edge, px) and whether it fired at or touched the player within maxSec
+    bossReach(w, c, r, maxSec) {
+      store.set(BOSS_SEEN_KEY, true); bot.on = false; G.god = false; G.noEvo = true; G.up = {}; G.tank = 'std'; refreshPlayer(); G.player.maxHp = G.player.hp = 1e6;
+      G.wave = w - 1; nextWave(); G.introSeen = true; endBossIntro(true);
+      const p = G.player, e = G.boss, max = Math.round(maxSec * 60); p.x = c * T + T / 2; p.y = r * T + T / 2; let n = 0, best = 1e9, hit = -1, hp0 = p.hp, seen = 0;
+      while (n < max && G.state === 'play' && !e.dead && !e.dying) {
+        p.x = c * T + T / 2; p.y = r * T + T / 2; update(1 / 60); n++;
+        best = Math.min(best, Math.hypot(e.x - p.x, e.y - p.y) - e.r - p.r);
+        if (e.canSee && e.distP < 9 * T) seen++;
+        if (hit < 0 && p.hp < hp0) hit = n / 60;
+      }
+      G.noEvo = false;
+      return { closest: Math.round(best), seen: +(seen / 60).toFixed(1), hit: +hit.toFixed(1), secs: +(n / 60).toFixed(1), unr: +(e.unrT || 0).toFixed(1) };
     },
     drop(kind, dx, dy) { const p = G.player; dropPickup(p.x + (dx || 0), p.y + (dy || 0), kind); }
   };
