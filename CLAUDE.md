@@ -8,7 +8,7 @@ Kullanıcıyla Türkçe konuş. Oyunun bütün arayüz metinleri Türkçedir; ko
 - Canlı site: https://tank-arena-taupe.vercel.app (oyun `/oyna/`). Android APK GitHub'dan iner.
 - Kaynak `game/src/`: HTML iskeleti, CSS ve sıralı JS modülleri. `tools/build_game.py` bunları tek dosya `game/index.html`'e birleştirir (canvas + WebAudio, framework ve npm yok). Site ve APK `game/index.html`'den üretilir.
 - **Modül haritası `docs/MODULES.md`:** hangi dosyada ne var, hangi iş için nereye bakılır.
-- Yol haritası ve kullanıcının verdiği kararlar `docs/ROADMAP.md` içinde. Yeni işe başlamadan önce oku. Boss tasarımı Claude'daki "Tank Arena: Boss mekanikleri" belgesinde.
+- Yol haritası ve kullanıcının verdiği kararlar `docs/ROADMAP.md` içinde. Yeni işe başlamadan önce oku. Boss ve parça hasarı şartnamesi `docs/BOSSES.md` (kaynak: Claude'daki "Tank Arena: Boss mekanikleri" belgesi).
 
 ## Çalışma biçimi
 
