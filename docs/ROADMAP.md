@@ -1,12 +1,12 @@
 # Yol haritası
 
-Durum (19 Kasım 2026): **1.4 yayında.** Sıradaki iş 1.5; kullanıcı onaylamadan başlama.
+Durum (20 Kasım 2026): **1.4 yayında.** Sıradaki iş seçilmedi: 1.5 (çevrimiçi) ya da bölgeler ve bosslar; öneri bossların önce gelmesi. Kullanıcı onaylamadan başlama.
 
 ## Kullanıcının koyduğu ilkeler
 
 - **Seçenek sayısı az olsun.** Her seçimde 2–3 seçenek; ayar menüsü büyümesin.
 - **Tek mod.** Zorluk seçenekleri (Talim / Cephe / Kıyamet) kalkacak, herkes aynı kurallarla oynar. Sıralama için de şart.
-- **Tek boss.** Yalnızca Komutan kalır, dalgayla güçlenir. (Kullanıcının "Bosslar tek olabilir" sözü böyle yorumlandı; farklı bir şey kastettiyse düzelt.)
+- **Görkemli bosslar.** Her düşman türünün kendi boss'u olur, sade değil görkemli. 20 Kasım 2026'da eski "tek boss" kararının yerine geçti; bkz. "Bölgeler ve görkemli bosslar".
 - **Sıralama puanı = ulaşılan dalga.**
 - Tank seçimi **diep.io gibi**: oyun içinde aşama geçtikçe yeni tank seçimleri açılır.
 - Kazanılan parayla **kalıcı geliştirmeler**; **doğrulanmış hesap** zorunlu; **nükleer bomba**; **co-op**.
@@ -71,6 +71,29 @@ Atölye, kartın elindeki hangi parçayla birleşebileceğini gösterir: birleş
 
 Düşman öldürdükçe dolan sayaç; dolunca düğme yanar, kısa bir uyarıdan sonra ekrandaki bütün düşmanlar yok olur, Komutan canının dörtte birini kaybeder. Yaklaşık 3 dalgada bir dolacak şekilde ayarlanır.
 
+## Bölgeler ve görkemli bosslar (taslak, 20 Kasım 2026)
+
+Kullanıcının istekleri (20 Kasım 2026):
+
+- Boss çeşidi artsın: her düşman türünün kendi boss'u olsun (Komutan normal tankın boss'u gibi). Canı artırılmış normal düşman değil, ayrı boss.
+- Bosslar sade değil, görkemli olsun.
+- Hades'e benzer bir yapı.
+- Oyun 40. dalgada bitmez; zamanla yeni içerik (bölge, boss) eklenir.
+- Boss tasarımlarını başka bir yapay zekâ modeline yaptırmayı düşünüyor; hangi model ve mekanik mi görsel mi, henüz belli değil.
+
+Önerilen biçim (onay bekliyor):
+
+- **4 bölge, her biri 10 dalga:** Çöl → Orman → Kar → Şehir (bugün harita 3 dalgada bir sırayla değişiyor). Her bölgenin kendi düşman türleri var; bölge sonunda o bölgenin boss'u gelir.
+- **Boss yenilince o bölgenin düşmanları bir daha gelmez** (kullanıcının fikri); yeni bölge yeni türler getirdiği için oyun boşalmaz.
+- **Bölge ortasında mini boss:** Komutan. Tank evrimi 5. ve 10. dalgada kalır (5'te Komutan, 10'da ilk bölge boss'u).
+- **40'tan sonra ikinci tur:** aynı bölgeler, bossların daha zor sürümleriyle (Hades'teki Extreme Measures gibi); zorluk herkes için kendiliğinden artar, tek mod ilkesine uyar. Sıralama en yüksek dalga olarak kalır. Zamanla yeni bölgeler eklenebilir; ikisi birlikte olur.
+- **Görkem:** giriş sahnesi (ekran sarsıntısı, siren, isim başlığı, duvarı yıkarak giriş, müzik değişimi), normal tankın 2–3 katı boyut, ayrı vurulabilen taretler, can eşiklerinde evreler (zırh düşer, duman, yeni saldırılar, son evrede öfke), birkaç saldırı sırayla, harita kullanımı (duvar yıkma, mayın, kendi türünden takviye), ölüm sahnesi (büyük patlama, kısa ağır çekim, ganimet). Komutan da bu seviyeye çıkar.
+- **Görkemi kısmadan üç şart:** her saldırı önceden uyarır (Komutan'ın namlu parlaması gibi); boyut ve kamera telefon ekranına (390 px genişlik) göre ayarlanır; bot yeni saldırılardan kaçmayı ve taretleri vurmayı öğrenir, çünkü denge ölçümü bota dayanır.
+- **Hades'ten alınmayacaklar:** Ceza Paktı (zorluk seçenekleri), silah çeşitleri, hikâye diyalogları.
+- **Hades'e karşılık gelenler zaten var:** atölye kartları (lütuflar), birleşimler (ikili lütuflar), 1.5'teki Garaj (Gece Aynası).
+- **Yeni düşman türleri:** bölgelere yetecek çeşit için 4–6 yeni tür ("Yeni düşmanlar" listesinden).
+- **Sıra önerisi:** bölgeler ve bosslar sıralamadan (1.5) önce gelsin; sıralama açıldıktan sonra büyük denge değişikliği eski rekorları kıyaslanamaz yapar. İki sürüme bölünebilir: önce bölge yapısı ve ilk iki bölge, sonra son iki bölge.
+
 ## 1.5 – Hesap, sıralama, para (çevrimiçi)
 
 - **Giriş:** Google hesabıyla (hesabı Google doğrulamış olur). Google, uygulama içi WebView'da girişi engeller (`disallowed_useragent`); APK'da giriş Chrome Custom Tab'da açılıp derin bağlantıyla oyuna döner. E-posta doğrulaması alan adı + e-posta servisi ister, şimdilik yok.
@@ -99,7 +122,7 @@ Düşman öldürdükçe dolan sayaç; dolunca düğme yanar, kısa bir uyarıdan
 
 ## Vazgeçilenler
 
-Dört farklı boss, oyun başında tank seçimi (yerine evrim), aktif yetenek, elit düşmanlar, zorluk seçenekleri.
+Oyun başında tank seçimi (yerine evrim), aktif yetenek, elit düşmanlar, zorluk seçenekleri. ("Dört farklı boss" 20 Kasım 2026'da geri alındı; bkz. "Bölgeler ve görkemli bosslar".)
 
 ## Bekleyen küçük işler
 
