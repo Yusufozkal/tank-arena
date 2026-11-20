@@ -3,12 +3,12 @@
 // fire rate, aim, lead, speed and damage keep creeping up slowly, and buildRoster adds heavies / Avcı / tanks alive at once.
 function waveMods(w) {
   const D = G.D, late = Math.max(0, w - 10), rn = removedN();
-  const err0 = Math.max(0.035, 0.13 - (w - 1) * 0.012);
-  return { speed: 1 + Math.min(0.3, (w - 1) * 0.03) + Math.min(0.3, late * 0.015), cool: Math.max(0.35, 1 - 0.035 * Math.min(9, w - 1) - 0.013 * late) * D.cool * (1 - 0.07 * rn),
+  const err0 = Math.max(0.035, 0.13 - (w - 1) * 0.010);
+  return { speed: 1 + Math.min(0.3, (w - 1) * 0.03) + Math.min(0.3, late * 0.015), cool: Math.max(0.35, 1 - 0.05 * Math.min(9, w - 1) - 0.013 * late) * D.cool * (1 - 0.07 * rn),
     err: Math.max(0.012, err0 - Math.max(0, w - 9) * 0.0008) * D.err * (1 - 0.1 * rn),
     lead: Math.min(0.85, (w - 1) * 0.14) + Math.min(0.15, Math.max(0, w - 7) * 0.01),
-    dmg: D.dmg * (1 + Math.min(0.6, Math.max(0, w - 13) * 0.02) + Math.max(0, w - 25) * 0.07),
-    dodge: Math.min(0.85, D.dodge + late * 0.01), // Avcı sidesteps more of the player's shells as waves go on
+    dmg: D.dmg * (1 + Math.min(0.6, Math.max(0, w - 13) * 0.018) + Math.max(0, w - 25) * 0.04),
+    dodge: Math.min(0.75, D.dodge + late * 0.005), // Avcı sidesteps more of the player's shells as waves go on
     drop: Math.max(0.5, 1 - late * 0.02), // supplies thin out: fewer power-ups (shields!) from late-wave wrecks
     pace: Math.max(0.25, 1 - late * 0.015 - Math.max(0, w - 25) * 0.02), // spawn interval factor: reinforcements arrive faster in late waves
     hp: 1 + Math.min(0.75, Math.max(0, w - 6) * D.hpGrow) + Math.max(0, w - 20) * 0.09 };
@@ -27,22 +27,87 @@ function typeShares(w) {
   return {
     pf: ok('fast') && w > D.fastFrom ? Math.min(0.28, 0.04 + 0.02 * (w - D.fastFrom)) - Math.max(0, w - 20) * 0.005 : 0,
     ph: ok('heavy') && w > D.heavyFrom ? Math.min(0.45, 0.04 + 0.02 * (w - D.heavyFrom)) : 0,
-    pu: ok('hunter') && w > D.hunterFrom ? Math.min(0.35, 0.04 + 0.02 * (w - D.hunterFrom)) : 0,
+    pu: ok('hunter') && w > D.hunterFrom ? Math.min(0.5, 0.04 + 0.03 * (w - D.hunterFrom)) : 0,
     pt: ok('tamirci') && w > D.tamirciFrom ? Math.min(0.15, 0.03 + 0.015 * (w - D.tamirciFrom)) : 0 };
 }
 function buildRoster(w) {
   const D = G.D, list = [];
   if (w % 5 === 0) return { list: ['boss'], maxAlive: 1 }; // boss stage: only the boss on the field, no escorts (startBossStage spawns it)
-  const rk = 1 + 0.12 * removedN(), total = clamp(Math.round((3 + w + Math.floor(w / 2)) * D.count * rk), 3, Math.round((24 + Math.floor(Math.max(0, w - 20) / 2)) * rk));
+  const rk = 1 + 0.12 * removedN(), total = clamp(Math.round((3 + w + Math.floor(w / 2)) * D.count * rk), 3, Math.round((20 + Math.floor(Math.max(0, w - 20) / 3)) * rk));
   const { pf, ph, pu, pt } = typeShares(w);
   for (let i = 0; i < total; i++) { const r = Math.random(); list.push(r < ph ? 'heavy' : r < ph + pf ? 'fast' : r < ph + pf + pu ? 'hunter' : r < ph + pf + pu + pt ? 'tamirci' : 'basic'); }
   shuffle(list);
   // a type's first wave: exactly one of it (the roster above has none yet), placed a little way into the wave; never for a type the region rule removed
   const first = w === D.fastFrom ? 'fast' : w === D.heavyFrom ? 'heavy' : w === D.hunterFrom ? 'hunter' : w === D.tamirciFrom ? 'tamirci' : null;
   if (first && !typeBanned(first)) list[Math.min(list.length - 1, first === 'tamirci' ? 3 : 1 + Math.floor(Math.random() * 2))] = first;
-  const alive = Math.min(6, 2 + Math.ceil(w / 2)) + (w > 12 ? Math.min(6, 1 + Math.floor((w - 13) / 5)) : 0) + D.alive;
+  const alive = Math.min(6, 3 + Math.ceil(w / 2)) + (w > 12 ? Math.min(6, 1 + Math.floor((w - 13) / 5)) : 0) + D.alive;
   return { list, maxAlive: Math.min(D.maxAlive, alive) };
 }
+/* ================= awareness: enemies only know where the player was last seen / heard ================= */
+// e.lk = last-known player position {x, y, t}; e.goal = where the tank is walking now (first lk, then search points around it); e.tf = its own flow field to that goal.
+// Seeing the player (canSee: bush, stealth and walls already apply) updates lk to the true position; a shot of the player is heard within HEAR tiles (with error); a hit tells the target roughly where the shooter is.
+// No contact for HINT_T s: a rough hint (a circle of HINT_R tiles around the player) so a wave can never stall. Boss and Tamirci have their own logic.
+const AWARE = { hear: 9, hearErr: 1.8, hintT: 9, hintAgain: 6, hintR: 4, searchMin: 2, searchMax: 6, reach: 0.9 };
+function setLk(e, x, y, err) {
+  const a = rand(0, TAU), r = err ? rand(0.3, 1) * err * T : 0, m = G.map, n = m.n;
+  let px = x + Math.cos(a) * r, py = y + Math.sin(a) * r;
+  if (blocksTank(m.at(px, py))) { px = x; py = y; }
+  e.lk = { x: clamp(px, T * 1.5, (n - 1.5) * T), y: clamp(py, T * 1.5, (n - 1.5) * T), t: G.time };
+  e.goal = null; e.sn = 0; e.search = false;
+}
+function hintAt(e, p) { // a rough idea: somewhere within AWARE.hintR tiles of the player (on a free tile)
+  for (let k = 0; k < 8; k++) {
+    const a = rand(0, TAU), r = Math.sqrt(Math.random()) * AWARE.hintR * T, x = p.x + Math.cos(a) * r, y = p.y + Math.sin(a) * r;
+    if (!blocksTank(G.map.at(x, y))) { setLk(e, x, y, 0); e.hintT = G.time; return; }
+  }
+  setLk(e, p.x, p.y, 1); e.hintT = G.time;
+}
+function alertHit(e, b) { // a player's shell hit e: it knows roughly where the shot came from (the muzzle)
+  if (b.owner !== 0 || e.dead || e.isBoss || e.type === 'boss' || e.spec.medic) return;
+  setLk(e, b.sx !== undefined ? b.sx : G.player.x, b.sy !== undefined ? b.sy : G.player.y, 0.6); G.contactT = G.time;
+  if (e.spec.smart && b.sx !== undefined && Math.hypot(b.sx - e.x, b.sy - e.y) > 7 * T) { // Avcı: a hit from far away sends it to cover for a moment
+    e.mode = 'cover'; e.path = null; e.coverT = 1.8; e.coverFar = true; G.covers++;
+  }
+}
+function searchSpot(e) { // a free tile 2-6 tiles around the last-known spot: bushes and corners preferred, away from other searchers' goals
+  const m = G.map, n = m.n, lk = e.lk; let best = null, bs = 1e9;
+  for (let k = 0; k < 16; k++) {
+    const a = rand(0, TAU), r = rand(AWARE.searchMin, AWARE.searchMax) * T, x = lk.x + Math.cos(a) * r, y = lk.y + Math.sin(a) * r;
+    const c = Math.floor(x / T), rr = Math.floor(y / T);
+    if (c < 1 || rr < 1 || c > n - 2 || rr > n - 2 || blocksTank(m.get(c, rr))) continue;
+    const cx = c * T + T / 2, cy = rr * T + T / 2;
+    let sc = Math.random() * 1.2 + (m.get(c, rr) === BUSH ? -3 : 0);
+    let walls = 0; for (const [dx, dy] of DIRS) if (blocksTank(m.get(c + dx, rr + dy))) walls++;
+    if (walls >= 2) sc -= 1.5;
+    for (const o of G.enemies) if (o !== e && !o.dead && o.goal && dist2(o.goal.x, o.goal.y, cx, cy) < (3 * T) * (3 * T)) sc += 4;
+    if (sc < bs) { bs = sc; best = { c, r: rr, x: cx, y: cy }; }
+  }
+  return best;
+}
+function setGoal(e, g) {
+  e.goal = g; e.goalT = G.time; if (!g) return;
+  const n = G.map.n; if (!e.tf || e.tf.length !== n * n) e.tf = new Float32Array(n * n);
+  dijkstra(G.map, clamp(Math.floor(g.y / T), 0, n - 1) * n + clamp(Math.floor(g.x / T), 0, n - 1), e.tf, null);
+}
+function updateAware(e) { // called after the sense step; fills e.lk / e.goal / e.tf for an enemy that cannot see the player
+  const p = G.player, now = G.time;
+  if (!p.alive) return;
+  if (G.contactT === undefined) G.contactT = now;
+  if (e.canSee) { e.lk = { x: p.x, y: p.y, t: now }; e.goal = null; e.sn = 0; e.search = false; G.contactT = now; return; }
+  if (e.heardShot !== p.lastShot && now - p.lastShot < 0.3 && Math.hypot(p.x - e.x, p.y - e.y) < AWARE.hear * T) { // heard (or saw the flash of) a shot: a position with some error
+    e.heardShot = p.lastShot; setLk(e, p.x, p.y, AWARE.hearErr); G.contactT = now;
+  }
+  if (!e.lk || now - Math.max(G.contactT, e.hintT || 0, e.lk.t) > ((e.hintT || 0) > G.contactT ? AWARE.hintAgain : AWARE.hintT)) hintAt(e, p);
+  if (e.goal && now - e.goalT > 14) e.goal = null;
+  if (e.goal && dist2(e.goal.x, e.goal.y, e.x, e.y) < (AWARE.reach * T) * (AWARE.reach * T)) { if (e.search) e.sn++; e.search = true; e.goal = null; }
+  if (!e.goal) {
+    if (!e.search) setGoal(e, { c: Math.floor(e.lk.x / T), r: Math.floor(e.lk.y / T), x: e.lk.x, y: e.lk.y });
+    else { const g = searchSpot(e); if (g) setGoal(e, g); else e.search = false; }
+    e.wp = null;
+  }
+}
+const fieldFor = (e, seenField) => e.canSee ? seenField : (e.goal && e.tf ? e.tf : null); // the flow field an enemy follows: the real one only while it sees the player
+
 function chooseSpawn() {
   const p = G.player, m = G.map;
   const free = m.spawns.filter(s => !G.portals.some(q => q.x === s.x && q.y === s.y) && !G.enemies.some(e => dist2(e.x, e.y, s.x, s.y) < 44 * 44));
@@ -70,6 +135,7 @@ function spawnEnemy(type, x, y) {
   e.angle = Math.round(a / (Math.PI / 2)) * (Math.PI / 2); e.turret = a;
   e.cool = rand(0.9, 1.7) * G.mods.cool; e.speedMul = G.mods.speed; e.coolMul = G.mods.cool; e.aimErr = rand(-G.mods.err, G.mods.err);
   if (G.mods.hp > 1) e.hp = e.maxHp = Math.max(1, Math.round(e.spec.hp * G.mods.hp)); // later waves bring tougher tanks
+  hintAt(e, p); if (!(G.contactT <= G.time)) G.contactT = G.time; // a new tank knows roughly where the player is
   G.enemies.push(e);
   const intro = NEW_FOE[type];
   if (intro && !store.get(intro[0], false)) { store.set(intro[0], true); showHint(intro[1], 6); }
@@ -83,6 +149,7 @@ function updateSpawns(dt) {
     if (sp) {
       let ty = G.queue.shift();
       if (ty === 'tamirci' && G.enemies.filter(o => o.type === 'tamirci').length + G.portals.filter(q => q.type === 'tamirci').length >= 2) ty = 'basic'; // at most two Tamirci on the field
+      if (ty === 'hunter' && G.enemies.filter(o => o.type === 'hunter').length + G.portals.filter(q => q.type === 'hunter').length >= RULES.maxHunters) ty = 'basic'; // and a few Avcı at once
       G.portals.push({ x: sp.x, y: sp.y, t: 0, dur: 1.15, type: ty, done: false }); G.spawnTimer = rand(0.7, 1.5) * G.mods.pace; Sound.spawn(volAt(sp.x, sp.y));
     } else G.spawnTimer = 0.25;
   }
@@ -113,11 +180,12 @@ function updateEnemy(e, dt) {
       e.canSee = d < (G.buffs.stealth > 0 ? T * 1.6 : pHidden ? T * 2.3 : T * 13) && los(e.x, e.y, p.x, p.y);
     } else e.canSee = false;
   }
+  updateAware(e);
   const wantMove = !(e.canSee && e.distP < s.hold * T);
   e.blast = null;
   let tx = 0, ty = 0, hasT = false;
   if (wantMove) {
-    if (!e.wp || dist2(e.wp.x, e.wp.y, e.x, e.y) < 25) { e.wp = nextWaypoint(e); e.wpBest = 1e9; e.stuckT = 0; }
+    if (!e.wp || dist2(e.wp.x, e.wp.y, e.x, e.y) < 25) { const f = fieldFor(e, G.map.flow); e.wp = f ? nextWaypoint(e, f) : null; e.wpBest = 1e9; e.stuckT = 0; }
     if (e.wp) {
       const v = m.get(e.wp.c, e.wp.r);
       if (v === BRICK) e.blast = e.wp;
@@ -159,13 +227,16 @@ function updateEnemy(e, dt) {
 
 /* ================= Avcı: the smart tank ================= */
 // Sidestep a player shell that is on course to hit; each shell gets one roll against the difficulty's dodge chance
+const DODGE = { fromT: 5.5, seeT: 4.5 }; // only shells fired within 5.5 tiles, and only once within 4.5 tiles of the Avcı, can be dodged
 function checkDodge(e) {
   const m = G.map;
   for (const b of G.bullets) {
     if (b.dead || b.owner !== 0) continue;
     const v2 = b.vx * b.vx + b.vy * b.vy; if (!v2) continue;
     const t = ((e.x - b.x) * b.vx + (e.y - b.y) * b.vy) / v2;
-    if (t < 0.05 || t > 0.55) continue;
+    if (t < 0.1 || t > 0.55) continue; // too late to react / not yet in view
+    if (b.sx !== undefined && Math.hypot(b.sx - e.x, b.sy - e.y) > DODGE.fromT * T) continue; // fired from far away: the Avcı cannot dodge it
+    if (Math.hypot(b.x - e.x, b.y - e.y) > DODGE.seeT * T) continue;
     const cx = b.x + b.vx * t - e.x, cy = b.y + b.vy * t - e.y, hit = e.r + b.r + 6;
     if (cx * cx + cy * cy > hit * hit) continue;
     if (!b.seenBy) b.seenBy = [];
@@ -222,10 +293,11 @@ function updateHunter(e, dt) {
     } else e.canSee = false;
     if (!e.dodge && e.dodgeCd <= 0) checkDodge(e);
   }
+  updateAware(e);
   // modes: hunt (sneak in and shoot), cover (duck out of sight while reloading), retreat (once, when badly hurt)
   if (!e.fled && e.hp <= 1 && e.maxHp > 1) { e.fled = true; e.mode = 'retreat'; e.modeT = 3; e.path = null; }
   if (e.mode === 'retreat') { e.modeT -= dt; if (e.modeT <= 0) { e.mode = 'hunt'; e.path = null; } }
-  else if (e.mode === 'cover') { if (e.cool <= 0.3 || !p.alive) { e.mode = 'hunt'; e.path = null; } }
+  else if (e.mode === 'cover') { e.coverT = Math.max(0, (e.coverT || 0) - dt); if ((e.cool <= 0.3 && e.coverT <= 0) || !p.alive) { e.mode = 'hunt'; e.path = null; e.coverFar = false; } }
   else if (e.canSee && G.time - e.lastShot < 0.25 && e.cool > 0.7) { e.mode = 'cover'; e.path = null; G.covers++; }
 
   const before = e.angle, ox = e.x, oy = e.y, trB = !!e.pt && e.pt.tread > 0, jam = !!e.pt && e.pt.barrel > 0, pk = e.pt && e.pt.engine > 0 ? 0.5 : 1; // part damage
@@ -240,7 +312,7 @@ function updateHunter(e, dt) {
   } else if (e.mode === 'cover' || e.mode === 'retreat') {
     e.pathT -= dt;
     if (!e.path || e.pathT <= 0) {
-      e.path = findCover(e, e.mode === 'retreat' ? 6 : 4); e.pathI = 1; e.pathT = 0.7;
+      e.path = findCover(e, e.mode === 'retreat' || e.coverFar ? 6 : 4); e.pathI = 1; e.pathT = 0.7;
       if (!e.path && e.mode === 'cover') e.mode = 'hunt';
     }
     if (e.path && e.pathI < e.path.length) {
@@ -248,7 +320,7 @@ function updateHunter(e, dt) {
       if (dist2(wp.x, wp.y, e.x, e.y) < 30) e.pathI++; else goal = wp;
     }
   } else if (!(e.canSee && e.distP < s.hold * T)) {
-    if (!e.wp || dist2(e.wp.x, e.wp.y, e.x, e.y) < 25) { e.wp = nextWaypoint(e, m.sflow); e.wpBest = 1e9; e.stuckT = 0; }
+    if (!e.wp || dist2(e.wp.x, e.wp.y, e.x, e.y) < 25) { { const f = fieldFor(e, m.sflow); e.wp = f ? nextWaypoint(e, f) : null; } e.wpBest = 1e9; e.stuckT = 0; }
     if (e.wp) {
       const v = m.get(e.wp.c, e.wp.r);
       if (v === BRICK) e.blast = e.wp; else if (blocksTank(v)) e.wp = null; else goal = e.wp;
@@ -306,6 +378,8 @@ function partWorld(e, k) { // world position of a part: tread (the broken side),
   const lx = k === 'engine' ? -s.len / 2 : 0, ly = k === 'tread' ? (e.pt.side ? 1 : -1) * (s.wid / 2 - s.tread / 2) : 0;
   return { x: e.x + ca * lx - sa * ly, y: e.y + sa * lx + ca * ly };
 }
+// Parts break by accumulated damage, not chance or wave: hits from one direction add up per part (e.pt.acc) and the part breaks at PART_HP damage (a fixed amount, not a share of max HP).
+const PART_HP = 2;
 function partBreak(e, b) { // called from damageEnemy: a direct shell of the player hit tank e and did not kill it
   if (e.dead || e.isBoss || e.type === 'boss' || b.owner !== 0 || b.lob || G.boss === e) return;
   if (b.vol && e.pvol === b.vol) return; // the other shells of one volley (Ikiz, Uclu, Sarapnel) count once
@@ -313,8 +387,11 @@ function partBreak(e, b) { // called from damageEnemy: a direct shell of the pla
   const a = angDiff(e.angle, Math.atan2(-b.vy, -b.vx)), aa = Math.abs(a); // direction towards the shooter, against the hull
   const k = aa < 0.785 ? 'barrel' : aa > 2.356 ? 'engine' : 'tread';
   if (k === 'barrel' && e.spec.medic) return; // the Tamirci has no barrel to jam
-  const pt = e.pt || (e.pt = { tread: 0, barrel: 0, engine: 0, imm: { tread: 0, barrel: 0, engine: 0 }, dur: { tread: 0, barrel: 0, engine: 0 }, side: 0, fx: 0 });
+  const pt = e.pt || (e.pt = { tread: 0, barrel: 0, engine: 0, imm: { tread: 0, barrel: 0, engine: 0 }, acc: { tread: 0, barrel: 0, engine: 0 }, dur: { tread: 0, barrel: 0, engine: 0 }, side: 0, fx: 0 });
   if (pt[k] > 0 || pt.imm[k] > 0) return;
+  pt.acc[k] += b.dmg || 1;
+  if (pt.acc[k] < PART_HP) return;
+  pt.acc[k] = 0;
   pt[k] = pt.dur[k] = PART_T[k] / (G.wave > PART_T.fastFrom ? PART_T.fast : 1);
   if (k === 'tread') pt.side = a > 0 ? 1 : 0;
   const q = partWorld(e, k), vl = volAt(e.x, e.y);

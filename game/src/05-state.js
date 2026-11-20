@@ -44,7 +44,8 @@ function measureHud() {
   if (el.hud.classList.contains('hidden')) return;
   view.hudRects = [el.leftCol, el.rightCol, el.btnNuke].filter(n => n.offsetWidth).map(n => { const r = n.getBoundingClientRect(); return { l: r.left - 8, t: r.top - 8, r: r.right + 8, b: r.bottom + 8 }; });
 }
-const layerRes = () => clamp(view.base * view.dpr, 1, 2);
+const LAYER_MPX = 6.5e6; // cap on the static map layer's backing size (the 35-tile map would be ~11 Mpx at scale 2)
+const layerRes = m => Math.min(clamp(view.base * view.dpr, 1, 2), Math.sqrt(LAYER_MPX) / (m ? m.w : MAP_N * T));
 function resize() {
   const wasTall = view.h > view.w;
   view.dpr = Math.min(window.devicePixelRatio || 1, SET.effects === 'low' ? 1.25 : 2);
@@ -55,7 +56,7 @@ function resize() {
   const minSide = Math.min(view.w, view.h);
   view.base = minSide / (T * (9.5 + clamp((minSide - 400) / 400, 0, 1) * 2.5)); view.scale = view.base * view.zoomK; // base = the unzoomed scale; zoomK follows the tank's camera factor
   readSafe(); sizeMini(); measureHud();
-  if (G.map && Math.abs(layerRes() - G.map.res) / G.map.res > 0.2) buildLayer(G.map);
+  if (G.map && Math.abs(layerRes(G.map) - G.map.res) / G.map.res > 0.2) buildLayer(G.map);
   if (G.state === 'menu' && G.map && G.player) { cam.x = G.map.w / 2; cam.y = G.map.h / 2; clampCam(); computeView(); placeMenuTank(); }
   if (G.state === 'over') G.overFree = freeArea(el.overPanel);
 }

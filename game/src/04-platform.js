@@ -1,5 +1,5 @@
 /* ================= rules, settings, records ================= */
-const RULES = { dmg: 1, cool: 1, err: 1, count: 1.25, alive: 0, fastFrom: 4, heavyFrom: 7, hunterFrom: 12, tamirciFrom: 13, maxAlive: 8, dodge: 0.65, score: 1, heal: 25, hpGrow: 0.04 };
+const RULES = { dmg: 1, cool: 1, err: 1, count: 1.25, alive: 0, fastFrom: 4, heavyFrom: 7, hunterFrom: 12, tamirciFrom: 13, maxAlive: 6, maxHunters: 3, dodge: 0.65, score: 1, heal: 25, hpGrow: 0.04 };
 const SET_DEFAULTS = { volume: 80, lastVolume: 80, vibration: true, shake: true, aimAssist: true, minimap: true, stickSize: 'm', swapSticks: false, effects: 'high', orientation: 'auto' };
 const SET = (() => {
   const saved = store.get('tankArena.settings', null);

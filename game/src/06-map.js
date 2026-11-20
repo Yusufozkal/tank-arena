@@ -39,7 +39,7 @@ function generate() {
       for (const [x, y] of pts) { if (x <= 0 || y <= 0 || x >= n - 1 || y >= n - 1) continue; const i = y * n + x; if (!res[i]) t[i] = v; }
     };
     if (Math.random() < 0.35) { put(h - 2, h - 2, BRICK); put(h - 1, h - 2, BRICK); put(h - 2, h - 1, BRICK); }
-    const count = randInt(13, 19); // ~1.44x the 21-tile count: same stamp density per area
+    const count = randInt(26, 38); // same stamp density per area as the 21-tile map (33x33 inner)
     for (let k = 0; k < count; k++) {
       let x = Math.random() * STAMP_W, st = STAMPS[0];
       for (const s of STAMPS) { x -= s.w; if (x <= 0) { st = s; break; } }
@@ -80,7 +80,7 @@ function makeArena(gen, theme) {
   return m;
 }
 function buildLayer(m) {
-  const res = layerRes();
+  const res = layerRes(m);
   m.layer.width = Math.ceil(m.w * res); m.layer.height = Math.ceil(m.h * res);
   m.lg = m.layer.getContext('2d'); m.res = res;
   paintRegion(m, 0, 0, m.n - 1, m.n - 1);

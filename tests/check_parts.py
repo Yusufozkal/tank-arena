@@ -23,7 +23,7 @@ HELPERS = """() => {
   // one player shell flying at tank e from the direction `a` (angle of the shooter seen from e); vol: volley id (default a new one); returns after the shell landed
   window.shoot = (e, a, o) => {
     o = o || {}; const d = 36, x = e.x + Math.cos(a) * d, y = e.y + Math.sin(a) * d;
-    const b = { x, y, vx: -Math.cos(a) * 600, vy: -Math.sin(a) * 600, r: 4, owner: 0, dmg: o.dmg || 0.001, life: 2, big: false, dead: false, pierce: false, bounce: 0, splash: null, look: 'player',
+    const b = { x, y, vx: -Math.cos(a) * 600, vy: -Math.sin(a) * 600, r: 4, owner: 0, dmg: o.dmg || 2, life: 2, big: false, dead: false, pierce: false, bounce: 0, splash: null, look: 'player',
       hits: null, bricks: null, sx: x, sy: y, dist: 0, bounced: false, vol: o.vol === undefined ? ++window.VOL : o.vol, volN: 1, pn: 0, h: 0 };
     G.bullets.push(b); for (let i = 0; i < 6 && !b.dead; i++) t.stepBullets(1 / 60); return b.dead;
   };
@@ -94,6 +94,13 @@ with sync_playwright() as p:
       const e = fresh(600 + 5 * 48, 600, 'basic', Math.PI); e.hp = e.maxHp = 1e6; t.fire(); t.step(2.2);
       const o = { hurt: e.hp < e.maxHp, pt: !!e.pt }; t.setTank('std'); G.enemies = []; return o; }""")
     check('obus_lob_hurts_but_breaks_nothing', real is not None and real['hurt'] and not real['pt'], real)
+
+    # ---- damage threshold: hits add up per part and direction; below PART_HP nothing breaks ----
+    acc = ev(page, """() => { const o = {}; const e = fresh(600, 600), P = __tank.PART_HP;
+      window.shoot(e, Math.PI / 2, { dmg: P / 2 }); o.one = e.pt ? e.pt.tread : 0;
+      window.shoot(e, 0, { dmg: P / 2 }); o.otherPart = [e.pt.tread, e.pt.barrel];
+      window.shoot(e, Math.PI / 2, { dmg: P / 2 }); o.two = e.pt.tread; o.acc = e.pt.acc.tread; e.dead = true; __tank.G.enemies = []; o.hp = P; return o; }""")
+    check('part_breaks_by_accumulated_damage', acc['one'] == 0 and acc['otherPart'][0] == 0 and acc['otherPart'][1] == 0 and acc['two'] > 0 and acc['acc'] == 0, acc)
 
     # ---- after wave 20 repairs are 30% faster ----
     w = ev(page, """() => { const G = __tank.G, o = {}; G.enemies = [];
