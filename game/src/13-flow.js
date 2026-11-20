@@ -9,6 +9,7 @@ function startGame(resume) {
   G.buffs = freshBuffs(); G.buffMax = freshBuffs(); G.strikes = []; G.jet = null; G.airQ = 0;
   G.D = RULES;
   G.dodges = 0; G.covers = 0;
+  G.beaten = new Set(resume && Array.isArray(resume.beaten) ? resume.beaten.filter(id => typeof id === 'string') : []); // bosses beaten this run: the region rule (11)
   nukeReset(resume && resume.nuke); // nuke meter: restored on resume
   G.up = {}; G.tank = 'std'; G.upMode = 'cards'; G.evoWait = 0;
   if (resume && resume.ups && typeof resume.ups === 'object') for (const k of UP_KEYS) { const L = resume.ups[k] | 0; if (L > 0) G.up[k] = Math.min(L, UPS[k].max); }
@@ -28,6 +29,7 @@ function startGame(resume) {
   sizeMini(); measureHud();
   if (G.wave === 1) showHint(input.touch ? 'Sol başparmakla sür, sağ başparmakla nişan al ve ateş et' : 'WASD ile sür, fareyle nişan al, tıklayarak ateş et', 5);
 }
+const prevBoss = w => { const bd = bossDefAt(w - 1); return bd && G.beaten.has(bd.id) ? bd.id : ''; }; // the boss of the wave before w, if it was a boss wave and is beaten
 function nextWave() {
   G.wave++;
   const w = G.wave, theme = themeFor(w), bd = bossDefAt(w); // theme: 10-wave regions; boss waves get a fixed arena (11a)
@@ -41,11 +43,13 @@ function nextWave() {
   G.phase = 'intro'; G.phaseT = 0; G.fade = 1;
   cam.x = p.x; cam.y = p.y; cam.shake = 0; clampCam(); computeView();
   if (bd) { startBossStage(bd); return; } // fade-in, siren, name title, boss breaks out of the gate
-  showBanner('DALGA ' + w, theme.name, 2.2);
+  if (w > 1 && w % 10 === 1 && regionGone(prevBoss(w)).length) showBanner(theme.name.toLocaleUpperCase('tr-TR'), regionGone(prevBoss(w)).join(' ve ') + ' artık gelmiyor', 3); // first wave of a new region: who no longer comes
+  else showBanner('DALGA ' + w, theme.name, 2.2);
   Sound.wave(false);
 }
 function waveCleared() {
   G.phase = 'cleared'; G.phaseT = 0;
+  if (G.wave % 5 === 0) { const bd = bossDefAt(G.wave); if (bd) G.beaten.add(bd.id); } // the region rule: this boss's enemy types stop coming (11)
   const bonus = Math.round(100 * G.wave * G.D.score), p = G.player, heal = Math.min(Math.max(8, G.D.heal - Math.max(0, G.wave - 10)), p.maxHp - p.hp); // field repairs shrink after wave 10 (25 -> 8)
   G.score += bonus; p.hp += heal;
   G.bullets = G.bullets.filter(b => b.owner === 0);

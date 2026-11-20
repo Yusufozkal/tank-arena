@@ -12,7 +12,7 @@ if (hot && typeof hot.snapshot === 'function') {
   try {
     hot.snapshot(() => ({ run: (G.state === 'play' || G.state === 'paused') && G.player && G.player.alive
       ? { wave: G.wave, score: G.score, hp: Math.round(G.player.hp), kills: G.kills, shots: G.shots, hits: G.hits, ups: Object.assign({}, G.up), tank: G.tank,
-        nuke: nukeSave() } : null }));
+        nuke: nukeSave(), beaten: [...G.beaten] } : null }));
   } catch (e) { /* ignore */ }
 }
 function boot(data) {

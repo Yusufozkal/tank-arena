@@ -50,7 +50,10 @@ const SPECS = {
     col: { body: '#7d2431', dk: '#4b131d', hi: '#ad4356', acc: '#f2c14e' } },
   // Avcı: the smart tank. Dodges shells, fires from cover, sneaks around open ground
   hunter: { hp: 3, speed: 106, turn: 4.6, tTurn: 4.4, r: 16, mass: 1, len: 38, wid: 32, tread: 7.5, tR: 9.5, barrel: 27, bW: 5.5, cool: 1.25, bSpeed: 480, dmg: 14, bR: 4, score: 300, hold: 4.5, drop: 0.3, smart: true,
-    col: { body: '#6c4fa3', dk: '#432f6b', hi: '#9d84d1', acc: '#7ef0d0' } }
+    col: { body: '#6c4fa3', dk: '#432f6b', hi: '#9d84d1', acc: '#7ef0d0' } },
+  // Tamirci (Orman): no weapon; a crane arm repairs the wounded allies near it (11-enemies updateTamirci)
+  tamirci: { hp: 3, speed: 95, turn: 3.6, tTurn: 4.5, r: 16, mass: 1, len: 36, wid: 30, tread: 7, tR: 9.5, barrel: 24, bW: 5, cool: 99, bSpeed: 0, dmg: 0, bR: 0, score: 200, hold: 0, drop: 0.3, medic: true,
+    col: { body: '#6f8a3a', dk: '#46591f', hi: '#9fbf5a', acc: '#f2c14e' } }
 };
 
 // Komutan HP per boss wave, tuned with tests/boss_probe.py so that a medium card set (and the bot) takes about 3-4 minutes from wave 15 on; the wave-5 Komutan is the easy one

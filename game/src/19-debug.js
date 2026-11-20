@@ -21,7 +21,7 @@ if (DEBUG) {
     },
     killAll() { for (const e of G.enemies) killEnemy(e); G.queue.length = 0; G.portals.length = 0; },
     dbg, sticks, wave(w) { G.wave = w - 1; nextWave(); },
-    choices: () => upChoices.slice(), choose(k) { chooseUpgrade(k); finishEvo(); }, chooseRaw: chooseUpgrade, finishEvo, showUpgrades, waveCleared, playerSpec, bossHp, SPECS,
+    choices: () => upChoices.slice(), choose(k) { chooseUpgrade(k); finishEvo(); }, chooseRaw: chooseUpgrade, finishEvo, showUpgrades, waveCleared, playerSpec, bossHp, SPECS, typeShares, buildRoster, typeBanned, waveMods, updateTamirci, nextWave,
     setUp(o) { G.up = Object.assign({}, o); refreshPlayer(); },
     give(kind) { const p = G.player; applyPickup({ kind, x: p.x, y: p.y }); },
     fire() { fireTank(G.player); },

@@ -29,6 +29,8 @@ function render() {
   if (pAlive) drawTank(p, pa);
   drawBushes(c0, c1, r0, r1);
   if (upL('thermal')) for (const e of G.enemies) if (e.hidden && !e.dead && onScreen(e.x, e.y, 60)) drawThermal(e);
+  for (const e of G.enemies) if (e.spec.medic && !e.dead && (e.vis || 0) > 0 && m.at(e.x, e.y) === BUSH && onScreen(e.x, e.y, 60)) drawTank(e, 1); // a beaming Tamirci shows through its bush
+  for (const e of G.enemies) if (e.beamOn && !e.dead && !e.beamOn.dead && G.time < e.beamUntil && onScreen(e.x, e.y, 400)) drawRepairBeam(e);
   if (pAlive && m.at(p.x, p.y) === BUSH) drawTank(p, 0.5 * pa);
   if (pAlive && (G.buffs.shield > 0 || p.shield1T > 0)) drawShield(p);
   drawPips();
@@ -276,6 +278,17 @@ function drawTank(t, alpha, g) {
     }
   } else if (s.triple) { for (const a of [-0.2, 0.2, 0]) { g.save(); g.rotate(a); barrel(s, rec, c, g); g.restore(); } }
   else if (s.twin) { const off = s.twinOff || s.bW * 0.62; for (const yo of [-1, 1]) { g.save(); g.translate(0, yo * off); barrel(s, rec, c, g); g.restore(); } }
+  else if (s.medic) { // Tamirci: yellow crane arm with a wrench head instead of a barrel
+    const ln = s.barrel, on = (t.vis || 0) > 0;
+    g.strokeStyle = '#2b2823'; g.lineWidth = 5.4; g.lineCap = 'round'; g.lineJoin = 'round';
+    g.beginPath(); g.moveTo(3, 0); g.lineTo(ln * 0.45, -3.2); g.lineTo(ln - 5, 0); g.stroke();
+    g.strokeStyle = c.acc; g.lineWidth = 3.4; g.beginPath(); g.moveTo(3, 0); g.lineTo(ln * 0.45, -3.2); g.lineTo(ln - 5, 0); g.stroke();
+    g.fillStyle = c.acc; g.beginPath(); g.arc(ln * 0.45, -3.2, 2.2, 0, TAU); g.fill();
+    g.strokeStyle = '#2b2823'; g.lineWidth = 1; g.stroke();
+    g.fillStyle = '#c7ccd1'; g.beginPath(); g.arc(ln - 2, 0, 4.2, 0, TAU); g.fill(); // wrench head: open jaw at the tip
+    g.fillStyle = '#2b2823'; g.fillRect(ln - 1.6, -1.6, 4.4, 3.2); g.lineWidth = 0.9; g.strokeStyle = '#2b2823'; g.beginPath(); g.arc(ln - 2, 0, 4.2, 0, TAU); g.stroke();
+    if (on) { g.fillStyle = '#9dff90'; g.globalAlpha = alpha * (0.6 + 0.4 * Math.sin(G.time * 16)); g.beginPath(); g.arc(ln + 1, 0, 2.2, 0, TAU); g.fill(); g.globalAlpha = alpha; }
+  }
   else if (t.pt && t.pt.barrel > 0) { // jammed barrel: bent upward with a scorched tip
     g.save(); g.rotate(-0.2); barrel(s, rec, c, g); g.fillStyle = '#17110f'; g.fillRect(s.barrel - 7, -s.bW * 0.7, 7, s.bW * 1.4); g.restore();
   }
@@ -324,6 +337,16 @@ function drawTank(t, alpha, g) {
   if (fl) { g.globalAlpha = alpha * fl; g.fillStyle = '#fff'; rrect(g, -tr * 1.05, -tr * 0.9, tr * 1.95, tr * 1.8, tr * 0.5); g.fill(); }
   g.restore();
   if (t.pt) for (const k of ['tread', 'barrel', 'engine']) if (t.pt[k] > 0) { const q = partWorld(t, k); repairRing(g, q.x, q.y - 15, 1 - t.pt[k] / t.pt.dur[k], alpha); } // repair progress above the part
+}
+// Tamirci: green repair beam from the crane tip to the ally (moving dashes, soft glow)
+function drawRepairBeam(e) {
+  const o = e.beamOn, ln = e.spec.barrel + 1, x0 = e.x + Math.cos(e.turret) * ln, y0 = e.y + Math.sin(e.turret) * ln, pulse = 0.65 + 0.35 * Math.sin(G.time * 14);
+  ctx.save(); ctx.lineCap = 'round';
+  ctx.strokeStyle = 'rgba(40,120,40,.55)'; ctx.lineWidth = 6.5; ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(o.x, o.y); ctx.stroke(); // dark rim keeps it readable on every map
+  ctx.strokeStyle = `rgba(120,255,120,${(0.55 + 0.3 * pulse).toFixed(2)})`; ctx.lineWidth = 4; ctx.stroke();
+  ctx.strokeStyle = '#eaffe6'; ctx.lineWidth = 1.6; ctx.setLineDash([7, 9]); ctx.lineDashOffset = -G.time * 60; ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle = `rgba(150,255,140,${(0.35 * pulse).toFixed(2)})`; ctx.beginPath(); ctx.arc(o.x, o.y, o.r + 4 + 2 * pulse, 0, TAU); ctx.fill();
+  ctx.restore();
 }
 // a small ring that fills while a broken part is being repaired (normal enemies and boss treads)
 function repairRing(g, x, y, k, alpha) {
