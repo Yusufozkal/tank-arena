@@ -239,7 +239,7 @@
    "b": "blast",
    "aName": "Sekme",
    "bName": "Patlayıcı mermi",
-   "desc": "Çelikten seken mermi ilk isabetinde daha geniş patlar."
+   "desc": "Duvardan seken mermi, ilk isabetinde %60 daha geniş alanda patlar"
   },
   {
    "id": "mov",
@@ -248,7 +248,7 @@
    "b": "repair",
    "aName": "Turbo motor",
    "bName": "Onarım robotu",
-   "desc": "Birkaç saniye hareket edip hasar almazsan onarım iki kat hızlanır."
+   "desc": "3 sn hareket edersen Onarım robotu 2 kat hızlı çalışır"
   },
   {
    "id": "far",
@@ -257,7 +257,7 @@
    "b": "barrel",
    "aName": "Büyük kalibre",
    "bName": "Uzun namlu",
-   "desc": "Mermi uzağa gittikçe sert vurur, en fazla +%40."
+   "desc": "Mermi uzağa gittikçe daha sert vurur, en çok +%40 hasar"
   },
   {
    "id": "amb",
@@ -266,7 +266,7 @@
    "b": "caliber",
    "aName": "Termal kamera",
    "bName": "Büyük kalibre",
-   "desc": "Seni görmeyen ya da çalıdaki düşmana ilk isabet çift hasar verir."
+   "desc": "Seni görmeyen ya da çalıdaki düşmana ilk isabet 2 kat hasar verir"
   },
   {
    "id": "fort",
@@ -275,7 +275,7 @@
    "b": "loader",
    "aName": "Zırh plakası",
    "bName": "Otomatik yükleyici",
-   "desc": "Durup ateş ederken aldığın hasar %25 azalır."
+   "desc": "Durup ateş ederken aldığın hasar %25 azalır"
   },
   {
    "id": "chain",
@@ -284,7 +284,7 @@
    "b": "boost",
    "aName": "Mıknatıs",
    "bName": "Uzun etki",
-   "desc": "Güçlendirme alınca etkin olan diğerleri 3 sn uzar."
+   "desc": "Güçlendirme alınca etkin diğerleri 3 sn uzar"
   }
  ]
 }

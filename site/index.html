@@ -134,10 +134,12 @@ h1 span{display:block}
 .foes{list-style:none;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:30px 18px;margin-top:36px}
 .foes li{display:flex;flex-direction:column;align-items:flex-start;gap:4px}
 .foes img{width:104px;filter:drop-shadow(4px 5px 0 rgba(70,45,15,.34))}
-.foes .foe-boss img{width:130px}
+.foes .foe-boss img{width:150px}
+.bossshot{margin:34px auto 0;max-width:300px;border:9px solid #12140d;border-radius:30px;overflow:hidden;background:#12140d}
+.bossshot img{border-radius:21px}
 .foes b{font-weight:700;font-size:22px;line-height:1.1}
 .foes span{font-size:18px;line-height:1.3;color:var(--sand-ink-2)}
-@media (min-width:860px){.foes{grid-template-columns:repeat(5,minmax(0,1fr))}}
+@media (min-width:860px){.foes{grid-template-columns:repeat(4,minmax(0,1fr))}}
 
 /* controls */
 .ctl{display:grid;gap:30px;margin-top:30px}
@@ -186,7 +188,7 @@ footer a{text-underline-offset:3px}
   <div class="wrap split">
     <div>
       <h2>Her dalgadan sonra atölye</h2>
-      <p class="lead">Dalga bitince üç kart gelir, birini seçersin. Seçtiğin parça tankına takılır ve oyun sonuna kadar kalır. Aynı kartı yeniden seçtikçe seviyesi artar. bir boss'u yendiğin dalganın sonunda nadir bir kart mutlaka çıkar.</p>
+      <p class="lead">Dalga bitince üç kart gelir, birini seçersin. Seçtiğin parça tankına takılır ve oyun sonuna kadar kalır. Aynı kartı yeniden seçtikçe seviyesi artar. Bir boss'u yendiğin dalganın sonunda nadir bir kart mutlaka çıkar. Zırhın azsa kartlardan biri acil onarım olur.</p>
       <div class="ws-tanks">
         <figure><img src="/img/tank-player.png" width="128" height="128" alt="Yükseltmesiz oyuncu tankı"><figcaption>İlk dalga<span>Çıplak tank</span></figcaption></figure>
         <figure><img src="/img/tank-player-upgraded.png" width="128" height="128" alt="Zırh plakaları, egzoz ve anten takılmış oyuncu tankı"><figcaption>Yükseltilmiş<span>Parçalar görünür</span></figcaption></figure>
@@ -222,28 +224,32 @@ footer a{text-underline-offset:3px}
     <h3 class="tk-h3">Birleşimler</h3>
     <p class="lead">İki kart birlikte takılınca yeni bir etki açılır. Atölye, kartın elindeki hangi parçayla birleşebileceğini gösterir.</p>
     <ul class="syn" aria-label="Birleşimler">
-<li><b>Sekme + Patlayıcı mermi = Seken patlama</b><span>Çelikten seken mermi ilk isabetinde daha geniş patlar.</span></li>
-<li><b>Turbo motor + Onarım robotu = Hareketli onarım</b><span>Birkaç saniye hareket edip hasar almazsan onarım iki kat hızlanır.</span></li>
-<li><b>Büyük kalibre + Uzun namlu = Uzak vuruş</b><span>Mermi uzağa gittikçe sert vurur, en fazla +%40.</span></li>
-<li><b>Termal kamera + Büyük kalibre = Pusu</b><span>Seni görmeyen ya da çalıdaki düşmana ilk isabet çift hasar verir.</span></li>
-<li><b>Zırh plakası + Otomatik yükleyici = Kale</b><span>Durup ateş ederken aldığın hasar %25 azalır.</span></li>
-<li><b>Mıknatıs + Uzun etki = Zincir</b><span>Güçlendirme alınca etkin olan diğerleri 3 sn uzar.</span></li>
+<li><b>Sekme + Patlayıcı mermi = Seken patlama</b><span>Duvardan seken mermi, ilk isabetinde %60 daha geniş alanda patlar</span></li>
+<li><b>Turbo motor + Onarım robotu = Hareketli onarım</b><span>3 sn hareket edersen Onarım robotu 2 kat hızlı çalışır</span></li>
+<li><b>Büyük kalibre + Uzun namlu = Uzak vuruş</b><span>Mermi uzağa gittikçe daha sert vurur, en çok +%40 hasar</span></li>
+<li><b>Termal kamera + Büyük kalibre = Pusu</b><span>Seni görmeyen ya da çalıdaki düşmana ilk isabet 2 kat hasar verir</span></li>
+<li><b>Zırh plakası + Otomatik yükleyici = Kale</b><span>Durup ateş ederken aldığın hasar %25 azalır</span></li>
+<li><b>Mıknatıs + Uzun etki = Zincir</b><span>Güçlendirme alınca etkin diğerleri 3 sn uzar</span></li>
     </ul>
     <h3 class="tk-h3">Nükleer bomba</h3>
-    <p class="nuke"><b>Nükleer bomba:</b> düşman öldürdükçe sayaç dolar, dolunca düğme yanar. Kısa bir uyarıdan sonra haritadaki bütün düşmanlar yok olur; bossları öldürmez ama canlarının büyük bir kısmını alır ve onları sersemletir.</p>
+    <p class="nuke"><b>Nükleer bomba:</b> düşman öldürdükçe sayaç dolar, dolunca düğme yanar. Kısa bir uyarıdan sonra bütün harita vurulur ve düşmanlar yok olur. Bosslara sabit, ağır bir hasar verir ama öldürmez (canları en az %10'da kalır); onları sersemletir.</p>
   </div>
 </section>
 
 <section class="ground" id="dusmanlar">
   <div class="wrap">
     <h2>Karşına çıkacaklar</h2>
-    <p class="lead">Her dalga biraz daha kalabalık ve keskin gelir. Avcı mermilerden kaçar, Tamirci yaralı tankları onarır. Beşinci dalgada Komutan, onuncu dalgada Sarı Fırtına, yirminci dalgada Demirkök seni kendi arenasında bekler; bir boss'u yenince onun türü bir daha gelmez.</p>
+    <p class="lead">Harita 35×35, sahada aynı anda en fazla 6 düşman olur. Düşman türleri sırayla gelir: önce Standart tank, sonra Keşif, Ağır, Avcı ve 13. dalgadan Tamirci. Çalıya saklanırsan seni kaybederler ve son gördükleri yeri ararlar. Düşman mermileri seninkilerden farklı renktedir, kolay ayırt edersin.</p>
+    <p class="lead">Düşmanı yeterince vurursan parçaları bozulur: yandan vurursan paleti, önden vurursan namlusu, arkadan vurursan motoru. Kısa süre sonra onarır. Bir boss'u yenince onun türü bir daha gelmez: Sarı Fırtına'dan sonra Keşif tankları, Demirkök'ten sonra Ağır tanklar ve Tamirciler.</p>
     <ul class="foes">
 <li class="foe-basic"><img src="/img/tank-basic.png" width="128" height="128" alt="" loading="lazy"><b>Standart tank</b><span>2 isabet. Mesafesini koruyup ateş eder.</span></li>
-<li class="foe-fast"><img src="/img/tank-fast.png" width="128" height="128" alt="" loading="lazy"><b>Keşif tankı</b><span>1 isabet. Çok hızlıdır, üzerine doğru gelir.</span></li>
-<li class="foe-heavy"><img src="/img/tank-heavy.png" width="128" height="128" alt="" loading="lazy"><b>Ağır tank</b><span>5 isabet. İri mermisi çok can yakar.</span></li>
-<li class="foe-hunter"><img src="/img/tank-hunter.png" width="128" height="128" alt="" loading="lazy"><b>Avcı</b><span>3 isabet. Mermilerden kaçar, siper alır, seni kaybettiği yere ateş açar.</span></li>
-<li class="foe-boss"><img src="/img/tank-boss.png" width="128" height="128" alt="" loading="lazy"><b>Komutan</b><span>Her bölgenin ortasında kendi arenasında gelir. Üç evresi ve komuta kulesi var, her gelişinde yeni saldırılar açar.</span></li>
+<li class="foe-fast"><img src="/img/tank-fast.png" width="128" height="128" alt="" loading="lazy"><b>Keşif tankı</b><span>1 isabet. Çok hızlıdır, üzerine doğru gelir. 4. dalgadan sonra gelir.</span></li>
+<li class="foe-heavy"><img src="/img/tank-heavy.png" width="128" height="128" alt="" loading="lazy"><b>Ağır tank</b><span>5 isabet. İri mermisi çok can yakar. 7. dalgadan sonra gelir.</span></li>
+<li class="foe-hunter"><img src="/img/tank-hunter.png" width="128" height="128" alt="" loading="lazy"><b>Avcı</b><span>3 isabet. Mermilerden kaçar ama uzaktan gelen mermiden kaçamaz; vurulunca saklanır. 12. dalgadan sonra gelir.</span></li>
+<li class="foe-tamirci"><img src="/img/tank-tamirci.png" width="128" height="128" alt="" loading="lazy"><b>Tamirci</b><span>3 isabet. Silahı yok; yaralı tankları onarır, bozuk parçalarını düzeltir. 13. dalgadan sonra gelir. Önce onu vur.</span></li>
+<li class="foe-boss"><img src="/img/boss-komutan.png" width="128" height="128" alt="" loading="lazy"><b>Komutan</b><span>Ana boss. 5, 15, 25 ve 35. dalgada kendi arenasında gelir. Üç evresi ve komuta kulesi var, her gelişinde yeni saldırılar açar.</span></li>
+<li class="foe-boss"><img src="/img/boss-sari.png" width="128" height="128" alt="" loading="lazy"><b>Sarı Fırtına</b><span>Keşif tankının boss'u, 10. dalgada. Kırmızı çizgi boyunca hücum eder; çeliğe çarparsa sersemler.</span></li>
+<li class="foe-boss"><img src="/img/boss-demirkok.png" width="128" height="128" alt="" loading="lazy"><b>Demirkök</b><span>Ağır tankın boss'u, 20. dalgada Orman Kalesi'nde. Yan taretleri ayaktayken gövdesi yarı hasar alır; son evrede kök salar.</span></li>
     </ul>
   </div>
 </section>
@@ -268,8 +274,10 @@ footer a{text-underline-offset:3px}
 
 <section id="tek-savas">
   <div class="wrap">
-    <h2>Tek savaş</h2>
-    <p class="lead">Herkes aynı kurallarla oynar. Her beşinci dalga bir boss etabıdır: sahada yalnızca boss ve sen varsınız. Rekorların tek listede tutulur.</p>
+    <h2>Boss savaşları</h2>
+    <p class="lead">Boss dalgalarında oyun kendi etabına geçer: sahada yalnızca boss ve sen varsınız, arena boss'a göre tasarlanmıştır. Üstte büyük bir can çubuğu görünür. Boss saldırmadan önce uyarır; çelik bloklar seni korur. Yeterince vurursan boss'un paleti ve namlusu da kırılır.</p>
+    <div class="bossshot"><img src="/img/boss-phone.jpg" width="720" height="1558" alt="Sarı Fırtına boss savaşı: üstte büyük boss can çubuğu, sarı boss tankı ve mavi oyuncu tankı" loading="lazy"></div>
+    <p class="lead">Herkes aynı kurallarla oynar, rekorlar tek listede tutulur.</p>
   </div>
 </section>
 

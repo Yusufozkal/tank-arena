@@ -66,9 +66,14 @@ button:focus-visible{outline:2px solid var(--bone);outline-offset:2px}
 .wave{align-self:flex-start;padding:6px 10px 7px;min-width:132px}
 .wave-t{font-family:var(--display);font-weight:800;font-size:23px;line-height:1;letter-spacing:.03em}
 .wave-s{margin-top:3px;font-size:15px;font-weight:600;color:var(--bone-2)}
-.bossbar{margin-top:5px;display:flex;align-items:center;gap:7px;font-size:15px;font-weight:700;color:var(--hostile)}
-.bossbar .bar{min-width:76px;height:7px}
-.bossbar .bar i{background:var(--hostile)}
+.bosshp{align-self:stretch;min-width:132px;background:rgba(38,42,29,.92);border:1px solid rgba(224,83,58,.8);border-radius:3px;padding:2px 7px 3px}
+.bh-top{display:flex;justify-content:space-between;align-items:baseline;line-height:1.1;font-family:var(--display);font-weight:800;font-size:14px;letter-spacing:.06em;text-transform:uppercase;color:var(--bone)}
+.bh-top b{font-size:14px;font-variant-numeric:tabular-nums;color:#ffb29a}
+.bh-bar{position:relative;height:12px;margin-top:1px;background:rgba(0,0,0,.55);border-radius:1px;overflow:hidden}
+.bh-bar i{position:absolute;inset:0;transform-origin:0 50%}
+#bossFill{background:var(--hostile)}
+#bossLost{background:#ffe6c2}
+.bh-bar u{position:absolute;top:0;bottom:0;width:2px;margin-left:-1px;background:rgba(0,0,0,.75);box-shadow:0 0 0 1px rgba(255,255,255,.25)}
 .buffs{display:flex;flex-wrap:wrap;gap:5px}
 .buff{display:flex;align-items:center;gap:6px;height:27px;padding:0 8px;font-size:15px;font-weight:600;background:rgba(38,42,29,.86);border:1px solid var(--line);border-radius:3px}
 .buff svg{width:15px;height:15px;flex:none}
@@ -96,13 +101,12 @@ button:focus-visible{outline:2px solid var(--bone);outline-offset:2px}
   #hud .wave{display:flex;align-items:center;gap:7px;height:28px;padding:0 9px;min-width:0}
   #hud .wave-t{font-size:16px}
   #hud .wave-s{margin-top:0;font-size:12px;white-space:nowrap}
-  #hud .bossbar{margin-top:0;gap:5px;font-size:12px}
-  #hud .bossbar .bar{min-width:52px;height:6px}
   #hud .buffs{gap:4px}
   #hud .buff{height:24px;gap:4px;padding:0 6px}
   #hud .buff svg{width:14px;height:14px}
   #hud .buff .bn{display:none}
   #hud .buff i{width:18px}
+  #hud.boss .buffs{gap:3px}#hud.boss .buff{height:22px;gap:3px;padding:0 4px}#hud.boss .buff svg{width:13px;height:13px}#hud.boss .buff i{width:10px}
   #hud .score{height:32px;gap:6px;padding:0 8px}
   #hud .score b{font-size:16px}
   #hud .ibtn{position:relative;width:32px;height:32px}
@@ -123,7 +127,7 @@ button:focus-visible{outline:2px solid var(--bone);outline-offset:2px}
 #banner{position:fixed;left:16px;right:16px;top:27%;z-index:6;text-align:center;pointer-events:none;opacity:0;transform:translateY(10px) scale(.98);transition:opacity .25s ease,transform .5s cubic-bezier(.2,.9,.2,1)}
 #banner.show{opacity:1;transform:none}
 .bt{font-family:var(--display);font-weight:900;font-size:clamp(46px,13vw,96px);line-height:.9;letter-spacing:.02em;text-wrap:balance;text-shadow:0 3px 0 rgba(0,0,0,.35),0 0 28px rgba(0,0,0,.45)}
-.bs{margin-top:10px;font-size:clamp(18px,4.6vw,23px);font-weight:600;text-shadow:0 2px 10px rgba(0,0,0,.7)}
+.bs{margin:10px auto 0;width:fit-content;max-width:100%;padding:5px 12px;background:rgba(20,22,14,.7);border-radius:3px;white-space:pre-line;text-wrap:balance;font-size:clamp(18px,4.6vw,23px);font-weight:600;text-shadow:0 2px 10px rgba(0,0,0,.7)}
 #hint{position:fixed;left:50%;top:60%;z-index:6;width:max-content;max-width:min(420px,calc(100% - 32px));transform:translate(-50%,6px);padding:9px 14px;background:rgba(38,42,29,.92);border:1px solid var(--line);border-radius:3px;font-size:17px;font-weight:600;line-height:1.25;text-align:center;text-wrap:balance;opacity:0;pointer-events:none;transition:opacity .3s ease,transform .4s ease}
 #hint.show{opacity:1;transform:translate(-50%,0)}
 
@@ -263,8 +267,12 @@ button:focus-visible{outline:2px solid var(--bone);outline-offset:2px}
 @media (min-aspect-ratio:1/1){.up-card.tank{grid-template-columns:1fr}.up-card.tank .ico.evo{justify-self:start}}
 @media (min-aspect-ratio:1/1) and (max-height:520px){.up-card .ico.evo,.ico.evo canvas{width:48px;height:48px}.evo-stats{font-size:14px;gap:0 8px}}
 /*syn-ui*/
-.up-syn{grid-area:syn;justify-self:start;font-size:14px;font-weight:500;line-height:1.2;color:var(--bone-2);opacity:.75}
-.up-syn.on{font-weight:700;opacity:1;color:#1b1d12;background:var(--signal);padding:3px 8px;border-radius:2px}
+.up-syn{grid-area:syn;justify-self:stretch;display:flex;flex-direction:column;gap:1px;font-size:14px;line-height:1.25;color:var(--bone-2);border-left:3px solid rgba(242,193,78,.45);padding:1px 0 1px 7px}
+.up-syn b{font-weight:700;color:var(--signal)}
+.up-syn i{font-style:normal;font-weight:500}
+.up-syn.on{border-left-color:var(--signal);background:rgba(242,193,78,.12);padding:3px 7px;color:var(--bone)}
+.syn-row{display:flex;flex-direction:column;gap:1px;flex:1 1 100%;padding:3px 8px;border:1px solid rgba(242,193,78,.45);border-radius:3px;font-size:15px;line-height:1.25;color:var(--bone-2)}
+.syn-row b{color:var(--signal)}
 .up-card.has-syn{grid-template-areas:"ico name" "ico lv" "ico desc" "ico syn"}
 .up-chip.syn{border-color:rgba(242,193,78,.55);color:var(--signal)}
 .syn-guide{list-style:none;display:flex;flex-direction:column;gap:9px}
@@ -309,8 +317,8 @@ button:focus-visible{outline:2px solid var(--bone);outline-offset:2px}
       <div class="chip wave">
         <div class="wave-t" id="waveT">DALGA 1</div>
         <div class="wave-s" id="waveS">Hazırlan</div>
-        <div class="bossbar hidden" id="bossBar"><span>Komutan</span><div class="bar"><i id="bossFill"></i></div></div>
       </div>
+    <div class="bosshp hidden" id="bossBar"><div class="bh-top"><span id="bossName">Komutan</span><b id="bossPct">100%</b></div><div class="bh-bar"><i id="bossLost"></i><i id="bossFill"></i><span id="bossMarks"></span></div></div>
       <div class="buffs" id="buffs"></div>
     </div>
     <div class="col right" id="rightCol">
@@ -473,6 +481,6 @@ button:focus-visible{outline:2px solid var(--bone);outline-offset:2px}
   </section>
 </div>
 
-<script src="/oyna/game.2dc276e450.js"></script>
+<script src="/oyna/game.98663fe2d3.js"></script>
 </body>
 </html>

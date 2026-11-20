@@ -18,7 +18,7 @@ from PIL import Image, ImageChops, ImageStat
 SITE = str(P.SITE)
 RAW = str(P.RAW)
 IMG = f'{SITE}/img'
-JPEGS = {'play-phone': 720, 'workshop-phone': 720, 'play-wide': 1400}
+JPEGS = {'play-phone': 720, 'workshop-phone': 720, 'play-wide': 1400, 'boss-phone': 720}
 JPEG_Q = 74
 
 
