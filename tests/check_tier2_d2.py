@@ -1,6 +1,8 @@
 """Package D2 (1.4): the two Keskin Nisanci tier-2 tanks, Rayli Top (laser line, pierce) and Obus (lob shell, area damage, aim distance).
 Logic checks run through __tank (no waiting for real time), then 60 s of autopilot per tank at wave 12, then screenshots in .tmp/shots (d2_*.png).
 Run: TANK_TEST_PORT=8840 python3 tests/check_tier2_d2.py     (prints a JSON report, then ERRORS: none)"""
+import sys
+
 from common import *  # noqa: F401,F403
 
 FAILS = []
@@ -53,16 +55,16 @@ with sync_playwright() as pw:
     check('rayli_sekme_bounces', sek['bounced'] and sek['vxNeg'] and not sek['dead'], sek)
 
     laser = ev("""() => { const t = __tank, G = t.G, T = 48; (""" + SETUP + """)(['rayli', {}]); const m = G.map, n = m.n;
-      const out = {}; const x0 = 10.5 * T + 43, y0 = 10.5 * T;
-      let L = t.rayLaser(x0, y0, 0); out.edge = L; // nothing but the border: ends at the world edge (x = 24 * T)
+      const out = { edgeX: (n - 1) * T }; const x0 = 10.5 * T + 43, y0 = 10.5 * T; // the border tile is the last column: the line ends at its left face
+      let L = t.rayLaser(x0, y0, 0); out.edge = L; // nothing but the border: ends at the map edge
       m.t[10 * n + 16] = 1; m.hp[10 * n + 16] = 3; L = t.rayLaser(x0, y0, 0); out.brick = L; // a brick does not stop the line
       m.t[10 * n + 17] = 2; L = t.rayLaser(x0, y0, 0); out.steel = L; out.steelTile = m.at(L.x + 1, L.y);
       // diagonal against a brute-force march
       m.t[14 * n + 15] = 2; const a = Math.atan2(4 * T, 5 * T); L = t.rayLaser(x0, y0, a); let bx = x0, by = y0, g = 0; while (!(m.at(bx, by) === 2) && g++ < 5000) { bx += Math.cos(a) * 0.25; by += Math.sin(a) * 0.25; }
       out.diag = { x: L.x, y: L.y, bx, by }; return out; }""")
     R['laser'] = laser
-    check('laser_edge', abs(laser['edge']['x'] - 24 * 48) < 1 and laser['edge']['steel'], laser['edge'])
-    check('laser_ignores_bricks', abs(laser['brick']['x'] - 24 * 48) < 1, laser['brick'])
+    check('laser_edge', abs(laser['edge']['x'] - laser['edgeX']) < 1 and laser['edge']['steel'], laser['edge'])
+    check('laser_ignores_bricks', abs(laser['brick']['x'] - laser['edgeX']) < 1, laser['brick'])
     check('laser_ends_at_first_steel', abs(laser['steel']['x'] - 17 * 48) < 1 and laser['steelTile'] == 2, laser['steel'])
     check('laser_diagonal', abs(laser['diag']['x'] - laser['diag']['bx']) < 1.5 and abs(laser['diag']['y'] - laser['diag']['by']) < 1.5, laser['diag'])
 
@@ -188,3 +190,4 @@ report('check_tier2_d2', R)
 show_checks(R.get('checks', {}))
 print('FAILS:', FAILS or 'none')
 print('ERRORS:', real_errors() or 'none')
+sys.exit(1 if FAILS or real_errors() else 0)
