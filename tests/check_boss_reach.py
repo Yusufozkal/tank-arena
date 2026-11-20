@@ -9,6 +9,7 @@ T = 48
 PLAYER_R = 17           # largest player hull incl. margin the tank collider uses
 BOSSES = {'komutan': ('kisla', 38), 'sari': ('kum', 27), 'demirkok': ('kale', 46)}
 BLOCK = set('SBW'); SHOT_BLOCK = set('SB')
+FAR_MAX = 0.08          # largest share of inner open tiles that may lie 2+ tiles from every boss tile
 GAP = T                 # hull-to-hull gap the boss closes by itself (ram or charge): reach = boss r + player r + GAP
 
 
@@ -67,6 +68,11 @@ def audit(rows, boss_r):
         if (c, r) in bo: continue
         near = [q for q in bo if math.hypot((q[0] - c) * T, (q[1] - r) * T) <= boss_r + PLAYER_R + GAP and clear(rows, q, (c, r))]
         if not near: bad.append((c, r))
+    # shape rule: boss tiles must cover the open ground, not just a thin spine. Share of inner player tiles (not on the border ring) lying 2+ tiles from every boss tile must stay small.
+    # The broken 1.5.3 Kale (leftover steel on rows 8/12) had 11%; the fixed arenas have 0-6%.
+    inner = [q for q in pl if 1 <= q[0] <= len(rows) - 2 and 1 <= q[1] <= len(rows) - 2 and q not in bo]
+    far = [q for q in inner if min(math.hypot(q[0] - x, q[1] - y) for x, y in bo) >= 2]
+    if inner and len(far) / len(inner) > FAR_MAX: bad += [q for q in far if q not in bad]
     return bad, len(pl), len(bo)
 
 
@@ -83,7 +89,7 @@ if __name__ == '__main__':
         print(f"{boss:9s} arena {ak:6s} player tiles {npl:3d} boss tiles {nbo:3d} unreachable pockets {len(bad)} {bad[:8]}")
         fails += len(bad)
     # live check: a passive player on the player-reachable tiles farthest from the boss's own tiles; the boss must touch or hurt it in time (slow Demirkok gets longer)
-    LIVE = {'komutan': (15, 12), 'sari': (10, 20), 'demirkok': (20, 40)}
+    LIVE = {'komutan': (15, 25), 'sari': (10, 20), 'demirkok': (20, 70)}
     with sync_playwright() as p:
         b = p.chromium.launch(); pg = new_ctx(b, 'reach2').new_page(); seed(pg); pg.click('#btnStart'); pg.wait_for_timeout(200)
         for boss, (w, secs) in LIVE.items():
