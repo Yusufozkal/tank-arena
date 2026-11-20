@@ -101,6 +101,7 @@ function updateHUD() {
   const boss = G.boss && !G.boss.dead ? G.boss : null;
   if (boss) {
     if (ui.bossOn !== true) { ui.bossOn = true; el.bossBar.classList.remove('hidden'); el.waveS.classList.add('hidden'); measureHud(); }
+    if (ui.bossName !== boss.name) { ui.bossName = boss.name; el.bossBar.firstElementChild.textContent = boss.name.split(' ').map(w => w.charAt(0) + w.slice(1).toLocaleLowerCase('tr')).join(' '); } // boss name in the bar
     const k = Math.max(0, boss.hp / boss.maxHp); if (ui.boss !== k) { ui.boss = k; el.bossFill.style.transform = `scaleX(${k})`; }
   } else {
     if (ui.bossOn !== false) { ui.bossOn = false; el.bossBar.classList.add('hidden'); el.waveS.classList.remove('hidden'); measureHud(); }

@@ -111,7 +111,7 @@ with sync_playwright() as p:
     check('clear_hazards', ev(page, "[__tank.G.tele.length, __tank.G.bullets.filter(b => b.owner === 1).length]") == [0, 0])
 
     # ---- death: armour full, ganimet cards, evolution after waves 5 and 10 ----
-    for w, tank, expect in ((5, 'std', 'evo'), (10, 'ikiz', 'evo'), (15, 'uclu', 'cards')):
+    for w, tank, expect in ((5, 'std', 'evo'), (10, 'ikiz', 'evo'), (15, 'uclu', 'cards')):  # wave 10 is Sarı Fırtına (its own death text is in check_sari)
         ev(page, f"(() => {{ const t = __tank, G = t.G; G.noEvo = false; G.tank = '{tank}'; t.setTank('{tank}'); t.wave({w}); t.bossSkip(); G.god = false; G.player.hp = 12; const e = G.boss; e.hp = 0.5; t.hurtBoss(5); }})()")
         ev(page, "__tank.step(2.6)")
         mid = ev(page, "(() => { const G = __tank.G; return { dying: G.boss ? G.boss.dying : 'gone', hp: G.player.hp, max: G.player.maxHp }; })()")

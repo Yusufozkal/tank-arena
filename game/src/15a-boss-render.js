@@ -84,6 +84,7 @@ function drawKomutan(e, g, alpha) {
 }
 // warnings on the ground (under the tanks)
 function drawTele() {
+  if (G.boss && G.boss.def && G.boss.def.drawGround) G.boss.def.drawGround(G.boss, ctx); // per-boss ground layer (sand strips, wind arrows)
   if (!G.tele.length) return;
   const e = G.boss; ctx.save();
   for (const tl of G.tele) {

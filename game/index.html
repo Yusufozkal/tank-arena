@@ -910,6 +910,15 @@ const Sound = (() => {
     pop(v) { if (!ok('pp', 70)) return; const t = ac.currentTime; nz(t, 0.22, 1600, 120, 0.3 * v); tn(t, 0.16, 140, 50, 0.22 * v); },
     over() { if (!ok('ov', 300)) return; const t = ac.currentTime; [392, 330, 262, 196].forEach((f, i) => tn(t + i * 0.18, 0.32, f, f * 0.98, 0.14, 'triangle')); },
     siren() { if (!ok('sr', 800)) return; const t = ac.currentTime; for (let i = 0; i < 4; i++) { tn(t + i * 0.7, 0.7, 420, 760, 0.13, 'sawtooth'); tn(t + i * 0.7 + 0.35, 0.35, 760, 420, 0.1, 'sawtooth'); } },
+    wind(v, dur) { // swelling, wavering gust of filtered noise (Sarı Fırtına: intro whirlwind, Rüzgâr)
+      if (!ok('wd', 400)) return; dur = dur || 3;
+      const t = ac.currentTime, src = ac.createBufferSource(); src.buffer = noise; src.loop = true;
+      const f = ac.createBiquadFilter(); f.type = 'bandpass'; f.Q.value = 1.4;
+      f.frequency.setValueAtTime(260, t); f.frequency.linearRampToValueAtTime(900, t + dur * 0.45); f.frequency.linearRampToValueAtTime(320, t + dur);
+      const lfo = ac.createOscillator(), lg = ac.createGain(); lfo.frequency.value = 0.9; lg.gain.value = 160; lfo.connect(lg); lg.connect(f.frequency);
+      const g = ac.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.28 * v, t + dur * 0.4); g.gain.linearRampToValueAtTime(0.0001, t + dur);
+      src.connect(f); f.connect(g); g.connect(master); src.start(t); src.stop(t + dur + 0.1); lfo.start(t); lfo.stop(t + dur + 0.1);
+    },
     warnRise(v) { if (!ok('wr', 300)) return; const t = ac.currentTime; tn(t, 1.2, 180, 900, 0.14 * v, 'sawtooth'); tn(t, 1.2, 360, 1500, 0.06 * v, 'square'); },
     nukeWarn() { if (!ok('nw', 600)) return; const t = ac.currentTime; for (let i = 0; i < 6; i++) tn(t + i * 0.2, 0.19, i & 1 ? 560 : 820, i & 1 ? 560 : 820, 0.16, 'square'); },
     nuke() { if (!ok('nk', 500)) return; const t = ac.currentTime; nz(t, 1.8, 2400, 45, 0.95, 'lowpass', 0.8); tn(t, 1.5, 78, 20, 0.75, 'sine'); nz(t + 0.25, 2.1, 700, 40, 0.5, 'lowpass', 0.9); tn(t, 0.5, 1200, 200, 0.12, 'sawtooth'); }
@@ -2483,7 +2492,7 @@ function bossClearHazards() {
   G.tele.length = 0;
   G.bullets = G.bullets.filter(b => b.owner !== 1);
   if (G.mines) G.mines.length = 0;
-  for (const e of G.enemies) if (e.isBoss) { e.gen = null; e.atkId = ''; e.glow = 0; e.cool = Math.max(e.cool, 1); }
+  for (const e of G.enemies) if (e.isBoss) { e.gen = null; e.atkId = ''; e.glow = 0; e.cool = Math.max(e.cool, 1); if (e.def.onClear) e.def.onClear(e); }
 }
 const steelBetween = (x0, y0, x1, y1) => {
   const m = G.map, dx = x1 - x0, dy = y1 - y0, n = Math.ceil(Math.hypot(dx, dy) / 12);
@@ -2500,6 +2509,7 @@ function rayClip(x, y, a, max, margin) {
 /* ---- danger map for the autopilot: every active warning is a dangerous area ---- */
 function bossDanger(x, y, pad, react) { // react: seconds a warning must have been showing before it counts (the bot's reaction time)
   pad = pad || 0; const e = G.boss; if (!e || e.dead) return false;
+  if (e.def.danger && e.def.danger(e, x, y, pad)) return true; // per-boss hazards that are not telegraphs (sand strips)
   for (const tl of G.tele) {
     if (react && tl.t < react) continue;
     if (tl.kind === 'circle') { const rr = tl.r + pad; if (dist2(x, y, tl.x, tl.y) < rr * rr) return true; }
@@ -2610,6 +2620,7 @@ function updateBoss(e, dt, halted) {
   if (e.dead) return;
   const p = G.player;
   e.flash = Math.max(0, e.flash - dt); e.recoil = Math.max(0, e.recoil - dt * 6);
+  if (e.def.tick) e.def.tick(e, dt); // per-boss frame hook (Sarı Fırtına: sand strips, wind); runs in the intro and the death scene too
   if (G.phase === 'bossIntro') return; // the intro script drives the boss
   if (e.dying) { bossDeathTick(e, dt); return; }
   bossFx(e, dt);
@@ -2931,6 +2942,210 @@ BOSS_DEFS.komutan = {
   onPhase(e, i) { if (i === 2) { e.speedMul *= 1.3; addText(e.x, e.y - e.r - 34, 'SON EMİR', '#ff7a5c', 18); } },
   onPartBreak(e, pt) { if (pt.id === 'tower') spawnPiece(e, 'flag', true); }
 };
+/* ================= Sarı Fırtına (docs/BOSSES.md section 4) ================= */
+// Çöl's boss, the fast one: circles the player and fires bursts, then charges along a red line that breaks bricks; steel (or the map edge) stuns it.
+// Phase 2: exhausts light up (+15% speed), double charge, sand strips left on the charge path. Phase 3 "Fırtına": wind every 12 s, triple charge.
+// Per-boss state lives in e.sari; the generic hooks it uses in 11a: def.tick (every frame), def.danger (bot), def.onClear, def.drawGround (15a).
+ARENAS.kum = { name: 'Kum Çukuru', gate: [[9, 4], [10, 4], [11, 4]], rows: [ // the brick wall in front of the boss is the gate: the intro smashes it
+  '.....................',
+  '.SS...............SS.',
+  '.SS.......X.......SS.',
+  '.....................',
+  '....S...SBBBS...S....',
+  '.....................',
+  '.....................',
+  '.....................',
+  '....S...S...S...S....',
+  'GG.................GG',
+  'WW........S........WW',
+  'GG.................GG',
+  '....S...S...S...S....',
+  '.....................',
+  '.....................',
+  '.....................',
+  '....S...SBBBS...S....',
+  '.....................',
+  '.SS...............SS.',
+  '.SS.......P.......SS.',
+  '.....................'] };
+
+const SARI_CHARGE_LEN = 9 * T;   // a charge covers this far (more with the wind) unless steel is in the way
+const SARI_RUSH = 650;           // charge speed, px/s
+const SARI_SAND_LIFE = 4, SARI_SAND_SLOW = 0.35, SARI_SAND_W = 64;
+const SARI_WIND_WARN = 1.5, SARI_WIND_BLOW = 5, SARI_WIND_EVERY = 12, SARI_WIND_PUSH = 75;
+const SARI_SPEC = { speed: 175, turn: 5, tTurn: 5.5, len: 72, wid: 48, r: 27, tread: 9, tR: 12, barrel: 44, bW: 8, cool: 1, bSpeed: 420, dmg: 5, bR: 5, mass: 3, score: 1500,
+  col: { body: '#cf9f30', dk: '#8c691b', hi: '#efca60', acc: '#f08a2c' } };
+
+const sariWindVec = e => { const W = e.sari.wind; return W.st === 'blow' ? { x: Math.cos(W.a) * SARI_WIND_PUSH, y: Math.sin(W.a) * SARI_WIND_PUSH } : null; };
+const sariSegDist = (q, x, y) => { // distance from (x, y) to the strip's centre line
+  const dx = q.x2 - q.x1, dy = q.y2 - q.y1, l2 = dx * dx + dy * dy, t = l2 > 1 ? clamp(((x - q.x1) * dx + (y - q.y1) * dy) / l2, 0, 1) : 0;
+  return Math.hypot(x - (q.x1 + dx * t), y - (q.y1 + dy * t));
+};
+// how far a charge goes: a tailwind carries it farther
+function sariChargeLen(e) {
+  const w = sariWindVec(e); if (!w) return SARI_CHARGE_LEN;
+  return SARI_CHARGE_LEN * (1 + 0.45 * Math.max(0, Math.cos(e.angle - e.sari.wind.a)));
+}
+
+/* ---- attacks ---- */
+function sariOrbit(e, st, dt, R) { // circle the player at about R px, tangent plus a radial correction; a blocked boss turns around
+  const p = G.player, s = e.spec, ang = Math.atan2(e.y - p.y, e.x - p.x), d = Math.hypot(e.x - p.x, e.y - p.y), tang = ang + st.sign * Math.PI / 2;
+  const rad = clamp((d - R) / (2 * T), -1, 1);
+  const hx = Math.cos(tang) - Math.cos(ang) * rad * 1.2, hy = Math.sin(tang) - Math.sin(ang) * rad * 1.2;
+  const des = Math.atan2(hy, hx), before = e.angle, ox = e.x, oy = e.y;
+  e.angle = turnTo(e.angle, des, s.turn * dt);
+  const diff = Math.abs(angDiff(e.angle, des)), spd = diff < 0.8 ? s.speed * e.speedMul * (1 - diff * 0.5) : s.speed * e.speedMul * 0.25;
+  moveTank(e, Math.cos(e.angle) * spd * dt, Math.sin(e.angle) * spd * dt);
+  const moved = Math.hypot(e.x - ox, e.y - oy);
+  trackUpdate(e, moved, angDiff(before, e.angle));
+  st.stuck = moved < spd * dt * 0.35 ? st.stuck + dt : 0;
+  if (st.stuck > 0.3) { st.sign = -st.sign; st.stuck = 0; }
+}
+function* sariShots(e) { // çevik atış: two bursts of three shots while circling 5-7 tiles from the player; each burst warned by a 0.45 s glow
+  const st = { sign: Math.random() < 0.5 ? 1 : -1, stuck: 0 }, R = rand(5, 7) * T;
+  for (let b = 0; b < 2; b++) {
+    for (let t = 0; t < (b ? 0.5 : 0.9); t += e.dt) { sariOrbit(e, st, e.dt, R); aimAtPlayer(e, e.dt, 1.4); yield 0; }
+    const tl = addTele(e, { kind: 'glow', dur: 0.45, fan: [0] });
+    while (tl.t < tl.dur) { sariOrbit(e, st, e.dt, R); aimAtPlayer(e, e.dt, 1.8); yield 0; }
+    release(e, 'cevik', tl); removeTele(tl);
+    for (let k = 0; k < 3; k++) {
+      bossVolley(e, [0]);
+      for (let t = 0; t < 0.13; t += e.dt) { sariOrbit(e, st, e.dt, R); aimAtPlayer(e, e.dt, 1.8); yield 0; }
+    }
+  }
+  yield 0.2;
+}
+// one charge: red line (1 s, the first two of the fight 1.3 s; the last 0.3 s locked), the rush, a stun when steel stopped it. Returns true when stunned.
+function* sariRush(e) {
+  const p = G.player, S = e.sari, margin = e.r + 4, m = G.map, dur = S.chargeN < 2 ? 1.3 : 1.0;
+  S.chargeN++;
+  const tl = addTele(e, { kind: 'line', dur, lock: 0.3, x: e.x, y: e.y, a: e.angle, len: SARI_CHARGE_LEN, w: 2 * (e.r + 8) });
+  Sound.warnRise(volAt(e.x, e.y));
+  while (tl.t < tl.dur) {
+    if (tl.t < tl.dur - tl.lock) e.angle = turnTo(e.angle, Math.atan2(p.y - e.y, p.x - e.x), 4.6 * e.dt);
+    e.turret = e.angle;
+    tl.x = e.x; tl.y = e.y; tl.a = e.angle; tl.len = rayClip(e.x, e.y, e.angle, sariChargeLen(e), margin);
+    yield 0;
+  }
+  release(e, 'hucum', tl);
+  const ca = Math.cos(e.angle), sa = Math.sin(e.angle), plan = tl.len, clipped = plan < sariChargeLen(e) - 1;
+  const strip = e.phase >= 1 ? { x1: e.x, y1: e.y, x2: e.x, y2: e.y, w: SARI_SAND_W, t: -1 } : null; // Kum izi: grows behind the boss, fades 4 s after the charge ends
+  if (strip) S.sand.push(strip);
+  let trav = 0, hurt = false;
+  Sound.crumble(volAt(e.x, e.y) * 0.6);
+  while (trav < plan) {
+    const step = Math.min(SARI_RUSH * e.speedMul * e.dt, plan - trav);
+    for (const [fa, lat] of [[e.r + 8, 0], [e.r + 6, 20], [e.r + 6, -20]]) { // flatten the bricks in front
+      const bx = e.x + ca * fa - sa * lat, by = e.y + sa * fa + ca * lat;
+      if (m.at(bx, by) === BRICK) { destroyBrick(m, Math.floor(bx / T), Math.floor(by / T), volAt(bx, by)); shake(3); }
+    }
+    const ox = e.x, oy = e.y;
+    moveTank(e, ca * step, sa * step);
+    const moved = Math.hypot(e.x - ox, e.y - oy);
+    trackUpdate(e, moved, 0); trav += moved;
+    if (strip) { strip.x2 = e.x - ca * e.r * 0.6; strip.y2 = e.y - sa * e.r * 0.6; }
+    if (fxScale === 1) for (let k = 0; k < 2; k++) addPart('dust', e.x - ca * e.r + rand(-6, 6), e.y - sa * e.r + rand(-18, 18), -ca * rand(40, 120) + rand(-30, 30), -sa * rand(40, 120) + rand(-30, 30), rand(0.4, 0.8), rand(14, 24), 26, 2);
+    if (!hurt && p.alive && dist2(e.x, e.y, p.x, p.y) < (e.r + p.r + 2) * (e.r + p.r + 2)) { // ağır hasar + geri itme
+      hurt = true; damagePlayer({ x: p.x, y: p.y, dmg: bossDmg(15), owner: 1, vx: 0, vy: 0 });
+      const side = (p.x - e.x) * -sa + (p.y - e.y) * ca < 0 ? -1 : 1;
+      moveTank(p, -sa * 64 * side + ca * 30, ca * 64 * side + sa * 30); shake(9); vibrate(40);
+    }
+    if (moved < step * 0.35) break; // jammed against something
+    yield 0;
+  }
+  removeTele(tl);
+  if (strip) strip.t = 0;
+  if (clipped || trav < plan - 6) { // steel or the edge: stunned (shorter in the storm phase)
+    e.stunT = e.phase >= 2 ? 1.8 : 2.5; shake(12); explode(e.x + ca * e.r, e.y + sa * e.r, 0.7); Sound.metal(volAt(e.x, e.y)); vibrate(30);
+    addText(e.x, e.y - e.r - 14, 'SERSEMLEDİ', '#bfeaff', 18);
+    for (let k = 0; k < 10; k++) addPart('dust', e.x + ca * e.r + rand(-14, 14), e.y + sa * e.r + rand(-14, 14), rand(-80, 80), rand(-80, 80), rand(0.5, 0.9), rand(14, 22), 26, 2);
+    return true;
+  }
+  return false;
+}
+function* sariCharge(e) { yield* sariRush(e); yield 0.3; }
+function* sariDouble(e) { // çift hücum: the second line appears the moment the first charge ends (a stun cancels it)
+  for (let k = 0; k < 2; k++) if (yield* sariRush(e)) break;
+  yield 0.3;
+}
+function* sariTriple(e) { // üçlü hücum
+  for (let k = 0; k < 3; k++) if (yield* sariRush(e)) break;
+  yield 0.3;
+}
+
+/* ---- per-frame hook: sand strips slow the player, the wind pushes tanks, the death scene ---- */
+function sariTick(e, dt) {
+  const S = e.sari, p = G.player;
+  if (G.phase === 'bossIntro') { if (!S.snd) { S.snd = true; Sound.wind(1, 3.4); } return; }
+  if (e.dying) {
+    S.sand.length = 0; S.wind.st = 'idle';
+    if (!S.boom && e.deathT >= 2.1) { // the last big blast, as the whirlwind dies down
+      S.boom = true; explode(e.x, e.y, 1.7); addPart('flash', e.x, e.y, 0, 0, 0.3, 220, 0, 0); addPart('ring', e.x, e.y, 0, 0, 0.7, 20, 340, 0, '240,170,60');
+      sparks(e.x, e.y, 30, '#ffd27a', 420); shake(18); Sound.boom(1.6, volAt(e.x, e.y)); vibrate([50, 30, 90]);
+    }
+    return;
+  }
+  if (e.trans > 0) return;
+  // sand strips (age from the end of the charge)
+  for (const q of S.sand) if (q.t >= 0) q.t += dt;
+  if (S.sand.some(q => q.t >= SARI_SAND_LIFE)) S.sand = S.sand.filter(q => q.t < SARI_SAND_LIFE);
+  S.slow = false;
+  if (p.alive) for (const q of S.sand) if (sariSegDist(q, p.x, p.y) < q.w / 2 + p.r * 0.3) { S.slow = true; break; }
+  if (S.slow) { // 35% slower: take back that share of this frame's movement
+    moveTank(p, -p.avx * SARI_SAND_SLOW * dt, -p.avy * SARI_SAND_SLOW * dt); p.avx *= 1 - SARI_SAND_SLOW; p.avy *= 1 - SARI_SAND_SLOW;
+    if (fxScale === 1 && Math.random() < dt * 14) addPart('dust', p.x + rand(-10, 10), p.y + rand(-10, 10), rand(-20, 20), rand(-30, -5), rand(0.4, 0.7), rand(8, 14), 22, 2);
+  }
+  // wind (phase 3): arrows 1.5 s ahead, then 5 s of push
+  const W = S.wind;
+  if (e.phase >= 2) {
+    if (W.st === 'idle') {
+      S.windT -= dt;
+      if (S.windT <= 0) { W.st = 'warn'; W.t = 0; W.a = Math.floor(Math.random() * 8) * Math.PI / 4; Sound.wind(0.9, SARI_WIND_WARN + SARI_WIND_BLOW); addText(G.map.w / 2, 70, 'RÜZGÂR', '#f08a2c', 22); }
+    } else {
+      W.t += dt;
+      if (W.st === 'warn' && W.t >= SARI_WIND_WARN) { W.st = 'blow'; W.t = 0; }
+      else if (W.st === 'blow' && W.t >= SARI_WIND_BLOW) { W.st = 'idle'; W.t = 0; S.windT = SARI_WIND_EVERY - SARI_WIND_WARN - SARI_WIND_BLOW; }
+    }
+  }
+  const wv = sariWindVec(e);
+  if (wv) {
+    if (p.alive) moveTank(p, wv.x * dt, wv.y * dt);
+    moveTank(e, wv.x * dt, wv.y * dt);
+    if (fxScale === 1 && Math.random() < dt * 40) { const m = G.map; addPart('dust', rand(0, m.w), rand(0, m.h), wv.x * 3.5, wv.y * 3.5, rand(0.5, 0.9), rand(10, 18), 20, 0); }
+  }
+  // the bot drives against the wind: it steers by (its own heading x speed) - wind, from the heading the autopilot last chose
+  if (bot.on && p.alive) {
+    if (!(bot.mx === S.omx && bot.my === S.omy)) { S.rmx = bot.mx; S.rmy = bot.my; }
+    if (wv) { const sp = p.spec.speed, vx = S.rmx * sp - wv.x, vy = S.rmy * sp - wv.y, l = Math.hypot(vx, vy) || 1; bot.mx = vx / l; bot.my = vy / l; } else { bot.mx = S.rmx; bot.my = S.rmy; }
+    S.omx = bot.mx; S.omy = bot.my;
+  }
+}
+
+BOSS_DEFS.sari = {
+  id: 'sari', name: 'SARI FIRTINA', arena: 'kum', introSub: 'Kum Çukuru', hold: 4, phases: [66, 33], plates: ['plate', 'fender'], r: SARI_SPEC.r,
+  deathText: 'SARI FIRTINA DİNDİ', loot: 'SARI FIRTINA GANİMETİ',
+  hp: w => Math.round(460 + (w - 10) * 25),
+  attacks: [
+    { id: 'cevik', w: 3, ok: e => true, run: sariShots },
+    { id: 'hucum', w: 3, ok: e => e.distP > 2.5 * T && e.phase < 2, run: sariCharge },
+    { id: 'cift', w: 3, ok: e => e.distP > 2.5 * T && e.phase >= 1, run: sariDouble },
+    { id: 'uclu', w: 3, ok: e => e.distP > 2.5 * T && e.phase >= 2, run: sariTriple }
+  ],
+  setup(e, w) {
+    e.spec = Object.assign({}, SPECS.boss, SARI_SPEC); e.r = SARI_SPEC.r; e.pace = 1.2;
+    e.sari = { chargeN: 0, sand: [], wind: { st: 'idle', t: 0, a: 0 }, windT: 5, snd: false, boom: false, slow: false, omx: NaN, omy: NaN, rmx: 0, rmy: 0 };
+  },
+  onPhase(e, i) {
+    if (i === 1) { e.speedMul *= 1.15; addText(e.x, e.y - e.r - 34, 'EGZOZLAR YANDI', '#f08a2c', 18); }
+    if (i === 2) { e.sari.windT = 4; addText(e.x, e.y - e.r - 34, 'FIRTINA', '#f08a2c', 20); }
+  },
+  tick: sariTick,
+  onClear(e) { const S = e.sari; S.sand.length = 0; if (S.wind.st !== 'idle') { S.wind.st = 'idle'; S.windT = Math.max(S.windT, 5); } },
+  danger(e, x, y, pad) { for (const q of e.sari.sand) if (sariSegDist(q, x, y) < q.w / 2 + pad) return true; return false; },
+  draw: (e, g, alpha) => drawSari(e, g, alpha),
+  drawGround: (e, g) => drawSariGround(e, g)
+};
+BOSS_ON[10] = 'sari';
 /* ================= input ================= */
 let STICK_R = 56; // set from the joystick size setting
 const mkStick = () => ({ id: null, ox: 0, oy: 0, vx: 0, vy: 0, t0: 0, max: 0 });
@@ -3569,6 +3784,7 @@ function updateHUD() {
   const boss = G.boss && !G.boss.dead ? G.boss : null;
   if (boss) {
     if (ui.bossOn !== true) { ui.bossOn = true; el.bossBar.classList.remove('hidden'); el.waveS.classList.add('hidden'); measureHud(); }
+    if (ui.bossName !== boss.name) { ui.bossName = boss.name; el.bossBar.firstElementChild.textContent = boss.name.split(' ').map(w => w.charAt(0) + w.slice(1).toLocaleLowerCase('tr')).join(' '); } // boss name in the bar
     const k = Math.max(0, boss.hp / boss.maxHp); if (ui.boss !== k) { ui.boss = k; el.bossFill.style.transform = `scaleX(${k})`; }
   } else {
     if (ui.bossOn !== false) { ui.bossOn = false; el.bossBar.classList.add('hidden'); el.waveS.classList.remove('hidden'); measureHud(); }
@@ -4010,6 +4226,7 @@ function drawKomutan(e, g, alpha) {
 }
 // warnings on the ground (under the tanks)
 function drawTele() {
+  if (G.boss && G.boss.def && G.boss.def.drawGround) G.boss.def.drawGround(G.boss, ctx); // per-boss ground layer (sand strips, wind arrows)
   if (!G.tele.length) return;
   const e = G.boss; ctx.save();
   for (const tl of G.tele) {
@@ -4046,6 +4263,106 @@ function drawPieces() {
     ctx.restore();
   }
   ctx.globalAlpha = 1;
+}
+/* ================= Sarı Fırtına drawing ================= */
+// Arrow-shaped hardal hull, one barrel, two arrow marks at the back, orange exhausts at the sides (lit from phase 2); sand whirlwind in the intro and death scene;
+// sand strips and wind arrows on the ground (drawGround, called from drawTele in 15a).
+function sariWhirl(g, cx, cy, k, tt, h, rTop) { // a sand funnel standing on (cx, cy); k 0..1 is its strength
+  if (k <= 0.01) return;
+  const N = 12; g.save(); g.lineCap = 'round';
+  for (let j = 0; j < N; j++) {
+    const f = j / (N - 1), yy = cy - f * h, rr = 12 + (rTop - 12) * f * f, wob = Math.sin(tt * 5 + j * 0.9) * rr * 0.12;
+    g.strokeStyle = `rgba(${j & 1 ? '239,202,96' : '207,159,48'},${(k * (0.5 - 0.3 * f)).toFixed(3)})`; g.lineWidth = 3 + 3 * (1 - f);
+    const a0 = tt * (6 + j * 0.3) + j * 1.7; g.beginPath(); g.ellipse(cx + wob, yy, rr, rr * 0.28, 0, a0, a0 + Math.PI * 1.35); g.stroke();
+  }
+  g.restore();
+}
+function drawSari(e, g, alpha) {
+  const s = e.spec, c = s.col, L = s.len, W = s.wid, tw = s.tread, tr = s.tR, tt = G.time, intro = G.phase === 'bossIntro';
+  let spin = 0; if (e.dying) { const d = Math.min(e.deathT, 2.4); spin = 16 * (d - d * d / 4.8); } // spins down as it dies
+  if (intro) alpha *= clamp(0.35 + G.phaseT / 1.35 * 0.65, 0, 1);
+  g.save(); g.translate(e.x, e.y); g.rotate(e.angle + spin); g.globalAlpha = alpha;
+  // treads
+  g.fillStyle = '#1f1d19'; rrect(g, -L / 2 + 3, -W / 2, L - 8, tw, 3); g.fill(); rrect(g, -L / 2 + 3, W / 2 - tw, L - 8, tw, 3); g.fill();
+  g.fillStyle = '#4b473e'; const st = 5;
+  let o = ((e.treadL % st) + st) % st; for (let x = -L / 2 + 5 + o; x < L / 2 - 8; x += st) g.fillRect(x, -W / 2 + 1.5, 2, tw - 3);
+  o = ((e.treadR % st) + st) % st; for (let x = -L / 2 + 5 + o; x < L / 2 - 8; x += st) g.fillRect(x, W / 2 - tw + 1.5, 2, tw - 3);
+  // exhausts at the sides (orange), flames behind them from phase 2
+  const lit = e.phase >= 1;
+  for (const sy of [-1, 1]) {
+    const ex = -L / 2 + 6, ey = sy * (W / 2 + 1);
+    if (lit) {
+      const fl = 0.7 + 0.3 * Math.sin(tt * 40 + sy);
+      g.globalCompositeOperation = 'lighter'; g.globalAlpha = alpha * 0.9 * fl; const gs = 38 * fl; g.drawImage(SPR.fire, ex - 12 - gs / 2, ey - gs / 2, gs, gs); g.globalCompositeOperation = 'source-over'; g.globalAlpha = alpha;
+    }
+    g.fillStyle = '#2b2823'; rrect(g, ex - 2, ey - 3.5, 15, 7, 2); g.fill();
+    g.fillStyle = lit ? '#ffb04a' : c.acc; rrect(g, ex, ey - 2.5, 11, 5, 2); g.fill();
+    g.fillStyle = '#14110f'; g.fillRect(ex - 3, ey - 2, 3, 4);
+  }
+  // arrow-shaped hull
+  const hh = W / 2 - tw + 3, pts = [[L / 2, 0], [L / 2 - 26, -hh], [-L / 2, -hh], [-L / 2 + 14, 0], [-L / 2, hh], [L / 2 - 26, hh]];
+  const path = (inset) => { g.beginPath(); pts.forEach(([x, y], i) => { const ix = x - Math.sign(x) * inset * 0.6, iy = y - Math.sign(y) * inset; i ? g.lineTo(ix, iy) : g.moveTo(ix, iy); }); g.closePath(); };
+  g.lineJoin = 'round'; path(0); g.fillStyle = c.dk; g.fill(); path(2.5); g.fillStyle = c.body; g.fill();
+  g.globalAlpha = alpha * 0.8; g.fillStyle = c.hi; g.beginPath(); g.moveTo(L / 2 - 6, 0); g.lineTo(L / 2 - 24, -hh + 5); g.lineTo(L / 2 - 24, hh - 5); g.closePath(); g.fill(); g.globalAlpha = alpha; // front glacis
+  g.strokeStyle = c.acc; g.lineWidth = 3.2; g.lineCap = 'round'; g.lineJoin = 'miter'; // two arrow marks at the back
+  for (const x0 of [-L / 2 + 22, -L / 2 + 31]) { g.beginPath(); g.moveTo(x0 - 6, -8); g.lineTo(x0, 0); g.lineTo(x0 - 6, 8); g.stroke(); }
+  g.strokeStyle = 'rgba(0,0,0,.6)'; g.lineWidth = 1.4; g.lineJoin = 'round'; path(0); g.stroke();
+  // scorch marks, hit flash
+  g.fillStyle = 'rgba(20,10,8,.55)'; g.strokeStyle = 'rgba(255,170,90,.35)'; g.lineWidth = 0.8;
+  for (const q of e.scorch) { g.save(); g.translate(q.x, q.y); g.rotate(q.a); g.beginPath(); g.ellipse(0, 0, q.r * 1.3, q.r * 0.85, 0, 0, TAU); g.fill(); g.stroke(); g.restore(); }
+  const fl = e.flash > 0 ? Math.min(1, e.flash * 10) * 0.8 : 0;
+  if (fl) { g.globalAlpha = alpha * fl; g.fillStyle = '#fff'; path(0); g.fill(); g.globalAlpha = alpha; }
+  // turret with the single barrel
+  g.rotate(e.turret - e.angle - spin);
+  const rec = e.recoil * 4, gk = clamp(e.glow, 0, 1), len = s.barrel, bw = s.bW;
+  g.fillStyle = '#1f1d19'; g.fillRect(tr * 0.4 - rec - 1, -bw / 2 - 1, len - tr * 0.4 + 2, bw + 2);
+  g.fillStyle = c.dk; g.fillRect(tr * 0.4 - rec, -bw / 2, len - tr * 0.4, bw);
+  g.fillStyle = 'rgba(255,255,255,.16)'; g.fillRect(tr * 0.4 - rec, -bw / 2 + 1, len - tr * 0.4, 1.2);
+  g.fillStyle = c.acc; g.fillRect(len - rec - 8, -bw / 2 - 1, 3, bw + 2);
+  if (gk > 0) {
+    const x = len - rec + 2;
+    g.fillStyle = `rgba(40,12,6,${(0.65 * gk).toFixed(2)})`; g.beginPath(); g.arc(x, 0, 5 + 3 * gk, 0, TAU); g.fill();
+    if (fxScale === 1) { g.globalCompositeOperation = 'lighter'; const gs = 20 + 38 * gk; g.globalAlpha = alpha * (0.35 + 0.65 * gk); g.drawImage(SPR.fire, x - gs / 2, -gs / 2, gs, gs); g.globalCompositeOperation = 'source-over'; }
+    g.globalAlpha = alpha * (0.5 + 0.5 * gk); g.fillStyle = gk < 1 ? '#f0782a' : '#fff4d0'; g.beginPath(); g.arc(x, 0, 3.5 + 2.5 * gk, 0, TAU); g.fill(); g.globalAlpha = alpha;
+  }
+  g.fillStyle = c.dk; g.beginPath(); g.arc(0, 0, tr + 1.5, 0, TAU); g.fill();
+  g.fillStyle = c.body; g.beginPath(); g.arc(0, 0, tr, 0, TAU); g.fill();
+  g.globalAlpha = alpha * 0.5; g.fillStyle = c.hi; g.beginPath(); g.ellipse(-2, -3, tr * 0.65, tr * 0.4, 0, 0, TAU); g.fill(); g.globalAlpha = alpha;
+  g.strokeStyle = c.acc; g.lineWidth = 2; g.beginPath(); g.arc(0, 0, tr * 0.5, 0, TAU); g.stroke();
+  if (fl) { g.globalAlpha = alpha * fl; g.fillStyle = '#fff'; g.beginPath(); g.arc(0, 0, tr, 0, TAU); g.fill(); }
+  g.restore();
+  // whirlwind: coming down in the intro, a faint swirl in the storm phase, dying down with the boss
+  if (g === ctx) {
+    if (intro) { const t = G.phaseT, k = t < 1.35 ? Math.min(1, t / 0.6) : Math.max(0, 1 - (t - 1.35) / 0.9); sariWhirl(g, e.x, e.y + 14, k, t, 60 + 240 * Math.min(1, t / 0.8), 70); }
+    else if (e.dying) sariWhirl(g, e.x, e.y + 14, Math.max(0, 1 - e.deathT / 2.3), G.time, 120, 64);
+    else if (e.phase >= 2) sariWhirl(g, e.x, e.y + 14, 0.5, G.time, 50, 38);
+  }
+}
+const SARI_ARROW = [[60, 0], [8, -40], [8, -17], [-60, -17], [-60, 17], [8, 17], [8, 40]]; // big wind arrow, pointing along +x
+function drawSariGround(e, g) {
+  const S = e.sari; if (!S) return;
+  for (const q of S.sand) { // sand strips
+    const dx = q.x2 - q.x1, dy = q.y2 - q.y1, l = Math.hypot(dx, dy); if (l < 2) continue;
+    const a = q.t < 0 ? 1 : clamp((SARI_SAND_LIFE - q.t) / 0.8, 0, 1);
+    g.save(); g.translate(q.x1, q.y1); g.rotate(Math.atan2(dy, dx)); g.globalAlpha = a;
+    g.fillStyle = 'rgba(120,78,20,.38)'; rrect(g, 0, -q.w / 2, l, q.w, 10); g.fill();
+    g.strokeStyle = 'rgba(70,42,8,.55)'; g.lineWidth = 2; g.setLineDash([10, 8]); rrect(g, 0, -q.w / 2, l, q.w, 10); g.stroke(); g.setLineDash([]);
+    g.strokeStyle = 'rgba(245,215,130,.5)'; g.lineWidth = 2;
+    for (const yy of [-q.w * 0.25, 0, q.w * 0.25]) { g.beginPath(); for (let x = 4; x < l - 4; x += 8) g.lineTo(x, yy + Math.sin(x * 0.18 + yy) * 3); g.stroke(); }
+    g.restore();
+  }
+  const W = S.wind; if (W.st === 'idle') return;
+  const m = G.map, warn = W.st === 'warn', k = warn ? W.t / SARI_WIND_WARN : 1 - clamp((W.t - SARI_WIND_BLOW + 0.8) / 0.8, 0, 1);
+  const al = warn ? 0.2 + 0.35 * k + 0.2 * Math.abs(Math.sin(G.time * 12)) : 0.2 * k, sp = 270, drift = warn ? 0 : (G.time * 220) % sp;
+  g.save(); g.fillStyle = `rgba(240,138,44,${al.toFixed(3)})`; g.strokeStyle = `rgba(90,40,6,${(al * 1.3).toFixed(3)})`; g.lineWidth = 3; g.lineJoin = 'round';
+  const ca = Math.cos(W.a), sa = Math.sin(W.a);
+  for (let u = -1; u < 5; u++) for (let v = 0; v < 4; v++) {
+    const bx = (v + 0.5) * sp * 0.95 + (u % 2 ? sp * 0.3 : 0), by = (u + 0.5) * sp * 0.95;
+    if (!(m.w >= 0)) continue;
+    const x = ((bx + ca * drift) % (m.w + 100) + m.w + 100) % (m.w + 100) - 50, y = ((by + sa * drift) % (m.h + 100) + m.h + 100) % (m.h + 100) - 50;
+    g.save(); g.translate(x, y); g.rotate(W.a); g.beginPath(); SARI_ARROW.forEach(([px, py], i) => i ? g.lineTo(px, py) : g.moveTo(px, py)); g.closePath(); g.fill(); g.stroke(); g.restore();
+  }
+  g.restore(); g.globalAlpha = 1;
 }
 function drawStrikes() {
   if (!G.strikes.length) return;
