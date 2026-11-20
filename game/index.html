@@ -289,6 +289,64 @@ button:focus-visible{outline:2px solid var(--bone);outline-offset:2px}
 #btnNuke .nk-key{position:absolute;top:-6px;right:-6px;min-width:15px;height:15px;padding:0 3px;border-radius:3px;background:var(--bone);color:var(--on-signal);font-size:11px;font-weight:800;line-height:15px;text-align:center}
 @keyframes nkPulse{50%{box-shadow:0 0 0 2px rgba(21,24,15,.75),0 0 22px 7px rgba(242,193,78,.8)}}
 @media (prefers-reduced-motion:reduce){#btnNuke.ready{animation:none}}
+
+/* Serbest Mod: setup screen, end screen, HUD tag */
+#sbxTag,#hud.sbx #bossName::after{padding:1px 5px;border-radius:2px;background:var(--signal);color:var(--on-signal);font-family:var(--display);font-weight:800;font-size:10px;letter-spacing:.08em;line-height:1.3;white-space:nowrap}
+#sbxTag{display:none;margin-top:3px;width:fit-content}
+#hud.sbx #sbxTag{display:block}
+#hud.sbx #bossName::after{content:"SERBEST";margin-left:6px;vertical-align:2px}
+@media (max-width:520px),(max-height:520px){#hud.sbx .wave{flex-wrap:nowrap}#sbxTag{margin:0}}
+#sbxPanel{gap:10px;padding:14px 14px 14px;overflow:hidden;display:flex;flex-direction:column}
+#sbxPanel .title.sm{font-size:34px;line-height:.9}
+.sbx-l,.sbx-r{display:flex;flex-direction:column;gap:10px;min-height:0}
+.sbx-l{flex:none}
+.sbx-r{flex:1 1 auto}
+.sbx-sec{display:flex;flex-direction:column;gap:6px;min-height:0}
+.sbx-sec .field-lbl{font-size:14px;letter-spacing:.06em;text-transform:uppercase}
+.sbx-power{flex:1 1 auto}
+.sbx-tanks{display:grid;grid-template-columns:repeat(5,1fr);gap:4px}
+.sbx-tank{display:flex;flex-direction:column;align-items:center;gap:1px;padding:3px 1px 4px;border:1px solid var(--line);border-radius:3px;background:rgba(0,0,0,.2);color:var(--bone-2);font-size:11px;font-weight:600;line-height:1.05;text-align:center;min-width:0}
+.sbx-tank canvas{width:44px;height:44px}
+.sbx-tank span{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sbx-tank[aria-pressed="true"]{border-color:var(--signal);background:rgba(242,193,78,.14);color:var(--bone)}
+.sbx-chips{display:flex;flex-wrap:wrap;gap:4px}
+.sbx-chips button{padding:7px 10px 6px;border:1px solid var(--line);border-radius:3px;background:rgba(0,0,0,.2);font-size:16px;font-weight:600;line-height:1.1;color:var(--bone-2)}
+.sbx-chips button[aria-pressed="true"]{background:var(--bone);color:var(--on-signal);border-color:var(--bone)}
+.sbx-wave{display:flex;align-items:center;gap:8px;font-size:16px;font-weight:600;color:var(--bone-2)}
+.sbx-wave span{flex:1}
+.sbx-wave output{min-width:34px;text-align:center;font-family:var(--display);font-weight:800;font-size:26px;color:var(--bone);font-variant-numeric:tabular-nums}
+.sbx-step{width:44px;height:36px;border:1px solid var(--line);border-radius:3px;background:rgba(239,231,210,.08);font-size:24px;font-weight:700;line-height:1;touch-action:manipulation}
+.sbx-step:active{background:rgba(239,231,210,.2)}
+.sbx-note{font-size:15px;color:var(--bone-2);line-height:1.25}
+#sbxMaps button,#sbxPresets button{padding:8px 4px 7px;font-size:16px}
+.sbx-cards{flex:1 1 120px;min-height:96px;overflow-y:auto;overscroll-behavior:contain;touch-action:pan-y;display:grid;grid-template-columns:1fr 1fr;gap:4px;align-content:start}
+.sbx-card{display:grid;grid-template-columns:20px 1fr;grid-template-areas:"i n" "i p";column-gap:6px;align-items:center;padding:5px 6px;border:1px solid var(--line);border-radius:3px;background:rgba(0,0,0,.2);text-align:left;min-width:0}
+.sbx-card svg{grid-area:i;width:20px;height:20px;color:var(--bone-2)}
+.sbx-card .nm{grid-area:n;font-size:13px;font-weight:600;line-height:1.1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--bone-2)}
+.sbx-card .pips{grid-area:p;display:flex;gap:2px;margin-top:2px}
+.sbx-card .pips i{flex:1;max-width:14px;height:5px;border-radius:1px;background:rgba(239,231,210,.18)}
+.sbx-card .pips i.on{background:var(--signal)}
+.sbx-card.on{border-color:rgba(242,193,78,.5);background:rgba(242,193,78,.08)}
+.sbx-card.on .nm,.sbx-card.on svg{color:var(--bone)}
+.sbx-card.rare svg{color:var(--signal)}
+#sbxPanel .btn.primary{font-size:28px;padding:10px 16px 8px}
+#sbxPanel .btn.ghost{padding:9px 16px;font-size:17px}
+#sbxPanel .actions{flex-direction:row-reverse}
+#sbxPanel .actions .primary{flex:2}#sbxPanel .actions .ghost{flex:1}
+@media (min-aspect-ratio:1/1){
+  #sbxPanel{width:min(780px,100%);display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:stretch;padding:12px 14px}
+  #sbxPanel .title.sm{font-size:30px}
+  .sbx-tank canvas{width:38px;height:38px}
+  .sbx-tank{padding:2px 1px 3px}
+  .sbx-l{gap:7px}.sbx-r{gap:8px}
+}
+@media (max-height:420px){
+  .sbx-tank canvas{width:34px;height:34px}.sbx-tank{font-size:10px}
+  .sbx-chips button{padding:5px 8px 4px;font-size:15px}.sbx-step{height:30px}
+  #sbxMaps button,#sbxPresets button{padding:6px 4px 5px;font-size:15px}
+  #sbxPanel .btn.primary{font-size:24px;padding:7px 16px 5px}#sbxPanel .btn.ghost{padding:7px 16px}
+}
+@media (max-width:380px){.sbx-chips button{padding:6px 8px 5px;font-size:15px}}
 </style>
 </head>
 <body>
@@ -306,6 +364,7 @@ button:focus-visible{outline:2px solid var(--bone);outline-offset:2px}
       <div class="chip wave">
         <div class="wave-t" id="waveT">DALGA 1</div>
         <div class="wave-s" id="waveS">Hazırlan</div>
+        <span id="sbxTag" aria-hidden="true">SERBEST</span>
       </div>
     <div class="bosshp hidden" id="bossBar"><div class="bh-top"><span id="bossName">Komutan</span><b id="bossPct">100%</b></div><div class="bh-bar"><i id="bossLost"></i><i id="bossFill"></i><span id="bossMarks"></span></div></div>
       <div class="buffs" id="buffs"></div>
@@ -335,6 +394,7 @@ button:focus-visible{outline:2px solid var(--bone);outline-offset:2px}
     <p class="tag">Dalga dalga gelen düşman tanklarına karşı ayakta kal, her dalgadan sonra tankını yükselt.</p>
     <div class="actions">
       <button type="button" class="btn primary" id="btnStart">OYNA</button>
+      <button type="button" class="btn ghost" id="btnSandbox">Serbest Mod</button>
       <button type="button" class="btn ghost hidden" id="btnContinue">Kaldığın yerden devam et</button>
       <div class="row2">
         <button type="button" class="btn ghost" id="btnSettings">Ayarlar</button>
@@ -347,6 +407,31 @@ button:focus-visible{outline:2px solid var(--bone);outline-offset:2px}
       <div><dt>Toplam imha</dt><dd id="recKills">0</dd></div>
       <div><dt>Oynanan oyun</dt><dd id="recGames">0</dd></div>
     </dl>
+  </section>
+</div>
+
+<div id="sbx" class="screen hidden">
+  <section class="panel" id="sbxPanel" aria-label="Serbest Mod kurulumu">
+    <div class="sbx-l">
+      <h2 class="title sm">SERBEST MOD</h2>
+      <div class="sbx-sec"><span class="field-lbl">Tank</span><div class="sbx-tanks" id="sbxTanks"></div></div>
+      <div class="sbx-sec"><span class="field-lbl">Hedef</span><div class="sbx-chips" id="sbxTargets"></div>
+        <div class="sbx-wave" id="sbxWaveRow"><span>Dalga</span><button type="button" class="sbx-step" id="sbxMinus" aria-label="Dalgayı azalt">−</button><output id="sbxWaveN">8</output><button type="button" class="sbx-step" id="sbxPlus" aria-label="Dalgayı artır">+</button></div>
+        <p class="sbx-note hidden" id="sbxNote"></p>
+        <div class="seg" id="sbxMaps" role="group" aria-label="Harita"></div></div>
+    </div>
+    <div class="sbx-r">
+      <div class="sbx-sec sbx-power"><span class="field-lbl">Güç</span><div class="seg" id="sbxPresets" role="group" aria-label="Güç ayarı"></div><div class="sbx-cards" id="sbxCards"></div></div>
+      <div class="actions"><button type="button" class="btn primary" id="btnSbxGo">BAŞLA</button><button type="button" class="btn ghost" id="btnSbxBack">Geri</button></div>
+    </div>
+  </section>
+</div>
+
+<div id="sbxEnd" class="screen hidden">
+  <section class="panel" id="sbxEndPanel">
+    <h2 class="title sm" id="sbxEndTitle">TANKIN İMHA EDİLDİ</h2>
+    <p class="sbx-note" id="sbxEndSub"></p>
+    <div class="actions"><button type="button" class="btn primary" id="btnSbxAgain">TEKRAR</button><button type="button" class="btn ghost" id="btnSbxSetup">Kurulum</button></div>
   </section>
 </div>
 
@@ -436,6 +521,7 @@ button:focus-visible{outline:2px solid var(--bone);outline-offset:2px}
         <button type="button" class="btn ghost" id="btnPauseSettings">Ayarlar</button>
         <button type="button" class="btn ghost" id="btnPauseGuide">Rehber</button>
       </div>
+      <button type="button" class="btn ghost hidden" id="btnPauseSbx">Kurulum</button>
       <button type="button" class="btn ghost" id="btnRestart">Yeniden başla</button>
       <button type="button" class="btn ghost" id="btnQuit">Ana menüye dön</button>
     </div>
@@ -492,7 +578,7 @@ const seedOf = (c, r, s) => (Math.imul(c + 7, 73856093) ^ Math.imul(r + 13, 1934
 const fmt = n => Math.round(n).toLocaleString('tr-TR');
 const store = {
   get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
-  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* storage unavailable */ } }
+  set(k, v) { if (G.sandbox && k !== 'tankArena.settings') return; /* Serbest Mod writes nothing but settings (records, seen-hints) */ try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* storage unavailable */ } }
 };
 const vibrate = p => { if (!SET.vibration) return; try { if (navigator.vibrate) navigator.vibrate(p); } catch (e) { /* ignore */ } };
 function rrectPath(g, x, y, w, h, r) { r = Math.min(r, w / 2, h / 2); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); }
@@ -967,7 +1053,7 @@ const G = {
   buffs: freshBuffs(), buffMax: freshBuffs(), bushHint: false, beaten: new Set(), resume: null, overFree: null,
   D: RULES, dodges: 0, covers: 0,
   up: {}, strikes: [], jet: null, airQ: 0, stage: null, tele: [], pieces: [], introGate: false, introSeen: false,
-  tank: 'std', upMode: 'cards', evoWait: 0, noEvo: false
+  tank: 'std', upMode: 'cards', evoWait: 0, noEvo: false, sandbox: false, sbx: null, sbxWin: false
 };
 const upL = k => G.up[k] | 0;
 const bountyPts = () => Math.round(250 * Math.max(1, G.wave) * G.D.score);
@@ -1002,7 +1088,7 @@ function resize() {
   readSafe(); sizeMini(); measureHud();
   if (G.map && Math.abs(layerRes(G.map) - G.map.res) / G.map.res > 0.2) buildLayer(G.map);
   if (G.state === 'menu' && G.map && G.player) { cam.x = G.map.w / 2; cam.y = G.map.h / 2; clampCam(); computeView(); placeMenuTank(); }
-  if (G.state === 'over') G.overFree = freeArea(el.overPanel);
+  if (G.state === 'over') G.overFree = freeArea(G.sandbox ? $('sbxEndPanel') : el.overPanel);
 }
 function clampCam() {
   const m = G.map; if (!m) return;
@@ -3965,7 +4051,7 @@ window.addEventListener('keydown', e => {
     const n = { Digit1: 0, Digit2: 1, Digit3: 2, Numpad1: 0, Numpad2: 1, Numpad3: 2 }[e.code];
     if (n !== undefined) { e.preventDefault(); if (!e.repeat && upChoices[n]) chooseUpgrade(upChoices[n]); return; }
   }
-  if ((e.code === 'Enter' || e.code === 'NumpadEnter') && !e.repeat && !focusBtn && !subOpen() && (G.state === 'menu' || G.state === 'over')) { e.preventDefault(); startGame(null); return; }
+  if ((e.code === 'Enter' || e.code === 'NumpadEnter') && !e.repeat && !focusBtn && !subOpen() && (G.state === 'menu' || G.state === 'over')) { e.preventDefault(); if (G.sandbox) sandboxRun(); else startGame(null); return; }
   const k = KEYS[e.code];
   if (!k) return;
   if (G.state === 'play') { e.preventDefault(); if (focusBtn) document.activeElement.blur(); }
@@ -4110,9 +4196,10 @@ function hideBanner() { bannerT = 0; el.banner.classList.remove('show'); }
 function showHint(t, dur) { el.hint.textContent = t; el.hint.classList.add('show'); hintT = dur || 4; }
 
 /* ================= game flow ================= */
-function startGame(resume) {
+function startGame(resume, sbx) { // sbx: Serbest Mod setup {tank, ups, boss, wave, theme} (13a)
   Sound.init(); Sound.resume();
-  for (const x of [el.menu, el.over, el.pause, el.upgrade, $('settings'), $('guide')]) x.classList.add('hidden');
+  for (const x of [el.menu, el.over, el.pause, el.upgrade, $('settings'), $('guide'), $('sbx'), $('sbxEnd')]) x.classList.add('hidden');
+  G.sandbox = !!sbx; G.sbx = sbx || null; G.sbxWin = false; G.noEvo = !!sbx; el.hud.classList.toggle('sbx', !!sbx);
   el.hud.classList.remove('hidden');
   hideBanner();
   G.state = 'play'; G.timeScale = 1; G.hurt = 0; G.boss = null;
@@ -4128,22 +4215,24 @@ function startGame(resume) {
     if (typeof resume.tank === 'string' && Object.prototype.hasOwnProperty.call(TANKS, resume.tank)) G.tank = resume.tank;
     else if (!resume.tank && resume.ups && typeof resume.ups === 'object' && LEGACY_UPS.some(k => (resume.ups[k] | 0) > 0)) G.tank = 'ikiz';
   }
+  if (sbx) { G.up = Object.assign({}, sbx.ups); G.tank = sbx.tank; }
   G.player = makeTank('player', 0, 0);
   refreshPlayer(); G.player.hp = G.player.maxHp;
+  if (sbx) G.wave = Math.max(0, sbx.wave - 1);
   if (resume) {
     G.wave = Math.max(0, (resume.wave | 0) - 1); G.score = resume.score | 0; G.kills = resume.kills | 0;
     G.shots = resume.shots | 0; G.hits = resume.hits | 0; G.player.hp = clamp(resume.hp | 0, 10, G.player.maxHp);
   }
   G.resume = null;
   releaseInput(); resetUI();
-  nextWave();
+  nextWave(sbx && sbx.boss ? BOSS_DEFS[sbx.boss] : null);
   sizeMini(); measureHud();
   if (G.wave === 1) showHint(input.touch ? 'Sol başparmakla sür, sağ başparmakla nişan al ve ateş et' : 'WASD ile sür, fareyle nişan al, tıklayarak ateş et', 5);
 }
 const prevBoss = w => { const bd = bossDefAt(w - 1); return bd && G.beaten.has(bd.id) ? bd.id : ''; }; // the boss of the wave before w, if it was a boss wave and is beaten
-function nextWave() {
+function nextWave(forceBd) { // forceBd: Serbest Mod starts a chosen boss stage
   G.wave++;
-  const w = G.wave, theme = themeFor(w), bd = bossDefAt(w); // theme: 10-wave regions; boss waves get a fixed arena (11a)
+  const w = G.wave, bd = forceBd || bossDefAt(w), theme = G.sandbox && G.sbx && !bd ? THEMES[G.sbx.theme] || themeFor(w) : themeFor(w); // theme: 10-wave regions; boss waves get a fixed arena (11a)
   G.map = bd ? loadArena(bd.arena, theme) : makeArena(generate(), theme);
   G.stage = null; G.tele = []; G.pieces = [];
   G.enemies = []; G.bullets = []; G.pickups = []; G.portals = []; G.texts = []; G.strikes = []; G.jet = null; parts.length = 0; tm.n = 0; tm.head = 0;
@@ -4154,13 +4243,14 @@ function nextWave() {
   G.phase = 'intro'; G.phaseT = 0; G.fade = 1;
   cam.x = p.x; cam.y = p.y; cam.shake = 0; clampCam(); computeView();
   if (bd) { startBossStage(bd); return; } // fade-in, siren, name title, boss breaks out of the gate
-  if (w > 1 && w % 10 === 1 && regionGone(prevBoss(w)).length) showBanner(theme.name.toLocaleUpperCase('tr-TR'), regionGone(prevBoss(w)).join(' ve ') + ' artık gelmiyor', 3); // first wave of a new region: who no longer comes
+  if (!G.sandbox && w > 1 && w % 10 === 1 && regionGone(prevBoss(w)).length) showBanner(theme.name.toLocaleUpperCase('tr-TR'), regionGone(prevBoss(w)).join(' ve ') + ' artık gelmiyor', 3); // first wave of a new region: who no longer comes
   else showBanner('DALGA ' + w, theme.name, 2.2);
   Sound.wave(false);
 }
 function waveCleared() {
   G.phase = 'cleared'; G.phaseT = 0;
-  if (G.wave % 5 === 0) { const bd = bossDefAt(G.wave); if (bd) G.beaten.add(bd.id); } // the region rule: this boss's enemy types stop coming (11)
+  if (G.sandbox && G.sbx.boss) { G.sbxWin = true; Sound.cleared(); return; } // Serbest Mod boss target: the end screen follows, no bonus or loot
+  if (G.sandbox) { /* no region rule state in Serbest Mod */ } else if (G.wave % 5 === 0) { const bd = bossDefAt(G.wave); if (bd) G.beaten.add(bd.id); } // the region rule: this boss's enemy types stop coming (11)
   const bonus = Math.round(100 * G.wave * G.D.score), p = G.player, heal = Math.min(Math.max(8, G.D.heal - Math.max(0, G.wave - 10)), p.maxHp - p.hp); // field repairs shrink after wave 10 (25 -> 8)
   G.score += bonus; p.hp += heal;
   G.bullets = G.bullets.filter(b => b.owner === 0);
@@ -4173,7 +4263,7 @@ function updatePhase(rdt) {
     case 'bossIntro': bossIntroTick(rdt); break;
     case 'intro': G.fade = clamp(1 - G.phaseT / 0.5, 0, 1); if (G.phaseT > 1.5) { G.phase = 'fight'; G.phaseT = 0; } break;
     case 'fight': if (!G.queue.length && !G.enemies.length && !G.portals.length) waveCleared(); break;
-    case 'cleared': if (G.phaseT > 2.2) showUpgrades(); break;
+    case 'cleared': if (G.sbxWin) { if (G.phaseT > 2.4) sandboxEnd(true); } else if (G.phaseT > 2.2) showUpgrades(); break;
     case 'upgrade': break; // waits for the player's card
     case 'out': G.fade = clamp(G.phaseT / 0.45, 0, 1); if (G.phaseT >= 0.5) nextWave(); break;
     case 'dying': if (G.phaseT > 1.7) gameOver(); break;
@@ -4297,6 +4387,7 @@ function upChipsHTML() {
 function renderUpList(wrap, list) { const h = upChipsHTML(); $(list).innerHTML = h; $(wrap).classList.toggle('hidden', !h); }
 
 function gameOver() {
+  if (G.sandbox) { sandboxEnd(false); return; } // Serbest Mod: no records
   G.state = 'over'; G.timeScale = 1; G.fade = 0;
   el.hud.classList.add('hidden'); el.upgrade.classList.add('hidden'); hideBanner(); el.hint.classList.remove('show');
   renderUpList('overUpsWrap', 'overUps');
@@ -4313,7 +4404,7 @@ function gameOver() {
   Sound.over();
 }
 /* ---- menu records, settings and guide screens ---- */
-const SUBS = ['settings', 'guide'];
+const SUBS = ['settings', 'guide', 'sbx'];
 const subOpen = () => SUBS.some(id => !$(id).classList.contains('hidden'));
 function openSub(id) {
   for (const x of [el.menu, el.pause]) x.classList.add('hidden');
@@ -4425,8 +4516,9 @@ function renderGuideSprites() {
   });
 }
 function toMenu() {
+  G.sandbox = false; G.sbx = null; G.sbxWin = false; G.noEvo = false;
   G.state = 'menu'; G.phase = 'intro'; G.timeScale = 1; G.fade = 0; G.boss = null; G.stage = null; G.tele = []; G.pieces = []; G.hurt = 0;
-  for (const x of [el.hud, el.over, el.pause, el.upgrade, $('settings'), $('guide')]) x.classList.add('hidden');
+  for (const x of [el.hud, el.over, el.pause, el.upgrade, $('settings'), $('guide'), $('sbx'), $('sbxEnd')]) x.classList.add('hidden');
   el.menu.classList.remove('hidden');
   hideBanner(); el.hint.classList.remove('show'); hintT = 0;
   G.enemies = []; G.bullets = []; G.pickups = []; G.portals = []; G.texts = []; G.queue = []; parts.length = 0; tm.n = 0; tm.head = 0;
@@ -4453,7 +4545,7 @@ function placeMenuTank() {
 }
 function pauseGame() {
   if (G.state !== 'play') return;
-  G.state = 'paused'; el.pause.classList.remove('hidden'); el.upgrade.classList.add('hidden'); releaseInput();
+  G.state = 'paused'; el.pause.classList.remove('hidden'); $('btnPauseSbx').classList.toggle('hidden', !G.sandbox); el.upgrade.classList.add('hidden'); releaseInput();
   renderUpList('pauseUpsWrap', 'pauseUps'); renderSynList('pauseSynWrap', 'pauseSyn');
 }
 function resumeGame() {
@@ -4476,11 +4568,120 @@ el.btnContinue.addEventListener('click', () => startGame(G.resume));
 el.btnAgain.addEventListener('click', () => startGame(null));
 el.btnMenu.addEventListener('click', toMenu);
 el.btnResume.addEventListener('click', blurAfter(resumeGame));
-el.btnRestart.addEventListener('click', () => startGame(null));
+el.btnRestart.addEventListener('click', () => { if (G.sandbox) sandboxRun(); else startGame(null); });
 el.btnQuit.addEventListener('click', toMenu);
 el.btnPause.addEventListener('click', blurAfter(() => { if (G.state === 'play') pauseGame(); else resumeGame(); }));
 el.btnSound.addEventListener('click', blurAfter(toggleSound));
 
+/* ================= Serbest Mod (sandbox): one setup screen, then a normal run with the chosen tank, cards and target ================= */
+// Nothing is saved in this mode: store.set (01) ignores everything but settings while G.sandbox is on; gameOver (13) skips the records.
+const SBX = { tank: 'std', ups: {}, boss: '', wave: 8, theme: 0 }; // boss '' = "Dalgalar"; theme = index into THEMES; the setup survives Tekrar and Kurulum
+const SBX_PRESETS = [['none', 'Yok'], ['mid', 'Orta'], ['full', 'Tam']];
+const SBX_THEME_NAMES = ['Çöl', 'Orman', 'Kar', 'Şehir']; // same order as THEMES
+// Yok: no cards. Orta: half of every ordinary card, no rare ones. Tam: every card at its top level.
+function sbxPreset(id) {
+  const o = {};
+  if (id !== 'none') for (const k of UP_KEYS) { const u = UPS[k], L = id === 'full' ? u.max : (u.rare ? 0 : Math.ceil(u.max / 2)); if (L > 0) o[k] = L; }
+  return o;
+}
+SBX.ups = sbxPreset('mid');
+const sbxSame = (a, b) => UP_KEYS.every(k => (a[k] | 0) === (b[k] | 0));
+const sbxBosses = () => Object.values(BOSS_DEFS).filter(d => d && d.id && d.name); // never hard-coded: a boss shows up when its def exists
+// the wave a boss target is run at (decides its strength): its own sandboxWave, else the middle one of its natural boss waves
+function sbxBossWave(def) {
+  if (def.sandboxWave) return def.sandboxWave;
+  const ws = []; for (let w = 5; w <= 40; w += 5) if (bossDefAt(w) === def) ws.push(w);
+  return ws.length ? ws[(ws.length - 1) >> 1] : 30;
+}
+const sbxBossName = d => d.name.split(' ').map(w => w.charAt(0) + w.slice(1).toLocaleLowerCase('tr')).join(' ');
+function sbxSprite(cv, id) {
+  const d = Math.min(window.devicePixelRatio || 1, 2), px = Math.round(56 * d), k = px / 64;
+  cv.width = cv.height = px;
+  const g = cv.getContext('2d');
+  g.setTransform(k * 0.95, 0, 0, k * 0.95, px / 2, px / 2 + 3 * k);
+  drawTank({ id: 0, type: 'player', spec: playerSpec(id, true), x: 0, y: 0, angle: -Math.PI / 2, turret: -Math.PI / 2, treadL: 0, treadR: 0, recoil: 0, flash: 0, heat: 0, overheatT: 0, evoT: 0 }, 1, g);
+}
+let sbxBuilt = false;
+function sbxBuild() {
+  if (!sbxBuilt) {
+    sbxBuilt = true;
+    $('sbxTanks').innerHTML = TANK_IDS.map(id => `<button type="button" class="sbx-tank" data-t="${id}"><canvas aria-hidden="true"></canvas><span>${TANKS[id].name}</span></button>`).join('');
+    $('sbxTanks').querySelectorAll('.sbx-tank').forEach(b => sbxSprite(b.querySelector('canvas'), b.dataset.t));
+    $('sbxPresets').innerHTML = SBX_PRESETS.map(([id, nm]) => `<button type="button" data-p="${id}">${nm}</button>`).join('');
+    $('sbxCards').innerHTML = UP_KEYS.map(k => {
+      const u = UPS[k];
+      return `<button type="button" class="sbx-card${u.rare ? ' rare' : ''}" data-k="${k}"><svg class="ico-svg" viewBox="0 0 24 24" aria-hidden="true">${u.svg}</svg><span class="nm">${u.name}</span><span class="pips">${Array.from({ length: u.max }, () => '<i></i>').join('')}</span></button>`;
+    }).join('');
+    $('sbxMaps').innerHTML = SBX_THEME_NAMES.map((nm, i) => `<button type="button" data-m="${i}">${nm}</button>`).join('');
+  }
+  const bs = sbxBosses();
+  if (SBX.boss && !bs.some(d => d.id === SBX.boss)) SBX.boss = '';
+  $('sbxTargets').innerHTML = [['', 'Dalgalar']].concat(bs.map(d => [d.id, sbxBossName(d)])).map(([id, nm]) => `<button type="button" data-b="${id}">${nm}</button>`).join('');
+  sbxSync();
+}
+function sbxSync() {
+  document.querySelectorAll('#sbxTanks .sbx-tank').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.t === SBX.tank)));
+  const cur = SBX_PRESETS.find(([id]) => sbxSame(SBX.ups, sbxPreset(id)));
+  document.querySelectorAll('#sbxPresets button').forEach(b => b.setAttribute('aria-pressed', String(!!cur && b.dataset.p === cur[0])));
+  document.querySelectorAll('#sbxCards .sbx-card').forEach(b => {
+    const k = b.dataset.k, L = SBX.ups[k] | 0;
+    b.classList.toggle('on', L > 0);
+    b.querySelectorAll('.pips i').forEach((p, i) => p.classList.toggle('on', i < L));
+    b.setAttribute('aria-label', `${UPS[k].name}, seviye ${L}/${UPS[k].max}`);
+  });
+  document.querySelectorAll('#sbxTargets button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.b === SBX.boss)));
+  document.querySelectorAll('#sbxMaps button').forEach(b => b.setAttribute('aria-pressed', String(+b.dataset.m === SBX.theme)));
+  const boss = !!SBX.boss, bd = boss ? BOSS_DEFS[SBX.boss] : null;
+  $('sbxWaveRow').classList.toggle('hidden', boss);
+  $('sbxMaps').classList.toggle('hidden', boss);
+  $('sbxNote').classList.toggle('hidden', !boss);
+  if (bd) $('sbxNote').textContent = `Kendi arenasında, dalga ${sbxBossWave(bd)} gücünde.`;
+  $('sbxWaveN').textContent = SBX.wave;
+}
+function openSandbox() { // from the main menu, the pause menu or the end screen
+  if (G.state !== 'menu') toMenu();
+  sbxBuild(); openSub('sbx');
+}
+function sandboxRun() {
+  const bd = SBX.boss ? BOSS_DEFS[SBX.boss] : null;
+  startGame(null, { tank: SBX.tank, ups: Object.assign({}, SBX.ups), boss: bd ? bd.id : '', wave: bd ? sbxBossWave(bd) : SBX.wave, theme: SBX.theme });
+}
+function sandboxEnd(win) {
+  G.state = 'over'; G.timeScale = 1; G.fade = 0;
+  el.hud.classList.add('hidden'); el.upgrade.classList.add('hidden'); hideBanner(); el.hint.classList.remove('show');
+  $('sbxEndTitle').textContent = win ? 'BOSS YENİLDİ' : 'TANKIN İMHA EDİLDİ';
+  const bd = G.sbx && G.sbx.boss ? BOSS_DEFS[G.sbx.boss] : null;
+  $('sbxEndSub').textContent = bd ? sbxBossName(bd) + ' · ' + TANKS[G.tank].name : `Dalga ${G.wave} · ${G.kills} tank imha · ${TANKS[G.tank].name}`;
+  $('sbxEnd').classList.remove('hidden');
+  G.overFree = freeArea($('sbxEndPanel'));
+  canvas.classList.remove('aim');
+  if (win) Sound.cleared(); else Sound.over();
+}
+function sbxStepper(btn, d) { // tap = one step, hold = repeat
+  let t = null, iv = null;
+  const step = () => { SBX.wave = clamp(SBX.wave + d, 1, 40); sbxSync(); };
+  const stop = () => { clearTimeout(t); clearInterval(iv); t = iv = null; };
+  btn.addEventListener('pointerdown', e => { if (e.button) return; step(); stop(); t = setTimeout(() => { iv = setInterval(step, 90); }, 420); });
+  for (const ev of ['pointerup', 'pointerleave', 'pointercancel']) btn.addEventListener(ev, stop);
+  btn.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); step(); } });
+}
+$('btnSandbox').addEventListener('click', openSandbox);
+$('btnSbxBack').addEventListener('click', closeSub);
+$('btnSbxGo').addEventListener('click', sandboxRun);
+$('btnSbxAgain').addEventListener('click', sandboxRun);
+$('btnSbxSetup').addEventListener('click', openSandbox);
+$('btnPauseSbx').addEventListener('click', openSandbox);
+sbxStepper($('sbxMinus'), -1); sbxStepper($('sbxPlus'), 1);
+$('sbxPanel').addEventListener('click', ev => {
+  const t = ev.target.closest('button'); if (!t) return;
+  if (t.dataset.t) SBX.tank = t.dataset.t;
+  else if (t.dataset.p) SBX.ups = sbxPreset(t.dataset.p);
+  else if (t.dataset.k) { const k = t.dataset.k, L = (SBX.ups[k] | 0) + 1; if (L > UPS[k].max) delete SBX.ups[k]; else SBX.ups[k] = L; }
+  else if (t.dataset.b !== undefined) SBX.boss = t.dataset.b;
+  else if (t.dataset.m !== undefined) SBX.theme = +t.dataset.m;
+  else return;
+  sbxSync();
+});
 /* ================= update ================= */
 function updateCamera(rdt) {
   const p = G.player, m = G.map;
@@ -5897,14 +6098,14 @@ window.tankBack = () => {
   if (subOpen()) { closeSub(); return 'handled'; }
   if (G.state === 'play') { pauseGame(); return 'handled'; }
   if (G.state === 'paused') { resumeGame(); return 'handled'; }
-  if (G.state === 'over') { toMenu(); return 'handled'; }
+  if (G.state === 'over') { if (G.sandbox) openSandbox(); else toMenu(); return 'handled'; }
   return 'exit';
 };
 
 const hot = window.claude && window.claude.hot;
 if (hot && typeof hot.snapshot === 'function') {
   try {
-    hot.snapshot(() => ({ run: (G.state === 'play' || G.state === 'paused') && G.player && G.player.alive
+    hot.snapshot(() => ({ run: (G.state === 'play' || G.state === 'paused') && !G.sandbox && G.player && G.player.alive
       ? { wave: G.wave, score: G.score, hp: Math.round(G.player.hp), kills: G.kills, shots: G.shots, hits: G.hits, ups: Object.assign({}, G.up), tank: G.tank,
         nuke: nukeSave(), beaten: [...G.beaten] } : null }));
   } catch (e) { /* ignore */ }

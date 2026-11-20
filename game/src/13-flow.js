@@ -1,7 +1,8 @@
 /* ================= game flow ================= */
-function startGame(resume) {
+function startGame(resume, sbx) { // sbx: Serbest Mod setup {tank, ups, boss, wave, theme} (13a)
   Sound.init(); Sound.resume();
-  for (const x of [el.menu, el.over, el.pause, el.upgrade, $('settings'), $('guide')]) x.classList.add('hidden');
+  for (const x of [el.menu, el.over, el.pause, el.upgrade, $('settings'), $('guide'), $('sbx'), $('sbxEnd')]) x.classList.add('hidden');
+  G.sandbox = !!sbx; G.sbx = sbx || null; G.sbxWin = false; G.noEvo = !!sbx; el.hud.classList.toggle('sbx', !!sbx);
   el.hud.classList.remove('hidden');
   hideBanner();
   G.state = 'play'; G.timeScale = 1; G.hurt = 0; G.boss = null;
@@ -17,22 +18,24 @@ function startGame(resume) {
     if (typeof resume.tank === 'string' && Object.prototype.hasOwnProperty.call(TANKS, resume.tank)) G.tank = resume.tank;
     else if (!resume.tank && resume.ups && typeof resume.ups === 'object' && LEGACY_UPS.some(k => (resume.ups[k] | 0) > 0)) G.tank = 'ikiz';
   }
+  if (sbx) { G.up = Object.assign({}, sbx.ups); G.tank = sbx.tank; }
   G.player = makeTank('player', 0, 0);
   refreshPlayer(); G.player.hp = G.player.maxHp;
+  if (sbx) G.wave = Math.max(0, sbx.wave - 1);
   if (resume) {
     G.wave = Math.max(0, (resume.wave | 0) - 1); G.score = resume.score | 0; G.kills = resume.kills | 0;
     G.shots = resume.shots | 0; G.hits = resume.hits | 0; G.player.hp = clamp(resume.hp | 0, 10, G.player.maxHp);
   }
   G.resume = null;
   releaseInput(); resetUI();
-  nextWave();
+  nextWave(sbx && sbx.boss ? BOSS_DEFS[sbx.boss] : null);
   sizeMini(); measureHud();
   if (G.wave === 1) showHint(input.touch ? 'Sol başparmakla sür, sağ başparmakla nişan al ve ateş et' : 'WASD ile sür, fareyle nişan al, tıklayarak ateş et', 5);
 }
 const prevBoss = w => { const bd = bossDefAt(w - 1); return bd && G.beaten.has(bd.id) ? bd.id : ''; }; // the boss of the wave before w, if it was a boss wave and is beaten
-function nextWave() {
+function nextWave(forceBd) { // forceBd: Serbest Mod starts a chosen boss stage
   G.wave++;
-  const w = G.wave, theme = themeFor(w), bd = bossDefAt(w); // theme: 10-wave regions; boss waves get a fixed arena (11a)
+  const w = G.wave, bd = forceBd || bossDefAt(w), theme = G.sandbox && G.sbx && !bd ? THEMES[G.sbx.theme] || themeFor(w) : themeFor(w); // theme: 10-wave regions; boss waves get a fixed arena (11a)
   G.map = bd ? loadArena(bd.arena, theme) : makeArena(generate(), theme);
   G.stage = null; G.tele = []; G.pieces = [];
   G.enemies = []; G.bullets = []; G.pickups = []; G.portals = []; G.texts = []; G.strikes = []; G.jet = null; parts.length = 0; tm.n = 0; tm.head = 0;
@@ -43,13 +46,14 @@ function nextWave() {
   G.phase = 'intro'; G.phaseT = 0; G.fade = 1;
   cam.x = p.x; cam.y = p.y; cam.shake = 0; clampCam(); computeView();
   if (bd) { startBossStage(bd); return; } // fade-in, siren, name title, boss breaks out of the gate
-  if (w > 1 && w % 10 === 1 && regionGone(prevBoss(w)).length) showBanner(theme.name.toLocaleUpperCase('tr-TR'), regionGone(prevBoss(w)).join(' ve ') + ' artık gelmiyor', 3); // first wave of a new region: who no longer comes
+  if (!G.sandbox && w > 1 && w % 10 === 1 && regionGone(prevBoss(w)).length) showBanner(theme.name.toLocaleUpperCase('tr-TR'), regionGone(prevBoss(w)).join(' ve ') + ' artık gelmiyor', 3); // first wave of a new region: who no longer comes
   else showBanner('DALGA ' + w, theme.name, 2.2);
   Sound.wave(false);
 }
 function waveCleared() {
   G.phase = 'cleared'; G.phaseT = 0;
-  if (G.wave % 5 === 0) { const bd = bossDefAt(G.wave); if (bd) G.beaten.add(bd.id); } // the region rule: this boss's enemy types stop coming (11)
+  if (G.sandbox && G.sbx.boss) { G.sbxWin = true; Sound.cleared(); return; } // Serbest Mod boss target: the end screen follows, no bonus or loot
+  if (G.sandbox) { /* no region rule state in Serbest Mod */ } else if (G.wave % 5 === 0) { const bd = bossDefAt(G.wave); if (bd) G.beaten.add(bd.id); } // the region rule: this boss's enemy types stop coming (11)
   const bonus = Math.round(100 * G.wave * G.D.score), p = G.player, heal = Math.min(Math.max(8, G.D.heal - Math.max(0, G.wave - 10)), p.maxHp - p.hp); // field repairs shrink after wave 10 (25 -> 8)
   G.score += bonus; p.hp += heal;
   G.bullets = G.bullets.filter(b => b.owner === 0);
@@ -62,7 +66,7 @@ function updatePhase(rdt) {
     case 'bossIntro': bossIntroTick(rdt); break;
     case 'intro': G.fade = clamp(1 - G.phaseT / 0.5, 0, 1); if (G.phaseT > 1.5) { G.phase = 'fight'; G.phaseT = 0; } break;
     case 'fight': if (!G.queue.length && !G.enemies.length && !G.portals.length) waveCleared(); break;
-    case 'cleared': if (G.phaseT > 2.2) showUpgrades(); break;
+    case 'cleared': if (G.sbxWin) { if (G.phaseT > 2.4) sandboxEnd(true); } else if (G.phaseT > 2.2) showUpgrades(); break;
     case 'upgrade': break; // waits for the player's card
     case 'out': G.fade = clamp(G.phaseT / 0.45, 0, 1); if (G.phaseT >= 0.5) nextWave(); break;
     case 'dying': if (G.phaseT > 1.7) gameOver(); break;
@@ -186,6 +190,7 @@ function upChipsHTML() {
 function renderUpList(wrap, list) { const h = upChipsHTML(); $(list).innerHTML = h; $(wrap).classList.toggle('hidden', !h); }
 
 function gameOver() {
+  if (G.sandbox) { sandboxEnd(false); return; } // Serbest Mod: no records
   G.state = 'over'; G.timeScale = 1; G.fade = 0;
   el.hud.classList.add('hidden'); el.upgrade.classList.add('hidden'); hideBanner(); el.hint.classList.remove('show');
   renderUpList('overUpsWrap', 'overUps');
@@ -202,7 +207,7 @@ function gameOver() {
   Sound.over();
 }
 /* ---- menu records, settings and guide screens ---- */
-const SUBS = ['settings', 'guide'];
+const SUBS = ['settings', 'guide', 'sbx'];
 const subOpen = () => SUBS.some(id => !$(id).classList.contains('hidden'));
 function openSub(id) {
   for (const x of [el.menu, el.pause]) x.classList.add('hidden');
@@ -314,8 +319,9 @@ function renderGuideSprites() {
   });
 }
 function toMenu() {
+  G.sandbox = false; G.sbx = null; G.sbxWin = false; G.noEvo = false;
   G.state = 'menu'; G.phase = 'intro'; G.timeScale = 1; G.fade = 0; G.boss = null; G.stage = null; G.tele = []; G.pieces = []; G.hurt = 0;
-  for (const x of [el.hud, el.over, el.pause, el.upgrade, $('settings'), $('guide')]) x.classList.add('hidden');
+  for (const x of [el.hud, el.over, el.pause, el.upgrade, $('settings'), $('guide'), $('sbx'), $('sbxEnd')]) x.classList.add('hidden');
   el.menu.classList.remove('hidden');
   hideBanner(); el.hint.classList.remove('show'); hintT = 0;
   G.enemies = []; G.bullets = []; G.pickups = []; G.portals = []; G.texts = []; G.queue = []; parts.length = 0; tm.n = 0; tm.head = 0;
@@ -342,7 +348,7 @@ function placeMenuTank() {
 }
 function pauseGame() {
   if (G.state !== 'play') return;
-  G.state = 'paused'; el.pause.classList.remove('hidden'); el.upgrade.classList.add('hidden'); releaseInput();
+  G.state = 'paused'; el.pause.classList.remove('hidden'); $('btnPauseSbx').classList.toggle('hidden', !G.sandbox); el.upgrade.classList.add('hidden'); releaseInput();
   renderUpList('pauseUpsWrap', 'pauseUps'); renderSynList('pauseSynWrap', 'pauseSyn');
 }
 function resumeGame() {
@@ -365,7 +371,7 @@ el.btnContinue.addEventListener('click', () => startGame(G.resume));
 el.btnAgain.addEventListener('click', () => startGame(null));
 el.btnMenu.addEventListener('click', toMenu);
 el.btnResume.addEventListener('click', blurAfter(resumeGame));
-el.btnRestart.addEventListener('click', () => startGame(null));
+el.btnRestart.addEventListener('click', () => { if (G.sandbox) sandboxRun(); else startGame(null); });
 el.btnQuit.addEventListener('click', toMenu);
 el.btnPause.addEventListener('click', blurAfter(() => { if (G.state === 'play') pauseGame(); else resumeGame(); }));
 el.btnSound.addEventListener('click', blurAfter(toggleSound));

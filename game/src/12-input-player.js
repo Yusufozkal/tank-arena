@@ -21,7 +21,7 @@ window.addEventListener('keydown', e => {
     const n = { Digit1: 0, Digit2: 1, Digit3: 2, Numpad1: 0, Numpad2: 1, Numpad3: 2 }[e.code];
     if (n !== undefined) { e.preventDefault(); if (!e.repeat && upChoices[n]) chooseUpgrade(upChoices[n]); return; }
   }
-  if ((e.code === 'Enter' || e.code === 'NumpadEnter') && !e.repeat && !focusBtn && !subOpen() && (G.state === 'menu' || G.state === 'over')) { e.preventDefault(); startGame(null); return; }
+  if ((e.code === 'Enter' || e.code === 'NumpadEnter') && !e.repeat && !focusBtn && !subOpen() && (G.state === 'menu' || G.state === 'over')) { e.preventDefault(); if (G.sandbox) sandboxRun(); else startGame(null); return; }
   const k = KEYS[e.code];
   if (!k) return;
   if (G.state === 'play') { e.preventDefault(); if (focusBtn) document.activeElement.blur(); }

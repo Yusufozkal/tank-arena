@@ -27,6 +27,7 @@
       <div class="chip wave">
         <div class="wave-t" id="waveT">DALGA 1</div>
         <div class="wave-s" id="waveS">Hazırlan</div>
+        <span id="sbxTag" aria-hidden="true">SERBEST</span>
       </div>
     <div class="bosshp hidden" id="bossBar"><div class="bh-top"><span id="bossName">Komutan</span><b id="bossPct">100%</b></div><div class="bh-bar"><i id="bossLost"></i><i id="bossFill"></i><span id="bossMarks"></span></div></div>
       <div class="buffs" id="buffs"></div>
@@ -56,6 +57,7 @@
     <p class="tag">Dalga dalga gelen düşman tanklarına karşı ayakta kal, her dalgadan sonra tankını yükselt.</p>
     <div class="actions">
       <button type="button" class="btn primary" id="btnStart">OYNA</button>
+      <button type="button" class="btn ghost" id="btnSandbox">Serbest Mod</button>
       <button type="button" class="btn ghost hidden" id="btnContinue">Kaldığın yerden devam et</button>
       <div class="row2">
         <button type="button" class="btn ghost" id="btnSettings">Ayarlar</button>
@@ -68,6 +70,31 @@
       <div><dt>Toplam imha</dt><dd id="recKills">0</dd></div>
       <div><dt>Oynanan oyun</dt><dd id="recGames">0</dd></div>
     </dl>
+  </section>
+</div>
+
+<div id="sbx" class="screen hidden">
+  <section class="panel" id="sbxPanel" aria-label="Serbest Mod kurulumu">
+    <div class="sbx-l">
+      <h2 class="title sm">SERBEST MOD</h2>
+      <div class="sbx-sec"><span class="field-lbl">Tank</span><div class="sbx-tanks" id="sbxTanks"></div></div>
+      <div class="sbx-sec"><span class="field-lbl">Hedef</span><div class="sbx-chips" id="sbxTargets"></div>
+        <div class="sbx-wave" id="sbxWaveRow"><span>Dalga</span><button type="button" class="sbx-step" id="sbxMinus" aria-label="Dalgayı azalt">−</button><output id="sbxWaveN">8</output><button type="button" class="sbx-step" id="sbxPlus" aria-label="Dalgayı artır">+</button></div>
+        <p class="sbx-note hidden" id="sbxNote"></p>
+        <div class="seg" id="sbxMaps" role="group" aria-label="Harita"></div></div>
+    </div>
+    <div class="sbx-r">
+      <div class="sbx-sec sbx-power"><span class="field-lbl">Güç</span><div class="seg" id="sbxPresets" role="group" aria-label="Güç ayarı"></div><div class="sbx-cards" id="sbxCards"></div></div>
+      <div class="actions"><button type="button" class="btn primary" id="btnSbxGo">BAŞLA</button><button type="button" class="btn ghost" id="btnSbxBack">Geri</button></div>
+    </div>
+  </section>
+</div>
+
+<div id="sbxEnd" class="screen hidden">
+  <section class="panel" id="sbxEndPanel">
+    <h2 class="title sm" id="sbxEndTitle">TANKIN İMHA EDİLDİ</h2>
+    <p class="sbx-note" id="sbxEndSub"></p>
+    <div class="actions"><button type="button" class="btn primary" id="btnSbxAgain">TEKRAR</button><button type="button" class="btn ghost" id="btnSbxSetup">Kurulum</button></div>
   </section>
 </div>
 
@@ -157,6 +184,7 @@
         <button type="button" class="btn ghost" id="btnPauseSettings">Ayarlar</button>
         <button type="button" class="btn ghost" id="btnPauseGuide">Rehber</button>
       </div>
+      <button type="button" class="btn ghost hidden" id="btnPauseSbx">Kurulum</button>
       <button type="button" class="btn ghost" id="btnRestart">Yeniden başla</button>
       <button type="button" class="btn ghost" id="btnQuit">Ana menüye dön</button>
     </div>
