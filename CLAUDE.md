@@ -21,7 +21,7 @@ Kullanıcının istekleri (19–20 Kasım 2026): işin çoğunu alt ajanlar yapa
 | Rol | Model | Okuduğu yer | Testler |
 |---|---|---|---|
 | Denge | Sonnet | `02-constants`, `11-enemies`, `04-platform` (`RULES`), `docs/BALANCE.md` | `balance_probe` + `balance_report`, `check_gameplay` |
-| Düşman ve boss | Sonnet | `11-enemies`, `09-combat-fx`, `02-constants`; çizim gerekirse `15-render-world` | `check_gameplay`, `stress` |
+| Düşman ve boss | Sonnet | `11-enemies`, `11a-boss-core`, boss modülleri (`11b`, `11c`…), `09-combat-fx`, `02-constants`; çizim `15a`/`15b`…; şartname `docs/BOSSES.md` | `check_boss`, `check_sari`, `check_parts`, `boss_probe`, `check_gameplay`, `stress` |
 | Tank, kart, birleşim, bomba | Sonnet | `03-data`, `07-paths-tanks`, `08-traits`, `10-nuke-bullets` | `check_tanks`, `check_tier2_*`, `check_syn`, `check_nuke` |
 | Çizim ve efekt | Sonnet | `15-render-world`, `16-render-ui`, `06-map`, `04-platform` (sprite) | `check_gameplay`, `check_crosshair`, ekran görüntüsü |
 | Telefon arayüzü ve menü | Sonnet | `style.css`, `shell.html`, `13-flow`, `14-update-hud`, `05-state` | `check_hud_mobile`, `check_hud_buttons` |
@@ -75,7 +75,11 @@ python3 tests/check_tanks.py                       # tank tablosu, evrim akış�
 python3 tests/check_tier2_d1.py                    # Üçlü, Çift Yön, Alev Topu, Şarapnel
 python3 tests/check_tier2_d2.py                    # Raylı Top, Obüs
 python3 tests/check_syn.py                         # altı kart birleşimi
-python3 tests/check_nuke.py                        # nükleer bomba: dolma, uyarı, Komutan -%25
+python3 tests/check_nuke.py                        # nükleer bomba: bütün harita, bosslara dalgaya göre hasar, %10 taban
+python3 tests/check_boss.py                        # boss etabı, arena, evreler, uyarılar, Komutan
+python3 tests/check_sari.py                        # Sarı Fırtına
+python3 tests/check_parts.py                       # parça hasarı: palet, namlu, motor; boss paletleri
+python3 tests/boss_probe.py                        # boss savaşı süresi ve kazanma oranı (bot)
 python3 tests/balance_probe.py survive random 40 20 && python3 tests/balance_report.py
 
 android/build.sh                                   # APK; ANDROID_HOME ve imza anahtarı gerekir
@@ -106,7 +110,7 @@ Ekran görüntüleri, test raporları ve ölçüm sonuçları `.tmp/` altına ya
 - Mobil öncelikli. Telefonda üst gösterge dikeyde ekranın en fazla ~%13'ünü, yatayda ~%18'ini kaplar (`check_hud_mobile.py`).
 - Güvenlik başlıkları ve CSP `tools/build_site.py` içinde. Yayındaki oyun sayfasında satır içi script yok: build, JS'i ayrı dosyaya çıkarır. `game/index.html` Google Fonts'a bağlanır; build bunu `site/fonts` ile, APK ise gömülü fontlarla değiştirir. Sitede dış CDN yok.
 - Canlı siteye yük testi yapma. Vercel Firewall IP başına 10 dakikada 300 istekten sonra 429 döner. Testler yerelde çalışır; canlı kontrol için `tools/live_check.py` (yaklaşık 40 istek) yeter.
-- `#debug` adresi oyunda `window.__tank` hata ayıklama API'sini açar (`19-debug.js`). Testler ve bot ona dayanır. Sıralama (1.5) gelmeden yayından kaldırılacak, bkz. ROADMAP.
+- `#debug` adresi oyunda `window.__tank` hata ayıklama API'sini açar (`19-debug.js`). Testler ve bot ona dayanır. Sıralama (1.6) gelmeden yayından kaldırılacak, bkz. ROADMAP.
 
 ## Oyun kodunda yön bulma
 
@@ -115,6 +119,7 @@ Ayrıntı `docs/MODULES.md`'de. Kısaca:
 - Veriler: `SPECS`, `PU`, `UPS`, `THEMES`, `firepower` (`02-constants`); `TANKS`, `SYN` (`03-data`); `RULES` (`04-platform`).
 - Akış: `startGame` → `nextWave` → `buildRoster(w)` + `waveMods(w)` (`11-enemies`) → `waveCleared` → `rollUpgrades` / `chooseUpgrade`, evrimde `chooseTank` (`13-flow`).
 - Döngü: `update(dt)` sabit 1/60 adım (`14-update-hud`), `render()` (`15-render-world`, `16-render-ui`).
+- Bosslar: `11a-boss-core` (boss etabı, arenalar, evreler, uyarılar, boss parça hasarı; `BOSS_DEFS`, `BOSS_ON`), boss başına modül (`11b` Komutan, `11c` Sarı Fırtına), çizim `15a`/`15b`. Normal düşman parça hasarı `11-enemies` (`partBreak`).
 - Bot `18-bot` (durum nesnesi `bot` `12-input-player`'da); `window.__tank` `19-debug`.
 
 ## Diğer

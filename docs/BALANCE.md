@@ -205,3 +205,49 @@ Tutmayan tek hedef en çok ölünen dalganın payı (%14, hedef %12); 20'şer oy
 - İlk gelişte bir kez "Yeni düşman: …" ipucu (cihazda saklanır).
 
 İlk denemede (sadece kademeli geliş, 8 düşman, büyük harita) oyun fazla kolaydı: 40'a ulaşma %20–25, ortalama 29. Dalga büyüklüğü ve geç dalga ateşi bunu geri getirdi.
+
+## 1.5 sonuçları (20 Kasım 2026)
+
+Boss etabı, yeni Komutan, Sarı Fırtına, parça hasarı ve bütün haritayı vuran nükleer bomba. Boss ölçümü `tests/boss_probe.py` (zayıf: kartsız, orta, güçlü kart setleri).
+
+### Normal dalgalar (tohum 100, 40 oyun, bütün tanklar, bomba açık)
+
+| | 1.4.1 | 1.5 |
+|---|---|---|
+| 10. dalgadan önce ölüm | %2,5 | %0 |
+| Ortalama bitiş dalgası | 24,1 | 26,8 |
+| 40'a ulaşma | %10 | %15 |
+| Dalga başına giden zırh (3'ten sonra) | %23,2 | %25,2 (4–9: %16,3, 10–19: %26,7, 20–29: %29,6, 30–40: %28,1) |
+| En çok ölünen dalga | %14 | 29. dalga, %15 |
+| Dalga başına bomba | — | 0,42 |
+
+Boss dalgalarında ölüm az: Komutan dalgalarında oynanan 331 savaşın 3'ü (%1).
+
+### Bosslar (bot, savaş başına)
+
+| Boss / dalga | Set | Kazanma | Ortalama süre |
+|---|---|---|---|
+| Komutan 5 | zayıf | 8/8 | 120 sn |
+| Komutan 5 | orta | 8/8 | 87 sn |
+| Komutan 15 | orta | 21/24 | 162–244 sn (iki ölçüm) |
+| Komutan 25 | orta | 8/8 | 206 sn |
+| Komutan 35 | orta | 7/8 | 214 sn |
+| Komutan 15/25/35 | zayıf | 0/8 | — |
+| Sarı Fırtına 10 | zayıf | 8/16 (%50) | 283 sn |
+| Sarı Fırtına 10 | orta | 16/16 | 190 sn |
+
+Sarı Fırtına'da iki hedef birlikte tutmadı: canı artırınca orta set uzuyor (560 canla 3,2–3,9 dk) ama kartsız kazanma %15–31'e düşüyor. İlk bölge boss'u öğretici olsun diye kartsız kazanma korundu.
+
+Ortalama bir oyunun 20. dalgaya gelmesi ~20 dk savaş (15 normal dalga ~8,6 dk + 4 boss ~11 dk) ve 2–3 dk atölye.
+
+### Değişen sabitler
+
+- Komutan canı `BOSS_HP_AT`: 5 → 200, 15 → 600, 25 → 920, 35 → 1190 (araları doğrusal, 35'ten sonra dalga başına +27).
+- Sarı Fırtına canı 510 + 25·(dalga − 10), saldırı arası çarpanı (`pace`) 1,5.
+- Parça hasarı (normal düşman): palet 1,5 sn, namlu 1,2 sn, motor 1,8 sn (şartname 2,5/2/3 sn ile 40'a ulaşma %30, ortalama 30'du); bağışıklık 1,5 sn; 20'den sonra onarım %30 hızlı. Boss: palet canı %8, durma 4 sn, namlu sessizliği 3 sn.
+- Nükleer bomba: bosslara min(0,3·can, 150 + 6·max(0, dalga − 15)), can en az %10, 3 sn sersem; `NUKE_WAVES` 2,5 → 3,5 (bütün haritayı vuran bomba normal dalgaları kolaylaştırdı; geç dalga can artışı yerine bu seçildi).
+
+### Açık
+
+- Tank dengesi raporunda `uclu` ve `rayli` baskın çıkıyor (bu sürümün işi değildi; ayrıca bakılacak).
+- Bot savaşta insandan iyi kaçıyor (tepki gecikmesi 0,5 sn, mermiyi görmeme %40 eklendi); gerçek oyuncuda bosslar daha zor gelebilir. Ayar `18-bot.js` içindeki `BOT_REACT`, `botBlind`.

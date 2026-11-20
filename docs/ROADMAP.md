@@ -1,6 +1,6 @@
 # Yol haritası
 
-Durum (20 Kasım 2026): **1.4.1 yayında.** Sıradaki iş seçilmedi: 1.5 (çevrimiçi) ya da bölgeler ve bosslar; öneri bossların önce gelmesi (ortak altyapı, Komutan'ın yeni hali, Sarı Fırtına, Çöl). Kullanıcı onaylamadan başlama.
+Durum (20 Kasım 2026): **1.5 yayında** (boss etabı, yeni Komutan, Sarı Fırtına, parça hasarı, yeni nükleer bomba). Sıradaki iş seçilmedi: Demirkök ve Orman bölgesi (bölge sırası) ya da 1.6 (çevrimiçi). Kullanıcı onaylamadan başlama.
 
 ## Kullanıcının koyduğu ilkeler
 
@@ -80,6 +80,16 @@ Düşman öldürdükçe dolan sayaç; dolunca düğme yanar, kısa bir uyarıdan
 - Denge yeniden ölçüldü: 10. dalgadan önce ölüm %35 → %2,5, ortalama bitiş 18 → 24, dalga başına giden zırh ~%23. Ayrıntı `docs/BALANCE.md`.
 - Aynı gün altyapı: oyun kaynağı `game/src/` modüllerine bölündü (`docs/MODULES.md`), testler kısa özet yazıyor.
 
+## 1.5 – Boss etabı, yeni Komutan, Sarı Fırtına, parça hasarı (yayında, 20 Kasım 2026)
+
+Bölge yapısının ilk adımı (kullanıcı onayı, 20 Kasım 2026). Şartname `docs/BOSSES.md`, ölçümler `docs/BALANCE.md`.
+
+- Boss dalgaları ayrı etap: sahada yalnızca boss; kendi arenası, giriş sahnesi, üç evre, ortak uyarı dili, hasar görünümü; boss ölünce zırh dolar. Harita teması 10 dalgalık bölgeler (Çöl, Orman, Kar, Şehir).
+- Komutan ana boss (Kışla arenası, komuta kulesi; 5, 15, 25, 35). 10. dalgada Sarı Fırtına (Kum Çukuru). 20, 30, 40'ta kendi bossları gelene kadar Komutan.
+- Parça hasarı: normal düşmanda palet 1,5 sn, namlu 1,2 sn, motor 1,8 sn (şartnamedeki 2,5/2/3 sn oyunu fazla kolaylaştırdı); bosslarda palet canı, 4 sn durma, uyarı sırasında bozunca saldırı iptali.
+- Nükleer bomba bütün haritayı vurur; bosslara canın en çok %30'u ya da 150 + 6·(dalga − 15) hasar (küçük olan), can en az %10'da kalır, 3 sn sersem; boss hasar almazken harcanmaz. Dolma süresi 2,5 → 3,5 dalga.
+- Kalan bölge işleri: Demirkök + Orman, Kırağı + Kar, Son Hisar + Şehir + ikinci tur; bölgelere düşman dağılımı ve yeni düşman türleri.
+
 ## Bölgeler ve görkemli bosslar (taslak, 20 Kasım 2026)
 
 Kullanıcının istekleri (20 Kasım 2026):
@@ -107,11 +117,13 @@ Kullanıcının istekleri (20 Kasım 2026):
 - **Görkem:** giriş sahnesi (ekran sarsıntısı, siren, isim başlığı, duvarı yıkarak giriş, müzik değişimi), normal tankın 2–3 katı boyut, ayrı vurulabilen taretler, can eşiklerinde evreler (zırh düşer, duman, yeni saldırılar, son evrede öfke), birkaç saldırı sırayla, harita kullanımı (duvar yıkma, mayın, çelik bloklar; takviye tank yok), ölüm sahnesi (büyük patlama, kısa ağır çekim, ganimet). Komutan da bu seviyeye çıkar.
 - **Görkemi kısmadan üç şart:** her saldırı önceden uyarır (Komutan'ın namlu parlaması gibi); boyut ve kamera telefon ekranına (390 px genişlik) göre ayarlanır; bot yeni saldırılardan kaçmayı ve taretleri vurmayı öğrenir, çünkü denge ölçümü bota dayanır.
 - **Hades'ten alınmayacaklar:** Ceza Paktı (zorluk seçenekleri), silah çeşitleri, hikâye diyalogları.
-- **Hades'e karşılık gelenler zaten var:** atölye kartları (lütuflar), birleşimler (ikili lütuflar), 1.5'teki Garaj (Gece Aynası).
+- **Hades'e karşılık gelenler zaten var:** atölye kartları (lütuflar), birleşimler (ikili lütuflar), 1.6'daki Garaj (Gece Aynası).
 - **Yeni düşman türleri:** bölgelere yetecek çeşit için 4–6 yeni tür ("Yeni düşmanlar" listesinden).
-- **Sıra önerisi:** bölgeler ve bosslar sıralamadan (1.5) önce gelsin; sıralama açıldıktan sonra büyük denge değişikliği eski rekorları kıyaslanamaz yapar. İki sürüme bölünebilir: önce bölge yapısı ve ilk iki bölge, sonra son iki bölge.
+- **Sıra önerisi:** bölgeler ve bosslar sıralamadan (1.6) önce gelsin; sıralama açıldıktan sonra büyük denge değişikliği eski rekorları kıyaslanamaz yapar. İki sürüme bölünebilir: önce bölge yapısı ve ilk iki bölge, sonra son iki bölge.
 
-## 1.5 – Hesap, sıralama, para (çevrimiçi)
+## 1.6 – Hesap, sıralama, para (çevrimiçi)
+
+(Bosslar 1.5 olarak çıktığı için çevrimiçi sürüm 1.6'ya, co-op 1.7'ye kaydı.)
 
 - **Giriş:** Google hesabıyla (hesabı Google doğrulamış olur). Google, uygulama içi WebView'da girişi engeller (`disallowed_useragent`); APK'da giriş Chrome Custom Tab'da açılıp derin bağlantıyla oyuna döner. E-posta doğrulaması alan adı + e-posta servisi ister, şimdilik yok.
 - Sıralamada oyuncunun seçtiği takma ad görünür (filtrelenir, benzersiz).
@@ -122,7 +134,7 @@ Kullanıcının istekleri (20 Kasım 2026):
 - KVKK için kısa aydınlatma metni ve hesap silme düğmesi.
 - Hesap zorunlu olunca oyun (APK dahil) internetsiz açılmaz.
 
-## 1.6 – Co-op
+## 1.7 – Co-op
 
 - 2 kişi, oda koduyla. Düşman sayısı ve canı iki kişiye göre artar; ölen oyuncu dalga sonunda geri gelir.
 - Sıralamaya girmez, para kazandırır.
@@ -143,7 +155,9 @@ Oyun başında tank seçimi (yerine evrim), aktif yetenek, elit düşmanlar, zor
 
 ## Bekleyen küçük işler
 
-- Yayın sürümünden hata ayıklama modunu kaldırmak (1.5'ten önce şart).
+- Yayın sürümünden hata ayıklama modunu kaldırmak (1.6'dan önce şart).
+- Kısa telefonlarda yatay ekranda üst gösterge 740×360'ta %19,4 (hedef ~%18; 844×390'da %17,9 geçiyor). 1.4'ten beri böyle.
+- Tank dengesi: 1.5 ölçümünde Üçlü ve Raylı Top baskın çıkıyor (`docs/BALANCE.md`).
 - `/.well-known/security.txt` eklemek (kullanıcı "şimdilik dursun" dedi).
 - Alan adı alınmadı; kullanıcı "almak istersek ayarlarız" dedi.
 - Claude Code'a (bulut) taşımanın eksikleri, kullanıcı "şimdilik dursun" dedi: bulut ortamına kurulum betiği (Android SDK, Playwright) ve izinli alan adları (`dl.google.com`, canlı site); `build.sh` imza anahtarını ortam değişkeninden de okusun; tanıtım PDF'inin kaynağı repoya alınsın; panel işleri (Vercel Firewall) bulut oturumundan yapılamaz.

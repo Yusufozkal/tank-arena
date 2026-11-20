@@ -253,6 +253,14 @@ SSS...SSS...SSS...SSS
 - Evre 4 "Son direniş" (%30–0): meydanda durur, çekirdek açılır (2 kat hasar); döner ateş + her 8 sn şok dalgası ve havan; saldırılar %25 hızlı.
 - Ölüm: uzun zincirleme patlama, ağır çekim, "SON HİSAR DÜŞTÜ", ardından "İKİNCİ TUR" ve Çöl'e dönüş.
 
+## 1.5'te uygulanırken değişenler
+
+- Normal düşman parça hasarı süreleri 1,5 / 1,2 / 1,8 sn (palet / namlu / motor); şartnamedeki 2,5 / 2 / 3 sn oyunu fazla kolaylaştırdı.
+- Sarı Fırtına'ya parça hasarı için bir namlu tanımlandı (`barrels`); kırılabilir parçası yine yok. Saldırı arası çarpanı 1,5.
+- Nükleer bomba bosslara min(0,3·can, 150 + 6·max(0, dalga − 15)) hasar verir (sabit 150 ilk Komutan'ın canının %75'i ediyordu). Boss hasar almazken (giriş, evre geçişi, ölüm) bomba harcanmaz; geri sayımdayken boss hasar almaz hale gelirse hasar sonradan uygulanır.
+- 20, 30, 40. dalgalarda kendi bossları yapılana kadar Komutan gelir.
+- Canlar ve ölçümler `docs/BALANCE.md`, "1.5 sonuçları".
+
 ## 8. Bot ve ölçüm
 - Her uyarı işareti (çizgi, lazer, daire, halka, tarama, don cephesi, kum şeridi) bota "tehlikeli bölge" olarak verilir; bot en yakın güvenli kareye gider, sonra ateş eder. Hedef önceliği: parça → sersemlemiş boss → boss.
 - Boss ölçümü: her boss için zayıf, orta ve güçlü kart setleriyle 20'şer savaş; ortalama süre ve ölüm oranı. İlk boss'ta az ölüm, sona doğru artar.
