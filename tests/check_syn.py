@@ -132,7 +132,7 @@ with sync_playwright() as pw:
     page.wait_for_timeout(1000)
     b2 = ev("() => [__tank.G.phase, __tank.G.wave, document.getElementById('bTitle').textContent]")
     ck('banner_not_overwritten', b2[2] == 'BİRLEŞİM AÇILDI' and b2[0] == 'out', b2)
-    page.wait_for_timeout(1500)
+    page.wait_for_timeout(2600)
     b3 = ev("() => [__tank.G.wave, document.getElementById('bTitle').textContent]")
     ck('wave_banner_after', b3[1].startswith('DALGA'), b3)
     # no banner for a card without a new synergy
@@ -143,7 +143,7 @@ with sync_playwright() as pw:
     # ---- 8. pause list and Rehber ----
     ev("() => { const t = __tank; t.G.phase = 'fight'; t.G.state = 'play'; t.setUp({ ricochet: 1, blast: 1, armor: 1, loader: 1, engine: 1 }); t.pauseGame(); }")
     page.wait_for_timeout(300)
-    chips = page.eval_on_selector_all('#pauseSyn .up-chip', 'cs => cs.map(c => c.textContent)')
+    chips = page.eval_on_selector_all('#pauseSyn .syn-row b', 'cs => cs.map(c => c.textContent)')
     ck('pause_list', chips == ['Seken patlama', 'Kale'] and page.eval_on_selector('#pauseSynWrap', 'n => !n.classList.contains("hidden")'), chips)
     page.screenshot(path=f'{OUT}/syn_pause_desktop.png')
     page.click('#btnPauseGuide'); page.wait_for_timeout(300)

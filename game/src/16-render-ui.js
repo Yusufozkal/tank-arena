@@ -89,7 +89,7 @@ function drawPips() {
 }
 const LOOK = {
   player: { trail: 'rgba(255,232,150,.55)', core: '#fff4cf', glow: 'flash' },
-  enemy: { trail: 'rgba(255,128,80,.55)', core: '#ffd0b0', glow: 'fire' },
+  enemy: { trail: 'rgba(205,40,20,.5)', core: '#e8441c', glow: 'fire' },
   pierce: { trail: 'rgba(255,111,174,.62)', core: '#ffe2ef', glow: 'pu_pierce' },
   blast: { trail: 'rgba(255,150,70,.62)', core: '#ffd08a', glow: 'fire' },
   bounce: { trail: 'rgba(160,215,255,.62)', core: '#e9f6ff', glow: 'blue' },
@@ -107,8 +107,22 @@ function drawBullets() {
   ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.6;
   for (const b of G.bullets) { if (b.lob) continue; const gs = b.r * 6; ctx.drawImage(SPR[(LOOK[b.look] || LOOK.player).glow], b.x - gs / 2, b.y - gs / 2, gs, gs); }
   ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
-  ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(0,0,0,.45)';
-  for (const b of G.bullets) { if (b.lob) continue; ctx.fillStyle = (LOOK[b.look] || LOOK.player).core; ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, TAU); ctx.fill(); ctx.stroke(); }
+  // Ownership cue: player shells are bright elongated capsules (flying along their path); enemy and boss shells are round, red-orange with a dark ring
+  ctx.lineCap = 'round';
+  for (const b of G.bullets) {
+    if (b.lob || b.look === 'enemy') continue;
+    const lk = LOOK[b.look] || LOOK.player, sp = Math.hypot(b.vx, b.vy) || 1, ux = b.vx / sp * b.r * 1.5, uy = b.vy / sp * b.r * 1.5;
+    ctx.strokeStyle = 'rgba(0,0,0,.5)'; ctx.lineWidth = b.r * 2 + 2.4; ctx.beginPath(); ctx.moveTo(b.x - ux, b.y - uy); ctx.lineTo(b.x + ux, b.y + uy); ctx.stroke();
+    ctx.strokeStyle = lk.core; ctx.lineWidth = b.r * 2; ctx.beginPath(); ctx.moveTo(b.x - ux, b.y - uy); ctx.lineTo(b.x + ux, b.y + uy); ctx.stroke();
+  }
+  ctx.lineWidth = 1.8;
+  for (const b of G.bullets) {
+    if (b.lob || b.look !== 'enemy') continue;
+    const r = b.boss ? b.r * 1.15 : b.r;
+    ctx.fillStyle = '#e8441c'; ctx.strokeStyle = '#2a0904'; ctx.beginPath(); ctx.arc(b.x, b.y, r + 0.6, 0, TAU); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#ffb070'; ctx.beginPath(); ctx.arc(b.x, b.y, r * 0.4, 0, TAU); ctx.fill();
+    if (b.boss) { ctx.strokeStyle = '#ff2a1a'; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.arc(b.x, b.y, r + 3.2, 0, TAU); ctx.stroke(); ctx.lineWidth = 1.8; }
+  }
   for (const b of G.bullets) if (b.lob) TT_obus.draw(b);
 }
 // Avcı's aiming light: a dashed mint line that brightens just before it fires, so the player gets a moment to react

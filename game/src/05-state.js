@@ -4,7 +4,7 @@ const canvas = $('game'), ctx = canvas.getContext('2d', { alpha: false });
 const miniCv = $('mini'), mctx = miniCv.getContext('2d');
 const el = {
   hud: $('hud'), leftCol: $('leftCol'), rightCol: $('rightCol'), armor: $('armor'), hpFill: $('hpFill'), hpNum: $('hpNum'), waveT: $('waveT'), waveS: $('waveS'),
-  bossBar: $('bossBar'), bossFill: $('bossFill'), buffs: $('buffs'), score: $('scoreNum'), btnPause: $('btnPause'), btnSound: $('btnSound'), btnNuke: $('btnNuke'),
+  bossBar: $('bossBar'), bossFill: $('bossFill'), bossLost: $('bossLost'), waveChip: $('waveT').parentElement, bossName: $('bossName'), bossPct: $('bossPct'), bossMarks: $('bossMarks'), buffs: $('buffs'), score: $('scoreNum'), btnPause: $('btnPause'), btnSound: $('btnSound'), btnNuke: $('btnNuke'),
   banner: $('banner'), bTitle: $('bTitle'), bSub: $('bSub'), hint: $('hint'),
   menu: $('menu'), menuPanel: $('menuPanel'), pause: $('pause'), over: $('over'), overPanel: $('overPanel'),
   btnStart: $('btnStart'), btnContinue: $('btnContinue'), btnResume: $('btnResume'), btnRestart: $('btnRestart'),

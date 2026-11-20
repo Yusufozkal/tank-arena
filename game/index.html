@@ -55,9 +55,14 @@ button:focus-visible{outline:2px solid var(--bone);outline-offset:2px}
 .wave{align-self:flex-start;padding:6px 10px 7px;min-width:132px}
 .wave-t{font-family:var(--display);font-weight:800;font-size:23px;line-height:1;letter-spacing:.03em}
 .wave-s{margin-top:3px;font-size:15px;font-weight:600;color:var(--bone-2)}
-.bossbar{margin-top:5px;display:flex;align-items:center;gap:7px;font-size:15px;font-weight:700;color:var(--hostile)}
-.bossbar .bar{min-width:76px;height:7px}
-.bossbar .bar i{background:var(--hostile)}
+.bosshp{align-self:stretch;min-width:132px;background:rgba(38,42,29,.92);border:1px solid rgba(224,83,58,.8);border-radius:3px;padding:2px 7px 3px}
+.bh-top{display:flex;justify-content:space-between;align-items:baseline;line-height:1.1;font-family:var(--display);font-weight:800;font-size:14px;letter-spacing:.06em;text-transform:uppercase;color:var(--bone)}
+.bh-top b{font-size:14px;font-variant-numeric:tabular-nums;color:#ffb29a}
+.bh-bar{position:relative;height:12px;margin-top:1px;background:rgba(0,0,0,.55);border-radius:1px;overflow:hidden}
+.bh-bar i{position:absolute;inset:0;transform-origin:0 50%}
+#bossFill{background:var(--hostile)}
+#bossLost{background:#ffe6c2}
+.bh-bar u{position:absolute;top:0;bottom:0;width:2px;margin-left:-1px;background:rgba(0,0,0,.75);box-shadow:0 0 0 1px rgba(255,255,255,.25)}
 .buffs{display:flex;flex-wrap:wrap;gap:5px}
 .buff{display:flex;align-items:center;gap:6px;height:27px;padding:0 8px;font-size:15px;font-weight:600;background:rgba(38,42,29,.86);border:1px solid var(--line);border-radius:3px}
 .buff svg{width:15px;height:15px;flex:none}
@@ -85,13 +90,12 @@ button:focus-visible{outline:2px solid var(--bone);outline-offset:2px}
   #hud .wave{display:flex;align-items:center;gap:7px;height:28px;padding:0 9px;min-width:0}
   #hud .wave-t{font-size:16px}
   #hud .wave-s{margin-top:0;font-size:12px;white-space:nowrap}
-  #hud .bossbar{margin-top:0;gap:5px;font-size:12px}
-  #hud .bossbar .bar{min-width:52px;height:6px}
   #hud .buffs{gap:4px}
   #hud .buff{height:24px;gap:4px;padding:0 6px}
   #hud .buff svg{width:14px;height:14px}
   #hud .buff .bn{display:none}
   #hud .buff i{width:18px}
+  #hud.boss .buffs{gap:3px}#hud.boss .buff{height:22px;gap:3px;padding:0 4px}#hud.boss .buff svg{width:13px;height:13px}#hud.boss .buff i{width:10px}
   #hud .score{height:32px;gap:6px;padding:0 8px}
   #hud .score b{font-size:16px}
   #hud .ibtn{position:relative;width:32px;height:32px}
@@ -112,7 +116,7 @@ button:focus-visible{outline:2px solid var(--bone);outline-offset:2px}
 #banner{position:fixed;left:16px;right:16px;top:27%;z-index:6;text-align:center;pointer-events:none;opacity:0;transform:translateY(10px) scale(.98);transition:opacity .25s ease,transform .5s cubic-bezier(.2,.9,.2,1)}
 #banner.show{opacity:1;transform:none}
 .bt{font-family:var(--display);font-weight:900;font-size:clamp(46px,13vw,96px);line-height:.9;letter-spacing:.02em;text-wrap:balance;text-shadow:0 3px 0 rgba(0,0,0,.35),0 0 28px rgba(0,0,0,.45)}
-.bs{margin-top:10px;font-size:clamp(18px,4.6vw,23px);font-weight:600;text-shadow:0 2px 10px rgba(0,0,0,.7)}
+.bs{margin:10px auto 0;width:fit-content;max-width:100%;padding:5px 12px;background:rgba(20,22,14,.7);border-radius:3px;white-space:pre-line;text-wrap:balance;font-size:clamp(18px,4.6vw,23px);font-weight:600;text-shadow:0 2px 10px rgba(0,0,0,.7)}
 #hint{position:fixed;left:50%;top:60%;z-index:6;width:max-content;max-width:min(420px,calc(100% - 32px));transform:translate(-50%,6px);padding:9px 14px;background:rgba(38,42,29,.92);border:1px solid var(--line);border-radius:3px;font-size:17px;font-weight:600;line-height:1.25;text-align:center;text-wrap:balance;opacity:0;pointer-events:none;transition:opacity .3s ease,transform .4s ease}
 #hint.show{opacity:1;transform:translate(-50%,0)}
 
@@ -252,8 +256,12 @@ button:focus-visible{outline:2px solid var(--bone);outline-offset:2px}
 @media (min-aspect-ratio:1/1){.up-card.tank{grid-template-columns:1fr}.up-card.tank .ico.evo{justify-self:start}}
 @media (min-aspect-ratio:1/1) and (max-height:520px){.up-card .ico.evo,.ico.evo canvas{width:48px;height:48px}.evo-stats{font-size:14px;gap:0 8px}}
 /*syn-ui*/
-.up-syn{grid-area:syn;justify-self:start;font-size:14px;font-weight:500;line-height:1.2;color:var(--bone-2);opacity:.75}
-.up-syn.on{font-weight:700;opacity:1;color:#1b1d12;background:var(--signal);padding:3px 8px;border-radius:2px}
+.up-syn{grid-area:syn;justify-self:stretch;display:flex;flex-direction:column;gap:1px;font-size:14px;line-height:1.25;color:var(--bone-2);border-left:3px solid rgba(242,193,78,.45);padding:1px 0 1px 7px}
+.up-syn b{font-weight:700;color:var(--signal)}
+.up-syn i{font-style:normal;font-weight:500}
+.up-syn.on{border-left-color:var(--signal);background:rgba(242,193,78,.12);padding:3px 7px;color:var(--bone)}
+.syn-row{display:flex;flex-direction:column;gap:1px;flex:1 1 100%;padding:3px 8px;border:1px solid rgba(242,193,78,.45);border-radius:3px;font-size:15px;line-height:1.25;color:var(--bone-2)}
+.syn-row b{color:var(--signal)}
 .up-card.has-syn{grid-template-areas:"ico name" "ico lv" "ico desc" "ico syn"}
 .up-chip.syn{border-color:rgba(242,193,78,.55);color:var(--signal)}
 .syn-guide{list-style:none;display:flex;flex-direction:column;gap:9px}
@@ -298,8 +306,8 @@ button:focus-visible{outline:2px solid var(--bone);outline-offset:2px}
       <div class="chip wave">
         <div class="wave-t" id="waveT">DALGA 1</div>
         <div class="wave-s" id="waveS">Hazırlan</div>
-        <div class="bossbar hidden" id="bossBar"><span>Komutan</span><div class="bar"><i id="bossFill"></i></div></div>
       </div>
+    <div class="bosshp hidden" id="bossBar"><div class="bh-top"><span id="bossName">Komutan</span><b id="bossPct">100%</b></div><div class="bh-bar"><i id="bossLost"></i><i id="bossFill"></i><span id="bossMarks"></span></div></div>
       <div class="buffs" id="buffs"></div>
     </div>
     <div class="col right" id="rightCol">
@@ -727,13 +735,14 @@ const SYN_K = {
   fortFire: 0.4,   // ... and a shot within this many seconds
   chainAdd: 3      // Zincir: seconds added to every other active power-up on a pickup
 };
+const synPct = x => Math.round(x * 100);
 const SYN = [
-  { id: 'bb', name: 'Seken patlama', a: 'ricochet', b: 'blast', desc: 'Çelikten seken mermi ilk isabetinde daha geniş patlar.' },
-  { id: 'mov', name: 'Hareketli onarım', a: 'engine', b: 'repair', desc: 'Birkaç saniye hareket edip hasar almazsan onarım iki kat hızlanır.' },
-  { id: 'far', name: 'Uzak vuruş', a: 'caliber', b: 'barrel', desc: 'Mermi uzağa gittikçe sert vurur, en fazla +%40.' },
-  { id: 'amb', name: 'Pusu', a: 'thermal', b: 'caliber', desc: 'Seni görmeyen ya da çalıdaki düşmana ilk isabet çift hasar verir.' },
-  { id: 'fort', name: 'Kale', a: 'armor', b: 'loader', desc: 'Durup ateş ederken aldığın hasar %25 azalır.' },
-  { id: 'chain', name: 'Zincir', a: 'magnet', b: 'boost', desc: 'Güçlendirme alınca etkin olan diğerleri 3 sn uzar.' }
+  { id: 'bb', name: 'Seken patlama', a: 'ricochet', b: 'blast', desc: `Duvardan seken mermi, ilk isabetinde %${synPct(SYN_K.bbR - 1)} daha geniş alanda patlar` },
+  { id: 'mov', name: 'Hareketli onarım', a: 'engine', b: 'repair', desc: `${SYN_K.movNeed} sn hareket edersen Onarım robotu ${SYN_K.movRate} kat hızlı çalışır` },
+  { id: 'far', name: 'Uzak vuruş', a: 'caliber', b: 'barrel', desc: `Mermi uzağa gittikçe daha sert vurur, en çok +%${synPct(SYN_K.farMax)} hasar` },
+  { id: 'amb', name: 'Pusu', a: 'thermal', b: 'caliber', desc: `Seni görmeyen ya da çalıdaki düşmana ilk isabet ${SYN_K.ambMul} kat hasar verir` },
+  { id: 'fort', name: 'Kale', a: 'armor', b: 'loader', desc: `Durup ateş ederken aldığın hasar %${synPct(1 - SYN_K.fortMul)} azalır` },
+  { id: 'chain', name: 'Zincir', a: 'magnet', b: 'boost', desc: `Güçlendirme alınca etkin diğerleri ${SYN_K.chainAdd} sn uzar` }
 ];
 const synOnS = (sy, up = G.up) => ((up[sy.a] | 0) > 0) && ((up[sy.b] | 0) > 0);
 const synOn = id => synOnS(SYN.find(x => x.id === id));
@@ -793,13 +802,13 @@ function synBadgeHTML(k) {
   if (!mine.length) return '';
   const partner = sy => sy.a === k ? sy.b : sy.a;
   const done = mine.find(sy => !upL(k) && upL(partner(sy)) > 0);
-  if (done) return `<span class="up-syn on">Birleşim: ${done.name}</span>`;
+  if (done) return `<span class="up-syn on"><b>Birleşim: ${done.name}</b><i>${done.desc}</i></span>`;
   const open = mine.find(sy => !upL(partner(sy)));
-  return open ? `<span class="up-syn">${UPS[partner(open)].name} ile birleşir</span>` : '';
+  return open ? `<span class="up-syn"><b>${UPS[partner(open)].name} ile birleşir: ${open.name}</b><i>${open.desc}</i></span>` : '';
 }
 // chooseUpgrade: before = ids active before the card, returns the new ones; the banner is shown by the caller's phase delay
 function synUnlocked(before) { return synList().filter(sy => !before.includes(sy.id)); }
-function synChipsHTML() { return synList().map(sy => `<span class="up-chip syn">${sy.name}</span>`).join(''); }
+function synChipsHTML() { return synList().map(sy => `<div class="syn-row"><b>${sy.name}</b><span>${sy.desc}</span></div>`).join(''); }
 function renderSynList(wrap, list) { const h = synChipsHTML(); $(list).innerHTML = h; $(wrap).classList.toggle('hidden', !h); }
 
 /* ================= rules, settings, records ================= */
@@ -942,7 +951,7 @@ const canvas = $('game'), ctx = canvas.getContext('2d', { alpha: false });
 const miniCv = $('mini'), mctx = miniCv.getContext('2d');
 const el = {
   hud: $('hud'), leftCol: $('leftCol'), rightCol: $('rightCol'), armor: $('armor'), hpFill: $('hpFill'), hpNum: $('hpNum'), waveT: $('waveT'), waveS: $('waveS'),
-  bossBar: $('bossBar'), bossFill: $('bossFill'), buffs: $('buffs'), score: $('scoreNum'), btnPause: $('btnPause'), btnSound: $('btnSound'), btnNuke: $('btnNuke'),
+  bossBar: $('bossBar'), bossFill: $('bossFill'), bossLost: $('bossLost'), waveChip: $('waveT').parentElement, bossName: $('bossName'), bossPct: $('bossPct'), bossMarks: $('bossMarks'), buffs: $('buffs'), score: $('scoreNum'), btnPause: $('btnPause'), btnSound: $('btnSound'), btnNuke: $('btnNuke'),
   banner: $('banner'), bTitle: $('bTitle'), bSub: $('bSub'), hint: $('hint'),
   menu: $('menu'), menuPanel: $('menuPanel'), pause: $('pause'), over: $('over'), overPanel: $('overPanel'),
   btnStart: $('btnStart'), btnContinue: $('btnContinue'), btnResume: $('btnResume'), btnRestart: $('btnRestart'),
@@ -4200,7 +4209,7 @@ function chooseUpgrade(k) {
   addText(p.x, p.y - 34, label, '#f2c14e', 18);
   addPart('ring', p.x, p.y, 0, 0, 0.5, 14, 170, 0, '242,193,78');
   G.phase = 'out'; G.phaseT = -0.55; // a moment to see the new part before the next wave fades in
-  if (unlocked.length) { showBanner('BİRLEŞİM AÇILDI', unlocked.map(sy => sy.name).join(', '), 1.9); G.phaseT = -1.6; } // longer pause: the wave banner must not overwrite it
+  if (unlocked.length) { showBanner('BİRLEŞİM AÇILDI', unlocked.map(sy => sy.name + ': ' + sy.desc).join('\n'), 3.2); G.phaseT = -3; } // longer pause: the wave banner must not overwrite it
   Sound.upgrade(); vibrate(20);
 }
 function upChipsHTML() {
@@ -4498,11 +4507,20 @@ function updateHUD() {
   if (ui.wave !== G.wave) { ui.wave = G.wave; el.waveT.textContent = 'DALGA ' + G.wave; }
   const boss = G.boss && !G.boss.dead ? G.boss : null;
   if (boss) {
-    if (ui.bossOn !== true) { ui.bossOn = true; el.bossBar.classList.remove('hidden'); el.waveS.classList.add('hidden'); measureHud(); }
-    if (ui.bossName !== boss.name) { ui.bossName = boss.name; el.bossBar.firstElementChild.textContent = boss.name.split(' ').map(w => w.charAt(0) + w.slice(1).toLocaleLowerCase('tr')).join(' '); } // boss name in the bar
-    const k = Math.max(0, boss.hp / boss.maxHp); if (ui.boss !== k) { ui.boss = k; el.bossFill.style.transform = `scaleX(${k})`; }
+    if (ui.bossOn !== true) { ui.bossOn = true; ui.bossName = null; ui.boss = -1; ui.bossTrail = 1; ui.bossHitT = 0; el.bossBar.classList.remove('hidden'); el.waveChip.classList.add('hidden'); el.hud.classList.add('boss'); measureHud(); }
+    if (ui.bossName !== boss.name) {
+      ui.bossName = boss.name; el.bossName.textContent = boss.name.split(' ').map(w => w.charAt(0) + w.slice(1).toLocaleLowerCase('tr')).join(' ');
+      el.bossMarks.innerHTML = (boss.def && boss.def.phases || []).map(t => `<u style="left:${t}%"></u>`).join(''); // thin marks at the phase thresholds
+    }
+    const k = Math.max(0, boss.hp / boss.maxHp), now = performance.now();
+    if (ui.boss !== k) { if (k < ui.boss) ui.bossHitT = now; ui.boss = k; el.bossFill.style.transform = `scaleX(${k})`; el.bossPct.textContent = Math.ceil(k * 100) + '%'; }
+    if (ui.bossTrail > k) { // the lost chunk stays light for ~0.5 s after the last hit, then shrinks
+      if (now - ui.bossHitT > 500) ui.bossTrail = Math.max(k, ui.bossTrail - 0.9 * Math.min(0.1, (now - (ui.bossTick || now)) / 1000));
+      el.bossLost.style.transform = `scaleX(${ui.bossTrail})`;
+    } else { ui.bossTrail = k; el.bossLost.style.transform = `scaleX(${k})`; }
+    ui.bossTick = now;
   } else {
-    if (ui.bossOn !== false) { ui.bossOn = false; el.bossBar.classList.add('hidden'); el.waveS.classList.remove('hidden'); measureHud(); }
+    if (ui.bossOn !== false) { ui.bossOn = false; el.bossBar.classList.add('hidden'); el.waveChip.classList.remove('hidden'); el.hud.classList.remove('boss'); measureHud(); }
     const remain = G.queue.length + G.enemies.length + G.portals.length;
     const txt = G.phase === 'upgrade' ? 'Yükseltme seç' : G.phase === 'cleared' || G.phase === 'out' ? 'Dalga temizlendi' : G.phase === 'intro' ? 'Hazırlan' : remain + ' düşman kaldı';
     if (ui.sub !== txt) { ui.sub = txt; el.waveS.textContent = txt; }
@@ -5359,7 +5377,7 @@ function drawPips() {
 }
 const LOOK = {
   player: { trail: 'rgba(255,232,150,.55)', core: '#fff4cf', glow: 'flash' },
-  enemy: { trail: 'rgba(255,128,80,.55)', core: '#ffd0b0', glow: 'fire' },
+  enemy: { trail: 'rgba(205,40,20,.5)', core: '#e8441c', glow: 'fire' },
   pierce: { trail: 'rgba(255,111,174,.62)', core: '#ffe2ef', glow: 'pu_pierce' },
   blast: { trail: 'rgba(255,150,70,.62)', core: '#ffd08a', glow: 'fire' },
   bounce: { trail: 'rgba(160,215,255,.62)', core: '#e9f6ff', glow: 'blue' },
@@ -5377,8 +5395,22 @@ function drawBullets() {
   ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.6;
   for (const b of G.bullets) { if (b.lob) continue; const gs = b.r * 6; ctx.drawImage(SPR[(LOOK[b.look] || LOOK.player).glow], b.x - gs / 2, b.y - gs / 2, gs, gs); }
   ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
-  ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(0,0,0,.45)';
-  for (const b of G.bullets) { if (b.lob) continue; ctx.fillStyle = (LOOK[b.look] || LOOK.player).core; ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, TAU); ctx.fill(); ctx.stroke(); }
+  // Ownership cue: player shells are bright elongated capsules (flying along their path); enemy and boss shells are round, red-orange with a dark ring
+  ctx.lineCap = 'round';
+  for (const b of G.bullets) {
+    if (b.lob || b.look === 'enemy') continue;
+    const lk = LOOK[b.look] || LOOK.player, sp = Math.hypot(b.vx, b.vy) || 1, ux = b.vx / sp * b.r * 1.5, uy = b.vy / sp * b.r * 1.5;
+    ctx.strokeStyle = 'rgba(0,0,0,.5)'; ctx.lineWidth = b.r * 2 + 2.4; ctx.beginPath(); ctx.moveTo(b.x - ux, b.y - uy); ctx.lineTo(b.x + ux, b.y + uy); ctx.stroke();
+    ctx.strokeStyle = lk.core; ctx.lineWidth = b.r * 2; ctx.beginPath(); ctx.moveTo(b.x - ux, b.y - uy); ctx.lineTo(b.x + ux, b.y + uy); ctx.stroke();
+  }
+  ctx.lineWidth = 1.8;
+  for (const b of G.bullets) {
+    if (b.lob || b.look !== 'enemy') continue;
+    const r = b.boss ? b.r * 1.15 : b.r;
+    ctx.fillStyle = '#e8441c'; ctx.strokeStyle = '#2a0904'; ctx.beginPath(); ctx.arc(b.x, b.y, r + 0.6, 0, TAU); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#ffb070'; ctx.beginPath(); ctx.arc(b.x, b.y, r * 0.4, 0, TAU); ctx.fill();
+    if (b.boss) { ctx.strokeStyle = '#ff2a1a'; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.arc(b.x, b.y, r + 3.2, 0, TAU); ctx.stroke(); ctx.lineWidth = 1.8; }
+  }
   for (const b of G.bullets) if (b.lob) TT_obus.draw(b);
 }
 // Avcı's aiming light: a dashed mint line that brightens just before it fires, so the player gets a moment to react
