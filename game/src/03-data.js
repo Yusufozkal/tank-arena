@@ -9,35 +9,35 @@
 //   stub  tier-2 entry that still clones its parent's weapon and look (D2's rayli / obus until they land)
 const TANKS = {
   std: { name: 'Standart', tier: 0, parent: null, kids: ['ikiz', 'nisanci', 'makineli'], traitName: 'Dengeli', blurb: 'Dengeli başlangıç tankı.',
-    hpMul: 1, speedMul: 1, turnMul: 1, dmg: 1, cool: 0.3, bSpeed: 660, bR: 4, bW: 6, life: 2.4, barrel: 26, shape: 'std', zoom: 1, mode: 'shell',
+    hpMul: 1, speedMul: 1, turnMul: 1, dmg: 1, cool: 0.3, bSpeed: 660, bR: 4, bW: 6, life: 1.02, barrel: 26, shape: 'std', zoom: 1, mode: 'shell',
     muzzles: [{ off: 0, ang: 0 }], col: { body: '#3d86ad', dk: '#235b7b', hi: '#7cc0e2', acc: '#f2c14e' } },
   ikiz: { name: 'İkiz', tier: 1, parent: 'std', kids: ['uclu', 'cift'], traitName: 'Çift darbe', blurb: 'İki mermi aynı tanka birlikte isabet ederse tank 0,3 sn sersemler.',
-    hpMul: 1, speedMul: 1, turnMul: 1, dmg: 0.42, cool: 0.3, bSpeed: 660, bR: 3.6, bW: 4.4, life: 2.4, barrel: 26, shape: 'twin', zoom: 1, mode: 'shell',
+    hpMul: 1, speedMul: 1, turnMul: 1, dmg: 0.42, cool: 0.3, bSpeed: 660, bR: 3.6, bW: 4.4, life: 1.02, barrel: 26, shape: 'twin', zoom: 1, mode: 'shell',
     muzzles: [{ off: -5, ang: 0 }, { off: 5, ang: 0 }], tr: { stun: 0.3, stunCd: 1.5, win: 0.12 }, botRange: 330,
     col: { body: '#2f9e8f', dk: '#1a6258', hi: '#7fd6c8', acc: '#ffe27a' } },
   nisanci: { name: 'Keskin Nişancı', tier: 1, parent: 'std', kids: ['rayli', 'obus'], traitName: 'Uzak görüş', blurb: 'Kamera geri çekilir, geniş alan görünür; mermisi hızlı ve güçlü, tankı yavaş.',
-    hpMul: 1, speedMul: 0.9, turnMul: 0.9, dmg: 1.9, cool: 0.43, bSpeed: 900, bR: 4.5, bW: 5, life: 1.8, barrel: 34, shape: 'long', zoom: 0.82, mode: 'shell',
+    hpMul: 1, speedMul: 0.9, turnMul: 0.9, dmg: 1.9, cool: 0.43, bSpeed: 900, bR: 4.5, bW: 5, life: 1.01, barrel: 34, shape: 'long', zoom: 0.82, mode: 'shell',
     muzzles: [{ off: 0, ang: 0 }], botRange: 250,
     col: { body: '#4a5bb0', dk: '#2b3670', hi: '#8f9de4', acc: '#ff9f43' } },
   makineli: { name: 'Makineli', tier: 1, parent: 'std', kids: ['alev', 'sarapnel'], traitName: 'Isınma', blurb: 'Sürekli ateşte atış hızı artar; çok ısınırsa namlu kızarır ve 1,5 sn soğur.',
-    hpMul: 1, speedMul: 1, turnMul: 1, dmg: 0.95, cool: 0.16, bSpeed: 640, bR: 3.4, bW: 6.5, life: 2, barrel: 24, shape: 'mg', zoom: 1, mode: 'shell', spread: 0.04,
+    hpMul: 1, speedMul: 1, turnMul: 1, dmg: 0.95, cool: 0.16, bSpeed: 640, bR: 3.4, bW: 6.5, life: 0.9, barrel: 24, shape: 'mg', zoom: 1, mode: 'shell', spread: 0.04,
     muzzles: [{ off: 0, ang: 0 }], tr: { heatUp: 0.04, heatDown: 0.5, cd: 1.5, rateGain: 0.8 }, botRange: 260,
     col: { body: '#6bb23a', dk: '#3e6e1f', hi: '#a9de7a', acc: '#ff5a36' } }
 };
 // Tier-2 stubs for D1 / D2: right name, tier, parent, blurb, trait name and palette; weapon, muzzles and look are the parent's until D1 / D2 replace the call
 function stubTank(id, parent, o) { TANKS[id] = Object.assign(JSON.parse(JSON.stringify(TANKS[parent])), { kids: [], stub: true }, o); }
 TANKS.uclu = { name: 'Üçlü', tier: 2, parent: 'ikiz', kids: [], traitName: 'Delici orta mermi', blurb: 'Üç mermilik yelpaze; ortadaki mermi bir tankı delip arkasındakine gider.',
-  hpMul: 1, speedMul: 1, turnMul: 1, dmg: 0.27, cool: 0.3, bSpeed: 660, bR: 3.6, bW: 4.6, life: 2.4, barrel: 26, shape: 'tri', zoom: 1, mode: 'shell',
+  hpMul: 1, speedMul: 1, turnMul: 1, dmg: 0.27, cool: 0.3, bSpeed: 660, bR: 3.6, bW: 4.6, life: 1.02, barrel: 26, shape: 'tri', zoom: 1, mode: 'shell',
   muzzles: [{ off: 0, ang: -0.2, len: 23 }, { off: 0, ang: 0, len: 30, pierceN: 1 }, { off: 0, ang: 0.2, len: 23 }], botRange: 340, // D1: dps 1.2 x Standart (3 shells of 0.4 per 0.3 s)
   col: { body: '#1f7f93', dk: '#124a58', hi: '#6cc6d9', acc: '#ff8fd0' } };
 TANKS.cift = { name: 'Çift Yön', tier: 2, parent: 'ikiz', kids: [], traitName: 'İtici arka namlu', blurb: 'Arkaya da ateş eder (arka mermi %80 hasar); her atışta tank ileri hızlanır, geri tepme yok.',
-  hpMul: 1, speedMul: 1, turnMul: 1, dmg: 0.67, cool: 0.3, bSpeed: 660, bR: 3.8, bW: 5, life: 2.4, barrel: 26, shape: 'duo', zoom: 1, mode: 'shell', kick: 0,
+  hpMul: 1, speedMul: 1, turnMul: 1, dmg: 0.67, cool: 0.3, bSpeed: 660, bR: 3.8, bW: 5, life: 1.02, barrel: 26, shape: 'duo', zoom: 1, mode: 'shell', kick: 0,
   muzzles: [{ off: 0, ang: 0 }, { off: 0, ang: Math.PI, rear: true, dmgK: 0.8, len: 21 }], tr: { push: 0.6, pushK: 0.3, impulse: 70 }, botRange: 300, // D1: dps 1.1 x Standart (1.8 shells of 0.61 per 0.3 s)
   col: { body: '#35b07a', dk: '#1d6c48', hi: '#86e0b4', acc: '#fff0a0' } };
 // D2 (Keskin Nisanci branch): full entries, same table as above. dps vs Standart (3.33): rayli 4.5 / 1.08 = 4.17 (x1.25), obus 4 / 1.09 = 3.67 (x1.1, per target in the blast)
 TANKS.rayli = { name: 'Raylı Top', tier: 2, parent: 'nisanci', kids: [], traitName: 'Lazer çizgisi',
   blurb: 'Lazer çizgisi merminin yolunu gösterir; hızlı mermi tuğlayı ve tankı deler, çeliği delemez (Sekme varsa seker).',
-  hpMul: 0.95, speedMul: 0.9, turnMul: 0.9, dmg: 2.6, cool: 0.85, bSpeed: 1100, bR: 3.8, bW: 4.2, life: 1.3, barrel: 42, shape: 'rail', zoom: 0.82, mode: 'shell',
+  hpMul: 0.95, speedMul: 0.9, turnMul: 0.9, dmg: 2.6, cool: 0.85, bSpeed: 1100, bR: 3.8, bW: 4.2, life: 0.83, barrel: 42, shape: 'rail', zoom: 0.82, mode: 'shell',
   muzzles: [{ off: 0, ang: 0 }], tr: { pierce: true, zap: true }, botRange: 300,
   col: { body: '#3578d8', dk: '#1b4687', hi: '#86b4f4', acc: '#7ef0ff' } };
 TANKS.obus = { name: 'Obüs', tier: 2, parent: 'nisanci', kids: [], traitName: 'Mesafe ayarı',

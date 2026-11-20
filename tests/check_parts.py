@@ -59,7 +59,7 @@ with sync_playwright() as p:
       t.step(0.8); o.movedBroken = Math.hypot(a.x - ax, a.y - ay); o.movedControl = Math.hypot(c.x - cx, c.y - cy); o.left = a.pt.tread;
       t.step(0.6); o.at24 = a.pt.tread; t.step(0.2); o.after = a.pt.tread; o.imm = +a.pt.imm.tread.toFixed(2);
       window.shoot(a, Math.PI / 2); o.immuneHit = a.pt.tread;               // right after the repair: cannot break again
-      t.step(1.5); window.shoot(a, Math.PI / 2); o.again = +a.pt.tread.toFixed(2); // after 1.5 s: can
+      t.step(1.5); a.angle = 0; window.shoot(a, Math.PI / 2); o.again = +a.pt.tread.toFixed(2); // after 1.5 s: can
       G.enemies = []; return o; }""")
     check('tread_blocks_movement', tr['movedBroken'] < 1 and tr['movedControl'] > 1 and tr['at24'] > 0 and tr['after'] == 0, tr)
     check('repair_then_immune_1_5s', 1.3 < tr['imm'] <= 1.5 and tr['immuneHit'] == 0, tr)
