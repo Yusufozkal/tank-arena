@@ -6,7 +6,7 @@ from common import *  # noqa: F401,F403
 report_on_exit('check_boss_stuck', R)
 runs = int(sys.argv[1]) if len(sys.argv) > 1 else 3
 LIMIT = 3.0
-CASES = [(5, 'komutan'), (15, 'komutan'), (35, 'komutan'), (10, 'sari'), (20, 'demirkok'), (40, 'komutan')]
+CASES = [(5, 'komutan'), (15, 'komutan'), (35, 'komutan'), (10, 'sari'), (20, 'demirkok'), (40, 'komutan'), (25, 'kapatici')]
 CARDS = {'armor': 3, 'caliber': 1, 'engine': 1}
 rows, bad = [], []
 with sync_playwright() as p:
@@ -17,7 +17,7 @@ with sync_playwright() as p:
     for w, name in CASES:
         worst = 0
         for i in range(runs):
-            r = page.evaluate("([w, up, t]) => __tank.bossWatch(w, up, t, 150)", [w, CARDS, 'std'])
+            r = page.evaluate("([w, up, t, k]) => __tank.bossWatch(w, up, t, 150, k)", [w, CARDS, 'std', name if name == 'kapatici' else None])
             r.update(wave=w, boss=name); rows.append(r); worst = max(worst, r['worst'])
             if r['worst'] > LIMIT: bad.append(r)
         print(f"wave {w:2d} {name:9s} worst no-progress {worst:4.1f}s")
