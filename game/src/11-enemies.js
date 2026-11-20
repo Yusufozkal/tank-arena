@@ -2,10 +2,10 @@
 // Enemy pressure. Early waves (1-10) are the old ramp; after that nothing gets more HP, only sharper:
 // fire rate, aim, lead, speed and damage keep creeping up slowly, and buildRoster adds heavies / Avcı / tanks alive at once.
 function waveMods(w) {
-  const D = G.D, late = Math.max(0, w - 10);
+  const D = G.D, late = Math.max(0, w - 10), rn = removedN();
   const err0 = Math.max(0.035, 0.13 - (w - 1) * 0.012);
-  return { speed: 1 + Math.min(0.3, (w - 1) * 0.03) + Math.min(0.3, late * 0.015), cool: Math.max(0.35, 1 - 0.035 * Math.min(9, w - 1) - 0.013 * late) * D.cool,
-    err: Math.max(0.012, err0 - Math.max(0, w - 9) * 0.0008) * D.err,
+  return { speed: 1 + Math.min(0.3, (w - 1) * 0.03) + Math.min(0.3, late * 0.015), cool: Math.max(0.35, 1 - 0.035 * Math.min(9, w - 1) - 0.013 * late) * D.cool * (1 - 0.07 * rn),
+    err: Math.max(0.012, err0 - Math.max(0, w - 9) * 0.0008) * D.err * (1 - 0.1 * rn),
     lead: Math.min(0.85, (w - 1) * 0.14) + Math.min(0.15, Math.max(0, w - 7) * 0.01),
     dmg: D.dmg * (1 + Math.min(0.6, Math.max(0, w - 13) * 0.02) + Math.max(0, w - 25) * 0.07),
     dodge: Math.min(0.85, D.dodge + late * 0.01), // Avcı sidesteps more of the player's shells as waves go on
@@ -13,24 +13,33 @@ function waveMods(w) {
     pace: Math.max(0.25, 1 - late * 0.015 - Math.max(0, w - 25) * 0.02), // spawn interval factor: reinforcements arrive faster in late waves
     hp: 1 + Math.min(0.75, Math.max(0, w - 6) * D.hpGrow) + Math.max(0, w - 20) * 0.09 };
 }
-// Share of Hızlı / Ağır / Avcı among normal-wave tanks. Each type is absent before its first wave (RULES.fastFrom / heavyFrom / hunterFrom) and then grows slowly.
+// Region rule (docs/BOSSES.md section 9): a defeated boss takes its enemy types out of the rest of the run. G.beaten holds the ids of the bosses beaten in this run (13 waveCleared).
+// A boss wave still played by the stand-in Komutan records 'komutan', which removes nothing.
+const REGION_BAN = { sari: ['fast'], demirkok: ['heavy', 'tamirci'], kiragi: ['hunter'] };
+const REGION_NAME = { fast: 'Keşif tankları', heavy: 'Ağır tanklar', tamirci: 'Tamirciler', hunter: 'Avcılar' };
+const typeBanned = type => { for (const id of G.beaten) { const l = REGION_BAN[id]; if (l && l.includes(type)) return true; } return false; };
+const regionGone = id => (REGION_BAN[id] || []).map(t => REGION_NAME[t]); // names removed by boss id
+// Share of Hızlı / Ağır / Avcı / Tamirci among normal-wave tanks. Each type is absent before its first wave (RULES.fastFrom / heavyFrom / hunterFrom / tamirciFrom), then grows slowly; a beaten boss's types stay at 0.
+// Thinner waves after a region change are made up with numbers and sharper fire, never with HP: +16% tanks, -7% reload time, -10% aim error per removed type
+const removedN = () => ['fast', 'heavy', 'hunter', 'tamirci'].filter(typeBanned).length;
 function typeShares(w) {
-  const D = G.D;
+  const D = G.D, ok = t => !typeBanned(t);
   return {
-    pf: w > D.fastFrom ? Math.min(0.28, 0.04 + 0.02 * (w - D.fastFrom)) - Math.max(0, w - 20) * 0.005 : 0,
-    ph: w > D.heavyFrom ? Math.min(0.45, 0.04 + 0.02 * (w - D.heavyFrom)) : 0,
-    pu: w > D.hunterFrom ? Math.min(0.35, 0.04 + 0.02 * (w - D.hunterFrom)) : 0 };
+    pf: ok('fast') && w > D.fastFrom ? Math.min(0.28, 0.04 + 0.02 * (w - D.fastFrom)) - Math.max(0, w - 20) * 0.005 : 0,
+    ph: ok('heavy') && w > D.heavyFrom ? Math.min(0.45, 0.04 + 0.02 * (w - D.heavyFrom)) : 0,
+    pu: ok('hunter') && w > D.hunterFrom ? Math.min(0.35, 0.04 + 0.02 * (w - D.hunterFrom)) : 0,
+    pt: ok('tamirci') && w > D.tamirciFrom ? Math.min(0.15, 0.03 + 0.015 * (w - D.tamirciFrom)) : 0 };
 }
 function buildRoster(w) {
   const D = G.D, list = [];
   if (w % 5 === 0) return { list: ['boss'], maxAlive: 1 }; // boss stage: only the boss on the field, no escorts (startBossStage spawns it)
-  const total = clamp(Math.round((3 + w + Math.floor(w / 2)) * D.count), 3, 24 + Math.floor(Math.max(0, w - 20) / 2));
-  const { pf, ph, pu } = typeShares(w);
-  for (let i = 0; i < total; i++) { const r = Math.random(); list.push(r < ph ? 'heavy' : r < ph + pf ? 'fast' : r < ph + pf + pu ? 'hunter' : 'basic'); }
+  const rk = 1 + 0.16 * removedN(), total = clamp(Math.round((3 + w + Math.floor(w / 2)) * D.count * rk), 3, Math.round((24 + Math.floor(Math.max(0, w - 20) / 2)) * rk));
+  const { pf, ph, pu, pt } = typeShares(w);
+  for (let i = 0; i < total; i++) { const r = Math.random(); list.push(r < ph ? 'heavy' : r < ph + pf ? 'fast' : r < ph + pf + pu ? 'hunter' : r < ph + pf + pu + pt ? 'tamirci' : 'basic'); }
   shuffle(list);
-  // a type's first wave: exactly one of it (the roster above has none yet), placed a little way into the wave
-  const first = w === D.fastFrom ? 'fast' : w === D.heavyFrom ? 'heavy' : w === D.hunterFrom ? 'hunter' : null;
-  if (first) list[Math.min(list.length - 1, 1 + Math.floor(Math.random() * 2))] = first;
+  // a type's first wave: exactly one of it (the roster above has none yet), placed a little way into the wave; never for a type the region rule removed
+  const first = w === D.fastFrom ? 'fast' : w === D.heavyFrom ? 'heavy' : w === D.hunterFrom ? 'hunter' : w === D.tamirciFrom ? 'tamirci' : null;
+  if (first && !typeBanned(first)) list[Math.min(list.length - 1, first === 'tamirci' ? 3 : 1 + Math.floor(Math.random() * 2))] = first;
   const alive = Math.min(6, 2 + Math.ceil(w / 2)) + (w > 12 ? Math.min(6, 1 + Math.floor((w - 13) / 5)) : 0) + D.alive;
   return { list, maxAlive: Math.min(D.maxAlive, alive) };
 }
@@ -49,7 +58,8 @@ function chooseSpawn() {
 const NEW_FOE = {
   fast: ['tankArena.seenFast', 'Yeni düşman: Hızlı. Küçük ve çevik, hızla yaklaşır ama az dayanır.'],
   heavy: ['tankArena.seenHeavy', 'Yeni düşman: Ağır. Yavaş ama çok sağlam, çift namlu ateş eder.'],
-  hunter: ['tankArena.seenHunter', 'Yeni düşman: Avcı. Mermilerden kaçar, siperden ateş eder; ateş etmeden önce yeşil hedef ışığı yakar.'] };
+  hunter: ['tankArena.seenHunter', 'Yeni düşman: Avcı. Mermilerden kaçar, siperden ateş eder; ateş etmeden önce yeşil hedef ışığı yakar.'],
+  tamirci: ['tankArena.seenTamirci', 'Yeni düşman: Tamirci. Silahı yok; yanındaki tankları onarır. Önce onu vur.'] };
 function spawnEnemy(type, x, y) {
   if (type === 'boss') { // debug / old paths: a boss in an ordinary wave (no phases, no stage)
     const a = Math.atan2(G.player.y - y, G.player.x - x), e = spawnBoss(bossDefAt(G.wave) || BOSS_DEFS.komutan, x, y, a);
@@ -70,8 +80,11 @@ function updateSpawns(dt) {
   G.spawnTimer -= dt;
   if (G.queue.length && G.enemies.length + G.portals.length < G.maxAlive && G.spawnTimer <= 0) {
     const sp = chooseSpawn();
-    if (sp) { G.portals.push({ x: sp.x, y: sp.y, t: 0, dur: 1.15, type: G.queue.shift(), done: false }); G.spawnTimer = rand(0.7, 1.5) * G.mods.pace; Sound.spawn(volAt(sp.x, sp.y)); }
-    else G.spawnTimer = 0.25;
+    if (sp) {
+      let ty = G.queue.shift();
+      if (ty === 'tamirci' && G.enemies.filter(o => o.type === 'tamirci').length + G.portals.filter(q => q.type === 'tamirci').length >= 2) ty = 'basic'; // at most two Tamirci on the field
+      G.portals.push({ x: sp.x, y: sp.y, t: 0, dur: 1.15, type: ty, done: false }); G.spawnTimer = rand(0.7, 1.5) * G.mods.pace; Sound.spawn(volAt(sp.x, sp.y));
+    } else G.spawnTimer = 0.25;
   }
   const p = G.player;
   for (const q of G.portals) {
@@ -88,6 +101,7 @@ function updateSpawns(dt) {
 function updateEnemy(e, dt) {
   const s = e.spec, p = G.player, m = G.map;
   if (s.smart) { updateHunter(e, dt); return; }
+  if (s.medic) { updateTamirci(e, dt); return; }
   e.cool -= dt; e.flash = Math.max(0, e.flash - dt); e.recoil = Math.max(0, e.recoil - dt * 6);
   e.hidden = m.at(e.x, e.y) === BUSH;
   e.senseT -= dt;
@@ -298,6 +312,7 @@ function partBreak(e, b) { // called from damageEnemy: a direct shell of the pla
   e.pvol = b.vol;
   const a = angDiff(e.angle, Math.atan2(-b.vy, -b.vx)), aa = Math.abs(a); // direction towards the shooter, against the hull
   const k = aa < 0.785 ? 'barrel' : aa > 2.356 ? 'engine' : 'tread';
+  if (k === 'barrel' && e.spec.medic) return; // the Tamirci has no barrel to jam
   const pt = e.pt || (e.pt = { tread: 0, barrel: 0, engine: 0, imm: { tread: 0, barrel: 0, engine: 0 }, dur: { tread: 0, barrel: 0, engine: 0 }, side: 0, fx: 0 });
   if (pt[k] > 0 || pt.imm[k] > 0) return;
   pt[k] = pt.dur[k] = PART_T[k] / (G.wave > PART_T.fastFrom ? PART_T.fast : 1);
@@ -328,4 +343,110 @@ function partTick(e, dt) { // timers, repair, smoke; once per frame per enemy (t
       }
     } else if (pt.imm[k] > 0) pt.imm[k] -= dt;
   }
+}
+
+/* ================= Tamirci (docs/BOSSES.md section 9) ================= */
+// No weapon. Picks the most damaged ally within 6 tiles, stays 2-4 tiles behind it (ally between it and the player, bush preferred), beams it green: +0.5 HP/s and broken parts fixed at once.
+// One Tamirci per target. While beaming and 1 s after, it is not hidden by a bush. It runs when the player is within 4 tiles and sees it.
+NUKE_WEIGHT.tamirci = 1; // meter weight (10 is not edited here)
+const TAM = { pick: 6, flee: 4, beam: 4.8, heal: 0.5, vis: 1 };
+const partsBroken = o => !!o.pt && (o.pt.tread > 0 || o.pt.barrel > 0 || o.pt.engine > 0);
+const needOf = o => (1 - o.hp / o.maxHp) + (partsBroken(o) ? 0.6 : 0);
+function tamTarget(e) { // most damaged ally in reach that no other Tamirci is already beaming
+  let best = null, bs = 0.001;
+  for (const o of G.enemies) {
+    if (o === e || o.dead || o.isBoss || o.type === 'boss' || o.type === 'tamirci' || dist2(o.x, o.y, e.x, e.y) > (T * TAM.pick) * (T * TAM.pick)) continue;
+    if (o.repBy && o.repBy !== e.id && G.time - o.repT < 0.5) continue;
+    const n = needOf(o) + (e.tam === o ? 0.15 : 0); // a small bonus keeps the current target
+    if (n > bs) { bs = n; best = o; }
+  }
+  return best;
+}
+function tamFollow(e) { // nobody hurt: trail the nearest ally
+  let best = null, bd = (T * 9) * (T * 9);
+  for (const o of G.enemies) { if (o === e || o.dead || o.isBoss || o.type === 'boss' || o.type === 'tamirci') continue; const d = dist2(o.x, o.y, e.x, e.y); if (d < bd) { bd = d; best = o; } }
+  return best;
+}
+function tamSpot(e, a) { // a tile 2-4 tiles from ally a, on the far side from the player, with a clear line to a; bushes and spots out of the player's sight score higher
+  const m = G.map, p = G.player, dx = a.x - p.x, dy = a.y - p.y, dl = Math.hypot(dx, dy) || 1, ux = dx / dl, uy = dy / dl;
+  let best = null, bs = -1e9;
+  for (let k = 0; k < 16; k++) for (const rad of [2.2 * T, 3 * T, 3.8 * T]) {
+    const an = k * TAU / 16, x = a.x + Math.cos(an) * rad, y = a.y + Math.sin(an) * rad, v = m.at(x, y);
+    if (blocksTank(v) || !los(x, y, a.x, a.y)) continue;
+    const behind = ((x - a.x) * ux + (y - a.y) * uy) / rad, dP = Math.hypot(x - p.x, y - p.y);
+    const sc = behind * 2.5 + (v === BUSH ? 1.2 : 0) + (!los(x, y, p.x, p.y) ? 0.6 : 0) - Math.hypot(x - e.x, y - e.y) / T * 0.25 - (dP < TAM.flee * T ? 3 : 0);
+    if (sc > bs) { bs = sc; best = { x, y }; }
+  }
+  return best;
+}
+function tamSteer(e, gx, gy, dt, k) { // turn towards (gx, gy) and drive; returns true when it made progress
+  const s = e.spec, desired = Math.atan2(gy - e.y, gx - e.x), pk = e.pt && e.pt.engine > 0 ? 0.5 : 1;
+  e.angle = turnTo(e.angle, desired, s.turn * dt * 1.4);
+  const diff = Math.abs(angDiff(e.angle, desired)), spd = diff < 0.7 ? s.speed * e.speedMul * pk * k * (1 - diff * 0.7) : 0;
+  moveTank(e, Math.cos(e.angle) * spd * dt, Math.sin(e.angle) * spd * dt);
+}
+function tamFlee(e) { // best of 16 headings: away from the player, not into a wall
+  const m = G.map, p = G.player; let best = null, bs = -1e9;
+  for (let k = 0; k < 16; k++) {
+    const an = k * TAU / 16, c = Math.cos(an), sn = Math.sin(an);
+    if (blocksTank(m.at(e.x + c * 34, e.y + sn * 34)) || blocksTank(m.at(e.x + c * 70, e.y + sn * 70))) continue;
+    const away = (e.x - p.x) * c + (e.y - p.y) * sn, sc = away / Math.max(1, e.distP) * 3 + (m.at(e.x + c * 70, e.y + sn * 70) === BUSH ? 0.8 : 0) - Math.abs(angDiff(e.angle, an)) * 0.4;
+    if (sc > bs) { bs = sc; best = an; }
+  }
+  return best;
+}
+function updateTamirci(e, dt) {
+  const s = e.spec, p = G.player, m = G.map;
+  e.flash = Math.max(0, e.flash - dt); e.recoil = 0; e.cool = 9; e.vis = Math.max(0, (e.vis || 0) - dt); e.spotT = (e.spotT || 0) - dt;
+  e.senseT -= dt;
+  if (e.senseT <= 0) {
+    e.senseT = 0.1 + Math.random() * 0.08;
+    if (p.alive) { const d = Math.hypot(p.x - e.x, p.y - e.y); e.distP = d; e.canSee = d < T * 13 && los(e.x, e.y, p.x, p.y); } else { e.canSee = false; e.distP = 1e9; }
+  }
+  const trB = !!e.pt && e.pt.tread > 0, before = e.angle, ox = e.x, oy = e.y;
+  const hurt = tamTarget(e), a = hurt || tamFollow(e);
+  e.tam = hurt;
+  const seen = p.alive && e.canSee && e.distP < TAM.flee * T && (m.at(e.x, e.y) !== BUSH || e.vis > 0 || e.distP < 2 * T);
+  if (!trB) {
+    if (seen) { // run
+      if (e.fleeT === undefined || e.fleeT <= 0) { e.fleeA = tamFlee(e); e.fleeT = 0.25; }
+      e.fleeT -= dt;
+      if (e.fleeA !== null && e.fleeA !== undefined) tamSteer(e, e.x + Math.cos(e.fleeA) * 80, e.y + Math.sin(e.fleeA) * 80, dt, 1.05);
+    } else if (a) {
+      if (!e.spot || e.spotT <= 0 || e.spotFor !== a.id) { e.spot = tamSpot(e, a); e.spotT = 0.5; e.spotFor = a.id; }
+      const sp = e.spot;
+      if (sp && Math.hypot(sp.x - e.x, sp.y - e.y) > 12) {
+        tamSteer(e, sp.x, sp.y, dt, 1);
+        const dw = Math.hypot(sp.x - e.x, sp.y - e.y);
+        if (dw < (e.wpBest || 1e9) - 0.5) { e.wpBest = dw; e.stuckT = 0; } else e.stuckT += dt;
+        if (e.stuckT > 0.9) { const w = randomNeighbor(e); e.spot = w; e.spotT = 0.7; e.wpBest = 1e9; e.stuckT = 0; }
+      } else { e.wpBest = 1e9; e.stuckT = 0; }
+    } else { // alone: drift towards the player's side of the map, but keep out of sight range
+      if (!e.wp || dist2(e.wp.x, e.wp.y, e.x, e.y) < 25) { e.wp = nextWaypoint(e); e.wpBest = 1e9; e.stuckT = 0; }
+      if (e.wp && !blocksTank(m.get(e.wp.c, e.wp.r)) && !(e.canSee && e.distP < 7 * T)) {
+        tamSteer(e, e.wp.x, e.wp.y, dt, 0.8);
+        const dw = Math.hypot(e.wp.x - e.x, e.wp.y - e.y);
+        if (dw < e.wpBest - 0.5) { e.wpBest = dw; e.stuckT = 0; } else e.stuckT += dt;
+        if (e.stuckT > 1.2) { e.wp = randomNeighbor(e); e.wpBest = 1e9; e.stuckT = 0; }
+      } else if (e.wp && blocksTank(m.get(e.wp.c, e.wp.r))) e.wp = null;
+    }
+  }
+  // the beam
+  let beam = null;
+  if (hurt && needOf(hurt) > 0 && Math.hypot(hurt.x - e.x, hurt.y - e.y) < TAM.beam * T && los(e.x, e.y, hurt.x, hurt.y)) beam = hurt;
+  if (beam) {
+    beam.repBy = e.id; beam.repT = G.time; e.vis = TAM.vis; e.beamUntil = G.time + 0.12; e.beamOn = beam;
+    beam.hp = Math.min(beam.maxHp, beam.hp + TAM.heal * dt);
+    if (beam.pt) for (const k of ['tread', 'barrel', 'engine']) if (beam.pt[k] > 0) { // broken part: fixed at once, then the usual short immunity
+      beam.pt[k] = 0; beam.pt.imm[k] = PART_T.imm; const q = partWorld(beam, k);
+      sparks(q.x, q.y, 6, '#bfffa8', 160); addPart('ring', q.x, q.y, 0, 0, 0.35, 4, 44, 0, '150,255,140');
+    }
+    if (Math.random() < dt * 9) addPart('spark', beam.x + rand(-10, 10), beam.y + rand(-8, 8), rand(-15, 15), rand(-70, -30), rand(0.3, 0.55), 1, 0, 3, '#9dff90');
+  } else e.beamOn = null;
+  e.hidden = m.at(e.x, e.y) === BUSH && e.vis <= 0;
+  const ta = beam ? Math.atan2(beam.y - e.y, beam.x - e.x) : e.angle;
+  e.turret = turnTo(e.turret, ta, s.tTurn * dt);
+  if (dt > 0) { e.avx = (e.x - ox) / dt; e.avy = (e.y - oy) / dt; }
+  trackUpdate(e, (e.x - ox) * Math.cos(e.angle) + (e.y - oy) * Math.sin(e.angle), angDiff(before, e.angle));
+  damageSmoke(e, dt);
 }

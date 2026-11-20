@@ -20,7 +20,7 @@ const G = {
   map: null, player: null, enemies: [], bullets: [], pickups: [], portals: [], texts: [],
   queue: [], maxAlive: 3, spawnTimer: 0, mods: null, boss: null,
   wave: 0, score: 0, kills: 0, shots: 0, hits: 0, hurt: 0, fade: 0, god: false,
-  buffs: freshBuffs(), buffMax: freshBuffs(), bushHint: false, resume: null, overFree: null,
+  buffs: freshBuffs(), buffMax: freshBuffs(), bushHint: false, beaten: new Set(), resume: null, overFree: null,
   D: RULES, dodges: 0, covers: 0,
   up: {}, strikes: [], jet: null, airQ: 0, stage: null, tele: [], pieces: [], introGate: false, introSeen: false,
   tank: 'std', upMode: 'cards', evoWait: 0, noEvo: false

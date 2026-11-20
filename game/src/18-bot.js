@@ -69,6 +69,8 @@ function autopilot(dt) {
   if (G.stage && G.boss && !G.boss.dead && !G.boss.dying && G.phase === 'fight') { bossAutopilot(dt); return; }
   let target = null, best = 1e18;
   for (const e of G.enemies) { const dd = dist2(e.x, e.y, p.x, p.y); if (dd < best) { best = dd; target = e; } }
+  let tamB = 1e18; // a visible Tamirci comes first
+  for (const e of G.enemies) if (e.type === 'tamirci' && !e.dead && !e.hidden && !G.boss) { const dd = dist2(e.x, e.y, p.x, p.y); if (dd < tamB && dd < (T * 13) * (T * 13) && los(p.x, p.y, e.x, e.y)) { tamB = dd; target = e; best = dd; } }
   bot.t -= dt;
   if (target) {
     bot.aim = Math.atan2(target.y - p.y, target.x - p.x); bot.fire = !bot.hold;
