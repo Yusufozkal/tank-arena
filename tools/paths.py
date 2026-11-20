@@ -3,7 +3,8 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
 GAME_DIR = REPO / 'game'
-GAME = GAME_DIR / 'index.html'          # the whole game: one HTML file, the source of truth
+GAME_SRC = GAME_DIR / 'src'             # the game's source pieces (shell.html, style.css, NN-*.js); tools/build_game.py joins them
+GAME = GAME_DIR / 'index.html'          # the whole game in one HTML file, GENERATED from GAME_SRC by tools/build_game.py
 SITE = REPO / 'site'                    # built website; Vercel serves only this folder
 TOOLS = REPO / 'tools'
 RAW = TOOLS / 'raw'                     # full-quality screenshots the site images are cut from

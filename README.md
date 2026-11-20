@@ -9,7 +9,8 @@ Dalga dalga gelen düşman tanklarına karşı ayakta kaldığın, her dalgadan 
 
 | Yol | İçerik |
 |---|---|
-| `game/index.html` | Oyunun kaynağı: tek HTML dosyası |
+| `game/src/` | Oyunun kaynağı: HTML iskeleti, CSS ve sıralı JS modülleri; harita `docs/MODULES.md` |
+| `game/index.html` | Oyun, tek dosya (site ve APK bundan üretilir); `tools/build_game.py` üretir, elle düzenlenmez |
 | `site/` | Yayındaki site (Vercel yalnızca bu klasörü yayınlar), `tools/build_site.py` üretir |
 | `android/` | Android uygulamasının kaynağı ve `build.sh` |
 | `TankArena-1.4.apk` | Android uygulaması (Vercel'e yüklenmez, GitHub'dan iner) |

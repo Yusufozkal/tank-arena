@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#262a1d">
+<title>Tank Arena</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Big+Shoulders+Stencil:wght@700;800;900&display=swap">
+<style>
+/*@@CSS@@*/
+</style>
+</head>
+<body>
+<canvas id="game" aria-label="Tank Arena oyun alanı"></canvas>
+<div id="probe"></div>
+
+<div id="hud" class="hidden">
+  <div class="hud-top">
+    <div class="col left" id="leftCol">
+      <div class="chip armor" id="armor">
+        <span class="lbl">Zırh</span>
+        <div class="bar"><i id="hpFill"></i></div>
+        <span class="num" id="hpNum">100</span>
+      </div>
+      <div class="chip wave">
+        <div class="wave-t" id="waveT">DALGA 1</div>
+        <div class="wave-s" id="waveS">Hazırlan</div>
+        <div class="bossbar hidden" id="bossBar"><span>Komutan</span><div class="bar"><i id="bossFill"></i></div></div>
+      </div>
+      <div class="buffs" id="buffs"></div>
+    </div>
+    <div class="col right" id="rightCol">
+      <div class="row">
+        <div class="chip score"><span class="lbl">Skor</span><b id="scoreNum">0</b></div>
+        <button class="chip ibtn" id="btnPause" aria-label="Duraklat"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.5 5v14M15.5 5v14"/></svg></button>
+        <button class="chip ibtn" id="btnSound" aria-label="Sesi kapat"></button>
+      </div>
+      <canvas id="mini" aria-hidden="true"></canvas>
+    </div>
+  </div>
+  <button type="button" id="btnNuke" aria-label="Nükleer bomba">
+    <svg class="nk-ring" viewBox="0 0 64 64" aria-hidden="true"><circle class="nk-bg" cx="32" cy="32" r="29"/><circle class="nk-fg" cx="32" cy="32" r="29"/></svg>
+    <svg class="nk-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3.34A10 10 0 0 1 17 3.34L13.75 8.97A3.5 3.5 0 0 0 10.25 8.97Z"/><path transform="rotate(120 12 12)" d="M7 3.34A10 10 0 0 1 17 3.34L13.75 8.97A3.5 3.5 0 0 0 10.25 8.97Z"/><path transform="rotate(240 12 12)" d="M7 3.34A10 10 0 0 1 17 3.34L13.75 8.97A3.5 3.5 0 0 0 10.25 8.97Z"/><circle cx="12" cy="12" r="1.8"/></svg>
+    <span class="nk-lbl">NÜKLEER</span><span class="nk-key only-fine">N</span>
+  </button>
+</div>
+
+<div id="banner" aria-live="polite"><div class="bt" id="bTitle"></div><div class="bs" id="bSub"></div></div>
+<div id="hint" aria-live="polite"></div>
+
+<div id="menu" class="screen">
+  <section class="panel" id="menuPanel">
+    <h1 class="title">TANK<br>ARENA</h1>
+    <p class="tag">Dalga dalga gelen düşman tanklarına karşı ayakta kal, her dalgadan sonra tankını yükselt.</p>
+    <div class="actions">
+      <button type="button" class="btn primary" id="btnStart">OYNA</button>
+      <button type="button" class="btn ghost hidden" id="btnContinue">Kaldığın yerden devam et</button>
+      <div class="row2">
+        <button type="button" class="btn ghost" id="btnSettings">Ayarlar</button>
+        <button type="button" class="btn ghost" id="btnGuide">Rehber</button>
+      </div>
+    </div>
+    <dl class="records" aria-live="polite">
+      <div><dt>En yüksek skor</dt><dd id="recScore">—</dd></div>
+      <div><dt>En uzak dalga</dt><dd id="recWave">—</dd></div>
+      <div><dt>Toplam imha</dt><dd id="recKills">0</dd></div>
+      <div><dt>Oynanan oyun</dt><dd id="recGames">0</dd></div>
+    </dl>
+  </section>
+</div>
+
+<div id="settings" class="screen hidden">
+  <section class="panel">
+    <h2 class="title sm">AYARLAR</h2>
+    <div class="set-list">
+      <div class="set-row"><label for="setVolume">Ses düzeyi</label><div class="range"><input type="range" id="setVolume" min="0" max="100" step="5" value="80"><output id="setVolumeOut" for="setVolume">80</output></div></div>
+      <div class="set-row"><span id="lbVib">Titreşim<small>Vurulunca ve patlamalarda telefon titrer</small></span><button type="button" class="switch" role="switch" data-key="vibration" aria-labelledby="lbVib"><i></i></button></div>
+      <div class="set-row"><span id="lbShake">Ekran sarsıntısı<small>Patlamalarda kamera sallanır</small></span><button type="button" class="switch" role="switch" data-key="shake" aria-labelledby="lbShake"><i></i></button></div>
+      <div class="set-row"><span id="lbAssist">Nişan yardımı<small>Dokunmatikte nişanı yakındaki düşmana kaydırır</small></span><button type="button" class="switch" role="switch" data-key="aimAssist" aria-labelledby="lbAssist"><i></i></button></div>
+      <div class="set-row"><span id="lbMini">Mini harita</span><button type="button" class="switch" role="switch" data-key="minimap" aria-labelledby="lbMini"><i></i></button></div>
+      <div class="set-row col"><span id="lbStick">Joystick boyutu</span><div class="seg" data-key="stickSize" role="group" aria-labelledby="lbStick"><button type="button" data-v="s">Küçük</button><button type="button" data-v="m">Orta</button><button type="button" data-v="l">Büyük</button></div></div>
+      <div class="set-row col"><span id="lbSwap">Joystick yerleşimi</span><div class="seg" data-key="swapSticks" role="group" aria-labelledby="lbSwap"><button type="button" data-v="0">Solda sürüş</button><button type="button" data-v="1">Solda nişan</button></div></div>
+      <div class="set-row col"><span id="lbFx">Efektler<small>Düşük seçenek eski telefonlarda oyunu akıcılaştırır</small></span><div class="seg" data-key="effects" role="group" aria-labelledby="lbFx"><button type="button" data-v="high">Yüksek</button><button type="button" data-v="low">Düşük</button></div></div>
+      <div class="set-row col hidden" id="rowOrient"><span id="lbOrient">Ekran yönü<small>Otomatik seçiliyken telefonu çevirdiğinde oyun da dikey ya da yatay döner</small></span><div class="seg" data-key="orientation" role="group" aria-labelledby="lbOrient"><button type="button" data-v="auto">Otomatik</button><button type="button" data-v="portrait">Dikey</button><button type="button" data-v="landscape">Yatay</button></div></div>
+    </div>
+    <div class="reset">
+      <button type="button" class="btn ghost" id="btnReset">Rekorları sıfırla</button>
+      <div class="confirm hidden" id="resetConfirm">
+        <p>Tüm rekorlar ve istatistikler silinsin mi? Bu işlem geri alınamaz.</p>
+        <div class="row2"><button type="button" class="btn ghost" id="btnResetNo">Vazgeç</button><button type="button" class="btn warn" id="btnResetYes">Evet, sil</button></div>
+      </div>
+    </div>
+    <button type="button" class="btn primary" id="btnSettingsBack">TAMAM</button>
+    <p class="version">Tank Arena 1.4</p>
+  </section>
+</div>
+
+<div id="guide" class="screen hidden">
+  <section class="panel">
+    <h2 class="title sm">REHBER</h2>
+    <h3 class="gh">KONTROLLER</h3>
+    <dl class="keys only-coarse">
+      <dt>Sol başparmak</dt><dd>Tankı sür. Yerini ayarlardan değiştirebilirsin.</dd>
+      <dt>Sağ başparmak</dt><dd>Sürükle: nişan al ve ateş et. Kısa dokun: en yakın düşmana ateş et.</dd>
+      <dt>Geri tuşu</dt><dd>Oyunu duraklatır (Android uygulaması).</dd>
+    </dl>
+    <dl class="keys only-fine">
+      <dt>WASD veya oklar</dt><dd>Tankı sür</dd>
+      <dt>Fare</dt><dd>Nişan al, tıklayarak ateş et (boşluk da olur)</dd>
+      <dt>P veya Esc</dt><dd>Duraklat</dd>
+      <dt>M</dt><dd>Sesi aç/kapat</dd>
+    </dl>
+    <h3 class="gh">DÜŞMANLAR</h3>
+    <ul class="foes">
+      <li><canvas data-tank="basic" aria-hidden="true"></canvas><div><b>Standart tank</b><span>2 isabet. Mesafesini koruyup ateş eder.</span></div></li>
+      <li><canvas data-tank="fast" aria-hidden="true"></canvas><div><b>Keşif tankı</b><span>1 isabet. Çok hızlıdır, üzerine doğru gelir.</span></div></li>
+      <li><canvas data-tank="heavy" aria-hidden="true"></canvas><div><b>Ağır tank</b><span>5 isabet. Çift namlulu, iri mermisi çok can yakar.</span></div></li>
+      <li><canvas data-tank="hunter" aria-hidden="true"></canvas><div><b>Avcı</b><span>3 isabet. Mermilerden kaçar, siperden ateş eder, seni kaybettiği yere ateş açar. Ateş etmeden önce yeşil hedef ışığı yakar.</span></div></li>
+      <li><canvas data-tank="boss" aria-hidden="true"></canvas><div><b>Komutan</b><span>Her 5. dalgada gelir: ilk gelişinde 16 isabet, sonra her gelişinde 12 fazla. Üç namludan ateş etmeden önce namluları parlar.</span></div></li>
+    </ul>
+    <h3 class="gh">GÜÇLENDİRMELER</h3>
+    <ul class="pus" id="guidePus" aria-label="Güçlendirmeler"></ul>
+    <h3 class="gh">YÜKSELTMELER</h3>
+    <p class="guide-p">Her dalga bitince atölyede üç karttan birini seçersin. Seçtiğin parça tankına takılır ve oyun bitene kadar kalır; aynı kartı yeniden seçersen seviyesi artar. Sarı simgeli kartlar nadirdir, Komutanı yendiğin dalganın sonunda biri mutlaka gelir.</p>
+    <ul class="ups-grid" id="guideUps" aria-label="Yükseltmeler"></ul>
+    <h3 class="gh">BİRLEŞİMLER</h3>
+    <p class="guide-p">İki belirli parça birlikte takılınca yeni bir etki açılır. Atölyede kartın üstünde hangi parçayla birleştiği yazar.</p>
+    <ul class="syn-guide" id="guideSyn" aria-label="Birleşimler"></ul>
+    <h3 class="gh">İPUÇLARI</h3>
+    <ul class="tips-list">
+      <li>Çalının içindeyken düşmanlar seni ancak yakından görebilir; ateş edince yerin belli olur.</li>
+      <li>Kendi mermin, sana gelen düşman mermisini havada patlatır.</li>
+      <li>Tuğlalar üç isabette yıkılır, çelik bloklar hiç yıkılmaz.</li>
+      <li>Avcı mermilerden kaçar: onu yakından ya da üçlü atışla vur.</li>
+      <li>Delici mermi tuğlaların ve tankların içinden geçer, arkadaki düşmanı da vurur.</li>
+      <li>Zırhın azken atölyeye girersen kartlardan biri acil onarım olur.</li>
+    </ul>
+    <button type="button" class="btn primary" id="btnGuideBack">TAMAM</button>
+  </section>
+</div>
+
+<div id="pause" class="screen hidden">
+  <section class="panel">
+    <h2 class="title sm">DURAKLATILDI</h2>
+    <div class="actions">
+      <button type="button" class="btn primary" id="btnResume">DEVAM ET</button>
+      <div class="row2">
+        <button type="button" class="btn ghost" id="btnPauseSettings">Ayarlar</button>
+        <button type="button" class="btn ghost" id="btnPauseGuide">Rehber</button>
+      </div>
+      <button type="button" class="btn ghost" id="btnRestart">Yeniden başla</button>
+      <button type="button" class="btn ghost" id="btnQuit">Ana menüye dön</button>
+    </div>
+    <div class="up-sum hidden" id="pauseUpsWrap"><span class="field-lbl">Tankındaki yükseltmeler</span><div class="up-list" id="pauseUps"></div></div>
+    <div class="up-sum hidden" id="pauseSynWrap"><span class="field-lbl">Açık birleşimler</span><div class="up-list" id="pauseSyn"></div></div>
+  </section>
+</div>
+
+<div id="over" class="screen hidden">
+  <section class="panel" id="overPanel">
+    <h2 class="title sm">TANKIN İMHA EDİLDİ</h2>
+    <p class="record hidden" id="newRec">YENİ REKOR</p>
+    <div class="stats">
+      <div class="stat"><b id="sScore">0</b><span>Skor</span></div>
+      <div class="stat"><b id="sWave">1</b><span>Ulaşılan dalga</span></div>
+      <div class="stat"><b id="sKills">0</b><span>İmha edilen tank</span></div>
+      <div class="stat"><b id="sAcc">%0</b><span>İsabet oranı</span></div>
+    </div>
+    <div class="up-sum hidden" id="overUpsWrap"><span class="field-lbl">Yükseltmeler</span><div class="up-list" id="overUps"></div></div>
+    <div class="actions">
+      <button type="button" class="btn primary" id="btnAgain">TEKRAR OYNA</button>
+      <button type="button" class="btn ghost" id="btnMenu">Ana menüye dön</button>
+    </div>
+  </section>
+</div>
+
+<div id="upgrade" class="screen hidden">
+  <section class="panel" id="upPanel" aria-labelledby="upTitle">
+    <h2 class="title sm" id="upTitle">ATÖLYE</h2>
+    <p class="up-sub" id="upSub"></p>
+    <div class="up-cards" id="upCards"></div>
+  </section>
+</div>
+
+<script>
+/*@@JS@@*/
+</script>
+</body>
+</html>
