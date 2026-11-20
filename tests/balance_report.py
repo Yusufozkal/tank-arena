@@ -127,3 +127,18 @@ if rows_all and 'nuke' in rows_all[0]:
     deaths_b = sum(1 for x in boss if x['dead'])
     print(f"  Komutan waves: {len(boss)} played, {deaths_b} deaths ({100*deaths_b/max(1, len(boss)):.0f}%), mean damage {st.mean(x['dmg'] for x in boss):.1f}, nuke used {sum(x['nuke'] for x in boss)/max(1, len(boss)):.2f}/wave")
     print(f"  other waves:   {len(norm)} played, {sum(1 for x in norm if x['dead'])} deaths ({100*sum(1 for x in norm if x['dead'])/max(1, len(norm)):.1f}%), mean damage {st.mean(x['dmg'] for x in norm):.1f}")
+
+
+# ---------------------------------------------------------------- 1.4.1: pacing targets (all survive files together)
+_runs = [r for r in allruns if r]
+if _runs:
+    _deaths = [r[-1]['wave'] for r in _runs if r[-1]['dead']]
+    _lost = [100 * x['dmg'] / max(1, x['maxHp']) for r in _runs for x in r if x['wave'] > 3]
+    _by = collections.Counter(_deaths)
+    _top = _by.most_common(1)[0] if _by else (0, 0)
+    print('\nPacing (1.4.1 targets: deaths before wave 10 <= ~15%, armour lost per wave after wave 3 >= ~15%, one wave <= ~12% of deaths, reach 40 <= ~15%):')
+    print(f"  runs {len(_runs)}  died before wave 10: {sum(1 for w in _deaths if w < 10)} ({100*sum(1 for w in _deaths if w < 10)/len(_runs):.0f}%)"
+          f"  mean end wave {st.mean(r[-1]['wave'] for r in _runs):.1f}  reach 40: {sum(1 for r in _runs if not r[-1]['dead'])} ({100*sum(1 for r in _runs if not r[-1]['dead'])/len(_runs):.0f}%)")
+    print(f"  armour lost per wave after wave 3 (% of max armour, mean over waves played): {st.mean(_lost):.1f}%"
+          + '   by band: ' + '  '.join(f"{lo}-{hi}: {st.mean([100*x['dmg']/max(1, x['maxHp']) for r in _runs for x in r if lo <= x['wave'] <= hi]):.1f}%" for lo, hi in ((4, 9), (10, 19), (20, 29), (30, 40)) if any(lo <= x['wave'] <= hi for r in _runs for x in r)))
+    print(f"  busiest death wave: {_top[0]} with {_top[1]} of {len(_deaths)} deaths ({100*_top[1]/max(1, len(_deaths)):.0f}%)")

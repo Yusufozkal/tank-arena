@@ -12,15 +12,14 @@ function nukeWaveWeight(w) {
   const W = NUKE_WEIGHT;
   if (w % 5 === 0) {
     const list = [];
-    for (let i = 0, esc = 1 + Math.floor(w / 5); i < esc; i++) list.push(i % 2 ? 'fast' : 'basic');
-    if (w >= 10) list[list.length - 1] = 'hunter';
+    for (let i = 0, esc = 1 + Math.floor(w / 5); i < esc; i++) list.push(i % 2 && w >= G.D.fastFrom ? 'fast' : 'basic');
+    if (w >= Math.max(20, G.D.hunterFrom)) list[list.length - 1] = 'hunter';
     if (w >= 20) { list[0] = 'heavy'; list[2] = 'hunter'; }
     list.push('boss');
     return list.reduce((a, t) => a + W[t], 0);
   }
   const D = G.D, total = clamp(Math.round((3 + w + Math.floor(w / 2)) * D.count), 3, 24 + Math.floor(Math.max(0, w - 20) / 2));
-  const pf = w >= 2 ? Math.min(0.28, 0.12 + 0.03 * w) - Math.max(0, w - 20) * 0.005 : 0, ph = w >= 3 ? Math.min(0.45, 0.08 + 0.025 * w) : 0;
-  const pu = w >= D.hunterFrom ? Math.min(0.35, 0.07 + 0.025 * (w - D.hunterFrom)) : 0;
+  const { pf, ph, pu } = typeShares(w);
   return total * (ph * W.heavy + pf * W.fast + pu * W.hunter + Math.max(0, 1 - ph - pf - pu) * W.basic);
 }
 const nukeFresh = m => ({ meter: clamp(+m || 0, 0, 1), warnT: 0, flashT: -1e9, firing: false, used: 0, hinted: false });

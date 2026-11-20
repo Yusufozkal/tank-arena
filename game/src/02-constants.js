@@ -1,5 +1,5 @@
 /* ================= constants ================= */
-const T = 48, MAP_N = 21, HALF = (MAP_N - 1) / 2;
+const T = 48, MAP_N = 25, HALF = (MAP_N - 1) / 2;
 const EMPTY = 0, BRICK = 1, STEEL = 2, WATER = 3, BUSH = 4, BRICK_HP = 3;
 const isWall = v => v === BRICK || v === STEEL;
 const blocksTank = v => v === BRICK || v === STEEL || v === WATER;

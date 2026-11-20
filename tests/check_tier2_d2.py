@@ -54,15 +54,15 @@ with sync_playwright() as pw:
 
     laser = ev("""() => { const t = __tank, G = t.G, T = 48; (""" + SETUP + """)(['rayli', {}]); const m = G.map, n = m.n;
       const out = {}; const x0 = 10.5 * T + 43, y0 = 10.5 * T;
-      let L = t.rayLaser(x0, y0, 0); out.edge = L; // nothing but the border: ends at the world edge (x = 20 * T)
+      let L = t.rayLaser(x0, y0, 0); out.edge = L; // nothing but the border: ends at the world edge (x = 24 * T)
       m.t[10 * n + 16] = 1; m.hp[10 * n + 16] = 3; L = t.rayLaser(x0, y0, 0); out.brick = L; // a brick does not stop the line
       m.t[10 * n + 17] = 2; L = t.rayLaser(x0, y0, 0); out.steel = L; out.steelTile = m.at(L.x + 1, L.y);
       // diagonal against a brute-force march
       m.t[14 * n + 15] = 2; const a = Math.atan2(4 * T, 5 * T); L = t.rayLaser(x0, y0, a); let bx = x0, by = y0, g = 0; while (!(m.at(bx, by) === 2) && g++ < 5000) { bx += Math.cos(a) * 0.25; by += Math.sin(a) * 0.25; }
       out.diag = { x: L.x, y: L.y, bx, by }; return out; }""")
     R['laser'] = laser
-    check('laser_edge', abs(laser['edge']['x'] - 20 * 48) < 1 and laser['edge']['steel'], laser['edge'])
-    check('laser_ignores_bricks', abs(laser['brick']['x'] - 20 * 48) < 1, laser['brick'])
+    check('laser_edge', abs(laser['edge']['x'] - 24 * 48) < 1 and laser['edge']['steel'], laser['edge'])
+    check('laser_ignores_bricks', abs(laser['brick']['x'] - 24 * 48) < 1, laser['brick'])
     check('laser_ends_at_first_steel', abs(laser['steel']['x'] - 17 * 48) < 1 and laser['steelTile'] == 2, laser['steel'])
     check('laser_diagonal', abs(laser['diag']['x'] - laser['diag']['bx']) < 1.5 and abs(laser['diag']['y'] - laser['diag']['by']) < 1.5, laser['diag'])
 
@@ -134,6 +134,7 @@ with sync_playwright() as pw:
     ctx = new_ctx(b, 'd2-desktop', viewport={'width': 1280, 'height': 800})
     pg = ctx.new_page(); seed(pg); pg.click('#btnStart'); pg.wait_for_timeout(300)
     pg.evaluate(SETUP, ['obus', {}, 3]); pg.wait_for_timeout(100)
+    pg.evaluate("() => { const p = __tank.G.player; p.x = p.y = __tank.G.map.n * 24; }")  # 25-tile map: stand on the centre so the camera is not clamped
     res = []
     for k, (dx, dy) in enumerate([(120, 0), (260, 40), (420, -60), (560, 0)]):
         info = pg.evaluate("() => { const v = __tank.view; return { w: v.w, h: v.h, s: v.scale }; }")
