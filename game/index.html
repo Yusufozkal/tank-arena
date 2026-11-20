@@ -546,7 +546,7 @@ const SPECS = {
     col: { body: '#cf9f30', dk: '#8c691b', hi: '#efca60', acc: '#2a2622' } },
   heavy: { hp: 5, speed: 55, turn: 2.2, tTurn: 2.1, r: 20, mass: 2, len: 46, wid: 40, tread: 10, tR: 12.5, barrel: 28, bW: 6.5, cool: 2.4, bSpeed: 330, dmg: 22, bR: 6, score: 250, hold: 5.5, drop: 0.32, twin: true,
     col: { body: '#60656c', dk: '#3b3f44', hi: '#8c929a', acc: '#c9402d' } },
-  boss: { hp: 34, speed: 45, turn: 1.7, tTurn: 1.8, r: 38, mass: 4, len: 90, wid: 70, tread: 14, tR: 24, barrel: 58, bW: 9, cool: 1.6, bSpeed: 360, dmg: 16, bR: 5.5, score: 1500, hold: 5, drop: 1, triple: true,
+  boss: { hp: 34, speed: 45, turn: 1.7, tTurn: 1.8, r: 38, mass: 4, len: 90, wid: 70, tread: 14, tR: 24, barrel: 58, bW: 9, cool: 1.6, bSpeed: 400, dmg: 9, bR: 5.5, score: 1500, hold: 5, drop: 1, triple: true,
     col: { body: '#7d2431', dk: '#4b131d', hi: '#ad4356', acc: '#f2c14e' } },
   // Avcı: the smart tank. Dodges shells, fires from cover, sneaks around open ground
   hunter: { hp: 3, speed: 106, turn: 4.6, tTurn: 4.4, r: 16, mass: 1, len: 38, wid: 32, tread: 7.5, tR: 9.5, barrel: 27, bW: 5.5, cool: 1.25, bSpeed: 480, dmg: 14, bR: 4, score: 300, hold: 4.5, drop: 0.3, smart: true,
@@ -557,11 +557,11 @@ const SPECS = {
 };
 
 // Komutan HP per boss wave, tuned with tests/boss_probe.py so that a medium card set (and the bot) takes about 3-4 minutes from wave 15 on; the wave-5 Komutan is the easy one
-const BOSS_HP_AT = [[5, 200], [15, 600], [25, 920], [35, 1190]];
+const BOSS_HP_AT = [[5, 185], [15, 550], [25, 840], [35, 1090]];
 const bossHp = w => {
   const P = BOSS_HP_AT, last = P[P.length - 1];
   if (w <= P[0][0]) return P[0][1];
-  if (w >= last[0]) return Math.round(last[1] + (w - last[0]) * 27);
+  if (w >= last[0]) return Math.round(last[1] + (w - last[0]) * 25);
   for (let i = 1; i < P.length; i++) if (w <= P[i][0]) return Math.round(P[i - 1][1] + (P[i][1] - P[i - 1][1]) * (w - P[i - 1][0]) / (P[i][0] - P[i - 1][0]));
 };
 
@@ -2156,7 +2156,7 @@ function updateBullets(dt) {
   for (const a of G.bullets) {
     if (a.dead || a.owner !== 0 || a.lob) continue; // lob shells fly above enemy shells
     for (const c of G.bullets) {
-      if (c.dead || c.owner !== 1) continue;
+      if (c.dead || c.owner !== 1 || c.boss) continue; // boss shells are not shot down by the player's shells
       const rr = a.r + c.r + 3;
       if (dist2(a.x, a.y, c.x, c.y) < rr * rr) { c.dead = true; if (!a.pierce) a.dead = true; sparks((a.x + c.x) / 2, (a.y + c.y) / 2, 8, '#fff0c0', 200); Sound.metal(volAt(a.x, a.y)); if (a.dead) break; }
     }
@@ -2834,7 +2834,7 @@ function bossShell(e, ang, o) {
   let bx = ox, by = oy, blocked = false;
   for (let d = 6; d <= len; d += 6) { bx = ox + ca * d; by = oy + sa * d; if (isWall(m.at(bx, by))) { blocked = true; break; } }
   const sp = s.bSpeed * (o.speed || 1);
-  const b = { x: bx, y: by, vx: ca * sp, vy: sa * sp, r: s.bR, owner: 1, dmg: bossDmg(s.dmg * (o.dmgK || 1)), life: 2.4, big: true, dead: false,
+  const b = { x: bx, y: by, vx: ca * sp, vy: sa * sp, r: s.bR, owner: 1, dmg: bossDmg(s.dmg * (o.dmgK || 1)), life: 3.2, big: true, dead: false,
     pierce: false, bounce: 0, splash: null, look: 'enemy', hits: null, bricks: null, sx: bx, sy: by, dist: 0, bounced: false, vol: 0, volN: 0, pn: 0, boss: true };
   if (blocked) hitTile(b, bx, by); else G.bullets.push(b);
 }
@@ -2857,24 +2857,42 @@ function bossBlast(x, y, r, dmg) {
   addDecals(G.map, [{ k: 'scorch', x, y, r: r * 0.8 }]);
   if (p.alive && dist2(x, y, p.x, p.y) < (r + p.r * 0.4) * (r + p.r * 0.4)) damagePlayer({ x: p.x, y: p.y, dmg: bossDmg(dmg), owner: 1, vx: 0, vy: 0 });
 }
-const aimAtPlayer = (e, dt, k) => { const p = G.player; if (p.alive) e.turret = turnTo(e.turret, Math.atan2(p.y - e.y, p.x - e.x), e.spec.tTurn * (k || 1) * dt); };
+// angle from (x, y) to where the player will be when a shell of this speed arrives (k: share of the full lead; the player's smoothed velocity, flight time capped)
+function leadAng(x, y, speed, k) {
+  const p = G.player, t = Math.min(0.8, Math.hypot(p.x - x, p.y - y) / speed) * (k || 0);
+  return Math.atan2(p.y + (p.vy || 0) * t - y, p.x + (p.vx || 0) * t - x);
+}
+const aimAtPlayer = (e, dt, k, lead) => { const p = G.player; if (p.alive) e.turret = turnTo(e.turret, lead ? leadAng(e.x, e.y, e.spec.bSpeed, lead) : Math.atan2(p.y - e.y, p.x - e.x), e.spec.tTurn * (k || 1) * dt); };
 function* glowAim(e, id, dur, fan) { // barrel glow telegraph while the turret keeps aiming; the shot itself is the caller's
   const tl = addTele(e, { kind: 'glow', dur, fan });
-  while (tl.t < tl.dur) { aimAtPlayer(e, e.dt, 1.6); yield 0; }
+  while (tl.t < tl.dur) { aimAtPlayer(e, e.dt, 1.6, e.def.lead); yield 0; }
   release(e, id, tl); removeTele(tl);
 }
 
-/* ---- movement: a flow field over the tiles where the boss's body fits ---- */
-const bossFits = (m, c, r) => { for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if (blocksTank(m.get(c + dx, r + dy))) return false; return true; };
+/* ---- movement: a flow field over the tiles where the boss's round hull fits ---- */
+// a tile centre fits when a circle of the hull radius (+2) around it touches no wall, water or the map edge (the same test collideWalls uses, so the boss never wedges on the way)
+function bossFitMap(e) {
+  const m = G.map, n = m.n, rad = e.r + 2, k = Math.ceil(rad / T), fit = e.fit && e.fit.length === n * n ? e.fit : (e.fit = new Uint8Array(n * n));
+  for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) {
+    const cx = c * T + T / 2, cy = r * T + T / 2; let ok = 1;
+    for (let dy = -k; dy <= k && ok; dy++) for (let dx = -k; dx <= k; dx++) {
+      if (!blocksTank(m.get(c + dx, r + dy))) continue;
+      const bx = (c + dx) * T, by = (r + dy) * T, ex = cx - clamp(cx, bx, bx + T), ey = cy - clamp(cy, by, by + T);
+      if (ex * ex + ey * ey < rad * rad) { ok = 0; break; }
+    }
+    fit[r * n + c] = ok;
+  }
+  return fit;
+}
 function computeBossFlow(e) {
-  const m = G.map, n = m.n, p = G.player, N = n * n;
+  const m = G.map, n = m.n, p = G.player, N = n * n, fit = bossFitMap(e);
   if (!e.flow || e.flow.length !== N) e.flow = new Float32Array(N);
   e.flow.fill(1e9);
   const fg = e.def.flowGoal ? e.def.flowGoal(e) : null; // hook: a fixed place to walk to instead of the player (Demirkök walks to the castle centre)
   const pc = clamp(Math.floor((fg ? fg.x : p.x) / T), 0, n - 1), pr = clamp(Math.floor((fg ? fg.y : p.y) / T), 0, n - 1);
   let goal = -1, gd = 1e9;
   for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) {
-    if (!bossFits(m, c, r)) continue;
+    if (!fit[r * n + c]) continue;
     const d = (c - pc) * (c - pc) + (r - pr) * (r - pr); if (d < gd) { gd = d; goal = r * n + c; }
   }
   if (goal < 0) return;
@@ -2882,25 +2900,47 @@ function computeBossFlow(e) {
   for (let h = 0; h < q.length; h++) {
     const i = q[h], c = i % n, r = (i - c) / n;
     for (const [dx, dy] of DIRS) {
-      const x = c + dx, y = r + dy; if (x < 0 || y < 0 || x >= n || y >= n || !bossFits(m, x, y)) continue;
+      const x = c + dx, y = r + dy; if (x < 0 || y < 0 || x >= n || y >= n || !fit[y * n + x]) continue;
       const j = y * n + x; if (e.flow[j] < 1e8) continue;
       e.flow[j] = e.flow[i] + 1; q.push(j);
     }
   }
 }
+// the next tile centre to head for. A boss standing on a tile where its hull does not fit (wall hugging, pushed into a pocket) first heads for the best fitting tile nearby
 function bossWaypoint(e) {
-  const m = G.map, n = m.n, c = clamp(Math.floor(e.x / T), 0, n - 1), r = clamp(Math.floor(e.y / T), 0, n - 1);
-  if (!e.flow || e.flow[r * n + c] > 1e8) return nextWaypoint(e); // squeezed outside the field: the ordinary tile flow
-  let best = null, bv = e.flow[r * n + c];
+  const m = G.map, n = m.n, c = clamp(Math.floor(e.x / T), 0, n - 1), r = clamp(Math.floor(e.y / T), 0, n - 1), here = e.flow ? e.flow[r * n + c] : 1e9;
+  if (!e.flow || e.flow[r * n + c] > 1e8) return bossEscapeTarget(e);
+  let best = null, bv = here;
   for (const [dx, dy] of shuffle(DIRS.slice())) { const x = c + dx, y = r + dy; if (x < 0 || y < 0 || x >= n || y >= n) continue; const f = e.flow[y * n + x]; if (f < bv) { bv = f; best = { c: x, r: y }; } }
   if (!best) return null;
   best.x = best.c * T + T / 2; best.y = best.r * T + T / 2; return best;
+}
+// nearest fitting tile (breadth first through open ground), preferring the ones closer to the goal; null when the boss is sealed in
+function bossEscapeTarget(e) {
+  const m = G.map, n = m.n, fit = e.fit; if (!fit || !e.flow) return null;
+  const c0 = clamp(Math.floor(e.x / T), 0, n - 1), r0 = clamp(Math.floor(e.y / T), 0, n - 1), seen = new Map([[r0 * n + c0, 0]]), q = [[c0, r0]]; let best = null, bs = 1e9;
+  for (let h = 0; h < q.length; h++) {
+    const [c, r] = q[h], d = seen.get(r * n + c);
+    if (fit[r * n + c] && e.flow[r * n + c] < 1e8) { const sc = d * 1.5 + e.flow[r * n + c] * 0.2 + Math.hypot(c * T + T / 2 - e.x, r * T + T / 2 - e.y) / T; if (sc < bs) { bs = sc; best = { c, r }; } }
+    if (d >= 4) continue;
+    for (const [dx, dy] of DIRS) { const x = c + dx, y = r + dy; if (x < 0 || y < 0 || x >= n || y >= n || seen.has(y * n + x) || blocksTank(m.t[y * n + x])) continue; seen.set(y * n + x, d + 1); q.push([x, y]); }
+  }
+  if (!best) return null;
+  best.x = best.c * T + T / 2; best.y = best.r * T + T / 2; best.esc = true; return best;
+}
+// no progress for a while: slide the hull toward the nearest fitting tile centre, through the corner it is caught on (a gentle depenetration, a few px per frame)
+function bossUnjam(e, dt) {
+  const t = e.jam && e.jam.esc ? e.jam : (e.jam = bossEscapeTarget(e)); if (!t) return;
+  const d = Math.hypot(t.x - e.x, t.y - e.y); if (d < 3) { e.jam = null; return; }
+  const sp = Math.min(d, 140 * dt); e.x += (t.x - e.x) / d * sp; e.y += (t.y - e.y) / d * sp;
 }
 function bossMove(e, dt, hold) {
   if (e.treadT > 0) { e.avx = e.avy = 0; return; } // a broken tread: the boss stands still while the crew repairs it
   const s = e.spec, p = G.player, before = e.angle, ox = e.x, oy = e.y;
   e.flowT -= dt; if (e.flowT <= 0) { computeBossFlow(e); e.flowT = 0.3; }
   if (p.alive && !(e.canSee && e.distP < hold * T)) {
+    if (e.jamT > 1.8) { bossUnjam(e, dt); e.stuckT = 0; } // side-steps did not help: depenetrate
+    else if (e.jam) e.jam = null;
     if (!e.wp || dist2(e.wp.x, e.wp.y, e.x, e.y) < 30) { e.wp = bossWaypoint(e); e.wpBest = 1e9; e.stuckT = 0; }
     if (e.wp) {
       const desired = Math.atan2(e.wp.y - e.y, e.wp.x - e.x);
@@ -2909,11 +2949,19 @@ function bossMove(e, dt, hold) {
       moveTank(e, Math.cos(e.angle) * spd * dt, Math.sin(e.angle) * spd * dt);
       const dw = Math.hypot(e.wp.x - e.x, e.wp.y - e.y);
       if (dw < e.wpBest - 0.5) { e.wpBest = dw; e.stuckT = 0; } else e.stuckT += dt;
-      if (e.stuckT > 1.2) { e.wp = randomNeighbor(e); e.wpBest = 1e9; e.stuckT = 0; }
+      if (e.stuckT > 0.8) { e.wp = bossSideStep(e); e.wpBest = 1e9; e.stuckT = 0; }
     }
-  }
+    if (e.jx === undefined || Math.hypot(e.x - e.jx, e.y - e.jy) >= 10) { e.jx = e.x; e.jy = e.y; e.jamT = 0; } else e.jamT = (e.jamT || 0) + dt; // moved less than 10 px in 1.8 s: wedged
+  } else e.jamT = 0;
   if (dt > 0) { e.avx = (e.x - ox) / dt; e.avy = (e.y - oy) / dt; }
   trackUpdate(e, (e.x - ox) * Math.cos(e.angle) + (e.y - oy) * Math.sin(e.angle), angDiff(before, e.angle));
+}
+// a different fitting neighbour tile (not the one just failed), or the escape target when none is left
+function bossSideStep(e) {
+  const m = G.map, n = m.n, fit = e.fit, c = clamp(Math.floor(e.x / T), 0, n - 1), r = clamp(Math.floor(e.y / T), 0, n - 1), opts = [];
+  if (fit) for (const [dx, dy] of DIRS) { const x = c + dx, y = r + dy; if (x >= 0 && y >= 0 && x < n && y < n && fit[y * n + x] && !(e.wp && e.wp.c === x && e.wp.r === y)) opts.push({ c: x, r: y }); }
+  if (!opts.length) return bossEscapeTarget(e);
+  const o = pick(opts); o.x = o.c * T + T / 2; o.y = o.r * T + T / 2; return o;
 }
 
 /* ---- per-frame boss update ---- */
@@ -2935,6 +2983,8 @@ function updateBoss(e, dt, halted) {
   e.distP = Math.hypot(p.x - e.x, p.y - e.y);
   e.canSee = p.alive && los(e.x, e.y, p.x, p.y);
   e.cool -= dt;
+  e.healT = (e.healT === undefined ? 30 : e.healT) - dt; // a long fight: a worn-down player gets a Tamir kit now and then (not while one still lies around)
+  if (e.healT <= 0 && p.alive) { e.healT = 5; if (p.hp < p.maxHp * 0.55 && !G.pickups.some(q => q.kind === 'repair')) { dropRepairAway(e); e.healT = 35; } }
   e.glow = 0;
   for (const tl of G.tele) { tl.t += dt; if (tl.kind === 'glow') e.glow = Math.max(e.glow, tl.t / tl.dur); }
   if (e.gen) {
@@ -3199,12 +3249,13 @@ function endBossIntro(skipped) {
 function bossIntroTap() { if (G.state === 'play' && G.phase === 'bossIntro' && G.introSeen && G.phaseT > 0.25) endBossIntro(true); }
 /* ================= Komutan (docs/BOSSES.md section 3) ================= */
 // Attacks are generators: `yield n` waits n seconds (0 = next frame), e.dt is the frame time. Each one shows its telegraph first (see TELE_MIN).
+const RAM_DMG = 40; // ezme: a clean hit takes about a third of a mid-game tank's armour and hull
 const KOM_FAN3 = [-0.2, 0, 0.2], KOM_FAN5 = [-0.34, -0.17, 0, 0.17, 0.34];
 function* komTriple(e) { yield* glowAim(e, 'triple', 0.45, KOM_FAN3); bossVolley(e, KOM_FAN3); yield 0.4; }
 function* komPenta(e) { yield* glowAim(e, 'penta', 0.45, KOM_FAN5); bossVolley(e, KOM_FAN5); yield 0.5; }
 function* komSalvo(e) { // yaylım: three triple volleys, the fan turning a little each time, each with its own glow
   for (let k = 0; k < 3; k++) {
-    const tl = addTele(e, { kind: 'glow', dur: 0.45, fan: KOM_FAN3 }), p = G.player, base = Math.atan2(p.y - e.y, p.x - e.x) + (k - 1) * 0.3;
+    const tl = addTele(e, { kind: 'glow', dur: 0.45, fan: KOM_FAN3 }), p = G.player, base = leadAng(e.x, e.y, e.spec.bSpeed, e.def.lead) + (k - 1) * 0.3;
     while (tl.t < tl.dur) { e.turret = turnTo(e.turret, base, e.spec.tTurn * 2.2 * e.dt); yield 0; }
     release(e, 'yaylim', tl); removeTele(tl); bossVolley(e, KOM_FAN3); yield 0.15;
   }
@@ -3235,7 +3286,7 @@ function* komCharge(e) { // ezme hücumu: red line (last 0.3 s locked), then a 6
     trackUpdate(e, moved, 0); trav += moved;
     if (fxScale === 1 && Math.random() < 0.6) addPart('dust', e.x - ca * e.r, e.y - sa * e.r + rand(-14, 14), rand(-30, 30), rand(-30, 30), rand(0.4, 0.8), rand(14, 24), 26, 2);
     if (!hurt && p.alive && dist2(e.x, e.y, p.x, p.y) < (e.r + p.r + 2) * (e.r + p.r + 2)) {
-      hurt = true; damagePlayer({ x: p.x, y: p.y, dmg: bossDmg(26), owner: 1, vx: 0, vy: 0 });
+      hurt = true; damagePlayer({ x: p.x, y: p.y, dmg: bossDmg(RAM_DMG), owner: 1, vx: 0, vy: 0 });
       moveTank(p, -sa * 36, ca * 36 * (Math.random() < 0.5 ? 1 : -1)); shake(8);
     }
     if (moved < step * 0.35) break; // jammed against something
@@ -3298,7 +3349,7 @@ const KOM_ATTACKS = [
 BOSS_DEFS.komutan = {
   id: 'komutan', name: 'KOMUTAN', arena: 'kisla', introSub: 'Kışla', hold: 4.5, phases: [66, 33], plates: ['shoulder', 'skirt'],
   deathText: 'KOMUTAN DÜŞTÜ', loot: 'KOMUTAN GANİMETİ',
-  hp: bossHp, attacks: KOM_ATTACKS, barrels: [{ id: 'mid', name: 'Orta namlu', ang: 0, k: 0.07 }],
+  lead: 0.35, hp: bossHp, attacks: KOM_ATTACKS, barrels: [{ id: 'mid', name: 'Orta namlu', ang: 0, k: 0.07 }],
   unlocks: w => ({ tower: w >= 15, topcu: w >= 15, yaylim: w >= 25, bomb: w >= 25, penta: w >= 35, shock: w >= 35 }),
   setup(e, w) {
     if (e.unlock.tower) e.parts.push({ id: 'tower', name: 'Komuta kulesi', atk: 'topcu', ox: -24, oy: 0, r: 15, maxHp: Math.max(2, Math.round(e.maxHp * 0.1)), hp: Math.max(2, Math.round(e.maxHp * 0.1)), alive: true, flash: 0 });
@@ -3334,10 +3385,11 @@ ARENAS.kum = { name: 'Kum Çukuru', gate: [[9, 4], [10, 4], [11, 4]], rows: [ //
   '.....................'] };
 
 const SARI_CHARGE_LEN = 9 * T;   // a charge covers this far (more with the wind) unless steel is in the way
+const SARI_RAM_DMG = 30;       // a clean hit; the double and triple charge can hit again
 const SARI_RUSH = 650;           // charge speed, px/s
 const SARI_SAND_LIFE = 4, SARI_SAND_SLOW = 0.35, SARI_SAND_W = 64;
 const SARI_WIND_WARN = 1.5, SARI_WIND_BLOW = 5, SARI_WIND_EVERY = 12, SARI_WIND_PUSH = 75;
-const SARI_SPEC = { speed: 175, turn: 5, tTurn: 5.5, len: 72, wid: 48, r: 27, tread: 9, tR: 12, barrel: 44, bW: 8, cool: 1, bSpeed: 420, dmg: 5, bR: 5, mass: 3, score: 1500,
+const SARI_SPEC = { speed: 175, turn: 5, tTurn: 5.5, len: 72, wid: 48, r: 27, tread: 9, tR: 12, barrel: 44, bW: 8, cool: 1, bSpeed: 450, dmg: 4, bR: 5, mass: 3, score: 1500,
   col: { body: '#cf9f30', dk: '#8c691b', hi: '#efca60', acc: '#f08a2c' } };
 
 const sariWindVec = e => { const W = e.sari.wind; return W.st === 'blow' ? { x: Math.cos(W.a) * SARI_WIND_PUSH, y: Math.sin(W.a) * SARI_WIND_PUSH } : null; };
@@ -3369,13 +3421,13 @@ function sariOrbit(e, st, dt, R) { // circle the player at about R px, tangent p
 function* sariShots(e) { // çevik atış: two bursts of three shots while circling 5-7 tiles from the player; each burst warned by a 0.45 s glow
   const st = { sign: Math.random() < 0.5 ? 1 : -1, stuck: 0 }, R = rand(5, 7) * T;
   for (let b = 0; b < 2; b++) {
-    for (let t = 0; t < (b ? 0.5 : 0.9); t += e.dt) { sariOrbit(e, st, e.dt, R); aimAtPlayer(e, e.dt, 1.4); yield 0; }
+    for (let t = 0; t < (b ? 0.5 : 0.9); t += e.dt) { sariOrbit(e, st, e.dt, R); aimAtPlayer(e, e.dt, 1.4, e.def.lead); yield 0; }
     const tl = addTele(e, { kind: 'glow', dur: 0.45, fan: [0] });
-    while (tl.t < tl.dur) { sariOrbit(e, st, e.dt, R); aimAtPlayer(e, e.dt, 1.8); yield 0; }
+    while (tl.t < tl.dur) { sariOrbit(e, st, e.dt, R); aimAtPlayer(e, e.dt, 1.8, e.def.lead); yield 0; }
     release(e, 'cevik', tl); removeTele(tl);
     for (let k = 0; k < 3; k++) {
       bossVolley(e, [0]);
-      for (let t = 0; t < 0.13; t += e.dt) { sariOrbit(e, st, e.dt, R); aimAtPlayer(e, e.dt, 1.8); yield 0; }
+      for (let t = 0; t < 0.13; t += e.dt) { sariOrbit(e, st, e.dt, R); aimAtPlayer(e, e.dt, 1.8, e.def.lead); yield 0; }
     }
   }
   yield 0.2;
@@ -3411,7 +3463,7 @@ function* sariRush(e) {
     if (strip) { strip.x2 = e.x - ca * e.r * 0.6; strip.y2 = e.y - sa * e.r * 0.6; }
     if (fxScale === 1) for (let k = 0; k < 2; k++) addPart('dust', e.x - ca * e.r + rand(-6, 6), e.y - sa * e.r + rand(-18, 18), -ca * rand(40, 120) + rand(-30, 30), -sa * rand(40, 120) + rand(-30, 30), rand(0.4, 0.8), rand(14, 24), 26, 2);
     if (!hurt && p.alive && dist2(e.x, e.y, p.x, p.y) < (e.r + p.r + 2) * (e.r + p.r + 2)) { // ağır hasar + geri itme
-      hurt = true; damagePlayer({ x: p.x, y: p.y, dmg: bossDmg(15), owner: 1, vx: 0, vy: 0 });
+      hurt = true; damagePlayer({ x: p.x, y: p.y, dmg: bossDmg(SARI_RAM_DMG), owner: 1, vx: 0, vy: 0 });
       const side = (p.x - e.x) * -sa + (p.y - e.y) * ca < 0 ? -1 : 1;
       moveTank(p, -sa * 64 * side + ca * 30, ca * 64 * side + sa * 30); shake(9); vibrate(40);
     }
@@ -3487,10 +3539,10 @@ function sariTick(e, dt) {
 }
 
 BOSS_DEFS.sari = {
-  id: 'sari', name: 'SARI FIRTINA', arena: 'kum', introSub: 'Kum Çukuru', hold: 4, phases: [66, 33], plates: ['plate', 'fender'], r: SARI_SPEC.r,
+  id: 'sari', lead: 0.35, name: 'SARI FIRTINA', arena: 'kum', introSub: 'Kum Çukuru', hold: 4, phases: [66, 33], plates: ['plate', 'fender'], r: SARI_SPEC.r,
   deathText: 'SARI FIRTINA DİNDİ', loot: 'SARI FIRTINA GANİMETİ',
   barrels: [{ id: 'main', name: 'Namlu', ang: 0, k: 0.1 }],
-  hp: w => Math.round(510 + (w - 10) * 25),
+  hp: w => Math.round(460 + (w - 10) * 23),
   attacks: [
     { id: 'cevik', w: 3, ok: e => true, run: sariShots },
     { id: 'hucum', w: 3, ok: e => e.distP > 2.5 * T && e.phase < 2, run: sariCharge, mov: true },
@@ -3540,14 +3592,15 @@ ARENAS.kale = { name: 'Orman Kalesi', gate: [[9, 5], [10, 5], [11, 5]], rows: [ 
   'GG.................GG',
   'GGG...............GGG'] };
 
-const DEMIR_SPEC = { speed: 38, turn: 1.3, tTurn: 1.9, len: 110, wid: 96, r: 46, tread: 15, tR: 21, barrel: 74, bW: 9, cool: 1, bSpeed: 340, dmg: 9, bR: 6, mass: 12, score: 2500,
+const DEMIR_SPEC = { speed: 38, turn: 1.3, tTurn: 1.9, len: 110, wid: 96, r: 46, tread: 15, tR: 21, barrel: 74, bW: 9, cool: 1, bSpeed: 370, dmg: 6, bR: 6, mass: 12, score: 2500,
   col: { body: '#60656c', dk: '#3b3f44', hi: '#8c929a', acc: '#c9402d' } };
+const DEMIR_RAM_DMG = 46;
 const DEMIR_RING = 4.5 * T, DEMIR_ROOT_LIFE = 8, DEMIR_SWEEP_W = 1.1, DEMIR_BAR = 0.11; // twin barrels sit at +-DEMIR_BAR rad from the turret
 const DEMIR_FAN = [-DEMIR_BAR, DEMIR_BAR];
 
 /* ---- shells ---- */
 function demirTurretShot(e, pt) { // a single shell from a side turret, aimed at the player
-  const q = partPos(e, pt), p = G.player, a = Math.atan2(p.y - q.y, p.x - q.x);
+  const q = partPos(e, pt), a = leadAng(q.x, q.y, e.spec.bSpeed, e.def.lead);
   bossShell(e, a, { x: q.x, y: q.y, len: 16, dmgK: 0.9 });
   const ca = Math.cos(a), sa = Math.sin(a);
   addPart('fire', q.x + ca * 16, q.y + sa * 16, ca * 60, sa * 60, 0.1, 18, 36, 0);
@@ -3587,7 +3640,7 @@ function* demirTurrets(e) { // taret ateşi: the side turrets take turns, one sh
     const pt = live.length === 1 ? live[0] : live[(dk.side++) % live.length];
     dk.who = pt.id;
     const tl = addTele(e, { kind: 'glow', dur: 0.45 });
-    while (tl.t < tl.dur) { aimAtPlayer(e, e.dt, 0.9); yield 0; }
+    while (tl.t < tl.dur) { aimAtPlayer(e, e.dt, 0.9, e.def.lead); yield 0; }
     release(e, 'taret', tl); removeTele(tl);
     if (pt.alive) demirTurretShot(e, pt);
     dk.who = ''; yield 0.28;
@@ -3625,7 +3678,7 @@ function* demirCrush(e) { // ezme: red line 1 s (last 0.3 s locked), then a slow
     trackUpdate(e, moved, 0); trav += moved;
     if (fxScale === 1 && Math.random() < 0.7) addPart('dust', e.x - ca * e.r, e.y - sa * e.r + rand(-18, 18), rand(-30, 30), rand(-30, 30), rand(0.4, 0.8), rand(14, 24), 26, 2);
     if (!hurt && p.alive && dist2(e.x, e.y, p.x, p.y) < (e.r + p.r + 2) * (e.r + p.r + 2)) {
-      hurt = true; damagePlayer({ x: p.x, y: p.y, dmg: bossDmg(24), owner: 1, vx: 0, vy: 0 });
+      hurt = true; damagePlayer({ x: p.x, y: p.y, dmg: bossDmg(DEMIR_RAM_DMG), owner: 1, vx: 0, vy: 0 });
       const side = (p.x - e.x) * -sa + (p.y - e.y) * ca < 0 ? -1 : 1; moveTank(p, -sa * 56 * side + ca * 24, ca * 56 * side + sa * 24); shake(8); vibrate(30);
     }
     if (moved < step * 0.35) break; // jammed against something
@@ -3818,10 +3871,10 @@ function demirTick(e, dt) {
 /* ---- definition ---- */
 const demirMob = e => e.phase < 2 || e.rooted; // before phase 3 and once rooted the usual attacks; in between it is walking to the centre
 BOSS_DEFS.demirkok = {
-  id: 'demirkok', name: 'DEMİRKÖK', arena: 'kale', introSub: 'Orman Kalesi', hold: 4.5, phases: [66, 33], plates: ['plate', 'fender'], r: DEMIR_SPEC.r,
+  id: 'demirkok', lead: 0.35, name: 'DEMİRKÖK', arena: 'kale', introSub: 'Orman Kalesi', hold: 4.5, phases: [66, 33], plates: ['plate', 'fender'], r: DEMIR_SPEC.r,
   deathText: 'DEMİRKÖK DEVRİLDİ', loot: 'DEMİRKÖK GANİMETİ',
   barrels: [{ id: 'l', name: 'Sol namlu', ang: -DEMIR_BAR, k: 0.07 }, { id: 'r', name: 'Sağ namlu', ang: DEMIR_BAR, k: 0.07 }],
-  hp: w => Math.round(1150 + (w - 20) * 30),
+  hp: w => Math.round(1020 + (w - 20) * 27),
   attacks: [
     { id: 'taret', w: 3, ok: e => demirMob(e) && e.parts.some(q => q.alive), run: demirTurrets },
     { id: 'agir', w: 2.4, ok: e => demirMob(e), run: demirHeavy },
@@ -5781,6 +5834,22 @@ if (DEBUG) {
       }
       bot.on = false; G.noEvo = false;
       return { win: !!(e.dead || e.dying), secs: +(n / 60).toFixed(1), dmg: Math.round(hurtSum), hpLeft: Math.round(p.hp), bphase: e.phase, bossHp: +(e.hp / e.maxHp).toFixed(2), maxHp: e.maxHp };
+    },
+    // stuck watch: like bossFight, but samples the boss while it is supposed to walk; returns the longest stretch without progress (s) and where it happened
+    bossWatch(w, cards, tank, maxSec) {
+      store.set(BOSS_SEEN_KEY, true); bot.on = true; bot.nuke = false; G.god = true; G.noEvo = true;
+      G.up = Object.assign({}, cards); G.tank = tank || 'std'; refreshPlayer(); G.player.hp = G.player.maxHp;
+      view.zoomK = TANKS[G.tank].zoom; G.wave = w - 1; nextWave(); G.introSeen = true; endBossIntro(true);
+      const p = G.player, e = G.boss, max = Math.round(maxSec * 60); let n = 0, rx = e.x, ry = e.y, st = 0, worst = 0, at = null, moving = 0, god = 0;
+      while (n < max && G.state === 'play' && !e.dead && !e.dying) {
+        autopilot(1 / 60); update(1 / 60); n++;
+        const walk = G.phase === 'fight' && !e.invuln && e.trans <= 0 && !(e.stunT > 0) && e.treadT <= 0 && !e.rooted && (!e.gen || e.atkId === 'cevik') && !(e.canSee && e.distP < (e.def.hold || 4.5) * T);
+        if (!walk) { st = 0; rx = e.x; ry = e.y; continue; }
+        moving++;
+        if (Math.hypot(e.x - rx, e.y - ry) >= 14) { rx = e.x; ry = e.y; st = 0; } else { st += 1 / 60; if (st > worst) { worst = st; at = { x: Math.round(e.x), y: Math.round(e.y), t: +(n / 60).toFixed(1), atk: e.atkId, phase: e.phase, c: Math.floor(e.x / T), r: Math.floor(e.y / T) }; } }
+      }
+      bot.on = false; G.noEvo = false; G.god = false;
+      return { worst: +worst.toFixed(2), at, win: !!(e.dead || e.dying), secs: +(n / 60).toFixed(1), moving: +(moving / 60).toFixed(1) };
     },
     drop(kind, dx, dy) { const p = G.player; dropPickup(p.x + (dx || 0), p.y + (dy || 0), kind); }
   };

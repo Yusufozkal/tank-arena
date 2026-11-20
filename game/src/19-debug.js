@@ -76,6 +76,22 @@ if (DEBUG) {
       bot.on = false; G.noEvo = false;
       return { win: !!(e.dead || e.dying), secs: +(n / 60).toFixed(1), dmg: Math.round(hurtSum), hpLeft: Math.round(p.hp), bphase: e.phase, bossHp: +(e.hp / e.maxHp).toFixed(2), maxHp: e.maxHp };
     },
+    // stuck watch: like bossFight, but samples the boss while it is supposed to walk; returns the longest stretch without progress (s) and where it happened
+    bossWatch(w, cards, tank, maxSec) {
+      store.set(BOSS_SEEN_KEY, true); bot.on = true; bot.nuke = false; G.god = true; G.noEvo = true;
+      G.up = Object.assign({}, cards); G.tank = tank || 'std'; refreshPlayer(); G.player.hp = G.player.maxHp;
+      view.zoomK = TANKS[G.tank].zoom; G.wave = w - 1; nextWave(); G.introSeen = true; endBossIntro(true);
+      const p = G.player, e = G.boss, max = Math.round(maxSec * 60); let n = 0, rx = e.x, ry = e.y, st = 0, worst = 0, at = null, moving = 0, god = 0;
+      while (n < max && G.state === 'play' && !e.dead && !e.dying) {
+        autopilot(1 / 60); update(1 / 60); n++;
+        const walk = G.phase === 'fight' && !e.invuln && e.trans <= 0 && !(e.stunT > 0) && e.treadT <= 0 && !e.rooted && (!e.gen || e.atkId === 'cevik') && !(e.canSee && e.distP < (e.def.hold || 4.5) * T);
+        if (!walk) { st = 0; rx = e.x; ry = e.y; continue; }
+        moving++;
+        if (Math.hypot(e.x - rx, e.y - ry) >= 14) { rx = e.x; ry = e.y; st = 0; } else { st += 1 / 60; if (st > worst) { worst = st; at = { x: Math.round(e.x), y: Math.round(e.y), t: +(n / 60).toFixed(1), atk: e.atkId, phase: e.phase, c: Math.floor(e.x / T), r: Math.floor(e.y / T) }; } }
+      }
+      bot.on = false; G.noEvo = false; G.god = false;
+      return { worst: +worst.toFixed(2), at, win: !!(e.dead || e.dying), secs: +(n / 60).toFixed(1), moving: +(moving / 60).toFixed(1) };
+    },
     drop(kind, dx, dy) { const p = G.player; dropPickup(p.x + (dx || 0), p.y + (dy || 0), kind); }
   };
 }

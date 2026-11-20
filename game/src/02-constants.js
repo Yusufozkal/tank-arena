@@ -46,7 +46,7 @@ const SPECS = {
     col: { body: '#cf9f30', dk: '#8c691b', hi: '#efca60', acc: '#2a2622' } },
   heavy: { hp: 5, speed: 55, turn: 2.2, tTurn: 2.1, r: 20, mass: 2, len: 46, wid: 40, tread: 10, tR: 12.5, barrel: 28, bW: 6.5, cool: 2.4, bSpeed: 330, dmg: 22, bR: 6, score: 250, hold: 5.5, drop: 0.32, twin: true,
     col: { body: '#60656c', dk: '#3b3f44', hi: '#8c929a', acc: '#c9402d' } },
-  boss: { hp: 34, speed: 45, turn: 1.7, tTurn: 1.8, r: 38, mass: 4, len: 90, wid: 70, tread: 14, tR: 24, barrel: 58, bW: 9, cool: 1.6, bSpeed: 360, dmg: 16, bR: 5.5, score: 1500, hold: 5, drop: 1, triple: true,
+  boss: { hp: 34, speed: 45, turn: 1.7, tTurn: 1.8, r: 38, mass: 4, len: 90, wid: 70, tread: 14, tR: 24, barrel: 58, bW: 9, cool: 1.6, bSpeed: 400, dmg: 9, bR: 5.5, score: 1500, hold: 5, drop: 1, triple: true,
     col: { body: '#7d2431', dk: '#4b131d', hi: '#ad4356', acc: '#f2c14e' } },
   // Avcı: the smart tank. Dodges shells, fires from cover, sneaks around open ground
   hunter: { hp: 3, speed: 106, turn: 4.6, tTurn: 4.4, r: 16, mass: 1, len: 38, wid: 32, tread: 7.5, tR: 9.5, barrel: 27, bW: 5.5, cool: 1.25, bSpeed: 480, dmg: 14, bR: 4, score: 300, hold: 4.5, drop: 0.3, smart: true,
@@ -57,11 +57,11 @@ const SPECS = {
 };
 
 // Komutan HP per boss wave, tuned with tests/boss_probe.py so that a medium card set (and the bot) takes about 3-4 minutes from wave 15 on; the wave-5 Komutan is the easy one
-const BOSS_HP_AT = [[5, 200], [15, 600], [25, 920], [35, 1190]];
+const BOSS_HP_AT = [[5, 185], [15, 550], [25, 840], [35, 1090]];
 const bossHp = w => {
   const P = BOSS_HP_AT, last = P[P.length - 1];
   if (w <= P[0][0]) return P[0][1];
-  if (w >= last[0]) return Math.round(last[1] + (w - last[0]) * 27);
+  if (w >= last[0]) return Math.round(last[1] + (w - last[0]) * 25);
   for (let i = 1; i < P.length; i++) if (w <= P[i][0]) return Math.round(P[i - 1][1] + (P[i][1] - P[i - 1][1]) * (w - P[i - 1][0]) / (P[i][0] - P[i - 1][0]));
 };
 

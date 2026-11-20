@@ -129,7 +129,7 @@ with sync_playwright() as p:
     check('boss_tread_hp_8pct', bo['tr'] == [round(bo['max'] * 0.08)] * 2, bo['tr'])
     check('boss_tread_takes_side_hits_and_hull_too', bo['hit1'] < bo['tr'][1] and bo['hullTook'] > 4.9, [bo['hit1'], bo['hullTook']])
     check('boss_tread_break_halts_4s', bo['br']['br'] == 1 and abs(bo['halt'] - 4) < 0.01 and bo['moved'] < 1 and bo['left'] > 0, bo)
-    check('boss_tread_repaired_refilled_plus50', bo['after'][1]['t'] == 0 and bo['after'][1]['max'] == round(bo['tr'][1] * 1.5) and bo['after'][1]['hp'] == bo['after'][1]['max'], bo['after'])
+    check('boss_tread_repaired_refilled_plus50', bo['after'][1]['t'] == 0 and bo['after'][1]['max'] == int(bo['tr'][1] * 1.5 + 0.5) and bo['after'][1]['hp'] == bo['after'][1]['max'], bo['after'])
     check('boss_second_break_needs_50pct_more', bo['second'] == 0 and bo['second2'] > 3.9 and bo['left2']['t'] == 0, [bo['second'], bo['second2']])
 
     # ---- charge cancelled by a tread break during the red line; not before ----

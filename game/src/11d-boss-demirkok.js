@@ -26,14 +26,15 @@ ARENAS.kale = { name: 'Orman Kalesi', gate: [[9, 5], [10, 5], [11, 5]], rows: [ 
   'GG.................GG',
   'GGG...............GGG'] };
 
-const DEMIR_SPEC = { speed: 38, turn: 1.3, tTurn: 1.9, len: 110, wid: 96, r: 46, tread: 15, tR: 21, barrel: 74, bW: 9, cool: 1, bSpeed: 340, dmg: 9, bR: 6, mass: 12, score: 2500,
+const DEMIR_SPEC = { speed: 38, turn: 1.3, tTurn: 1.9, len: 110, wid: 96, r: 46, tread: 15, tR: 21, barrel: 74, bW: 9, cool: 1, bSpeed: 370, dmg: 6, bR: 6, mass: 12, score: 2500,
   col: { body: '#60656c', dk: '#3b3f44', hi: '#8c929a', acc: '#c9402d' } };
+const DEMIR_RAM_DMG = 46;
 const DEMIR_RING = 4.5 * T, DEMIR_ROOT_LIFE = 8, DEMIR_SWEEP_W = 1.1, DEMIR_BAR = 0.11; // twin barrels sit at +-DEMIR_BAR rad from the turret
 const DEMIR_FAN = [-DEMIR_BAR, DEMIR_BAR];
 
 /* ---- shells ---- */
 function demirTurretShot(e, pt) { // a single shell from a side turret, aimed at the player
-  const q = partPos(e, pt), p = G.player, a = Math.atan2(p.y - q.y, p.x - q.x);
+  const q = partPos(e, pt), a = leadAng(q.x, q.y, e.spec.bSpeed, e.def.lead);
   bossShell(e, a, { x: q.x, y: q.y, len: 16, dmgK: 0.9 });
   const ca = Math.cos(a), sa = Math.sin(a);
   addPart('fire', q.x + ca * 16, q.y + sa * 16, ca * 60, sa * 60, 0.1, 18, 36, 0);
@@ -73,7 +74,7 @@ function* demirTurrets(e) { // taret ateşi: the side turrets take turns, one sh
     const pt = live.length === 1 ? live[0] : live[(dk.side++) % live.length];
     dk.who = pt.id;
     const tl = addTele(e, { kind: 'glow', dur: 0.45 });
-    while (tl.t < tl.dur) { aimAtPlayer(e, e.dt, 0.9); yield 0; }
+    while (tl.t < tl.dur) { aimAtPlayer(e, e.dt, 0.9, e.def.lead); yield 0; }
     release(e, 'taret', tl); removeTele(tl);
     if (pt.alive) demirTurretShot(e, pt);
     dk.who = ''; yield 0.28;
@@ -111,7 +112,7 @@ function* demirCrush(e) { // ezme: red line 1 s (last 0.3 s locked), then a slow
     trackUpdate(e, moved, 0); trav += moved;
     if (fxScale === 1 && Math.random() < 0.7) addPart('dust', e.x - ca * e.r, e.y - sa * e.r + rand(-18, 18), rand(-30, 30), rand(-30, 30), rand(0.4, 0.8), rand(14, 24), 26, 2);
     if (!hurt && p.alive && dist2(e.x, e.y, p.x, p.y) < (e.r + p.r + 2) * (e.r + p.r + 2)) {
-      hurt = true; damagePlayer({ x: p.x, y: p.y, dmg: bossDmg(24), owner: 1, vx: 0, vy: 0 });
+      hurt = true; damagePlayer({ x: p.x, y: p.y, dmg: bossDmg(DEMIR_RAM_DMG), owner: 1, vx: 0, vy: 0 });
       const side = (p.x - e.x) * -sa + (p.y - e.y) * ca < 0 ? -1 : 1; moveTank(p, -sa * 56 * side + ca * 24, ca * 56 * side + sa * 24); shake(8); vibrate(30);
     }
     if (moved < step * 0.35) break; // jammed against something
@@ -304,10 +305,10 @@ function demirTick(e, dt) {
 /* ---- definition ---- */
 const demirMob = e => e.phase < 2 || e.rooted; // before phase 3 and once rooted the usual attacks; in between it is walking to the centre
 BOSS_DEFS.demirkok = {
-  id: 'demirkok', name: 'DEMİRKÖK', arena: 'kale', introSub: 'Orman Kalesi', hold: 4.5, phases: [66, 33], plates: ['plate', 'fender'], r: DEMIR_SPEC.r,
+  id: 'demirkok', lead: 0.35, name: 'DEMİRKÖK', arena: 'kale', introSub: 'Orman Kalesi', hold: 4.5, phases: [66, 33], plates: ['plate', 'fender'], r: DEMIR_SPEC.r,
   deathText: 'DEMİRKÖK DEVRİLDİ', loot: 'DEMİRKÖK GANİMETİ',
   barrels: [{ id: 'l', name: 'Sol namlu', ang: -DEMIR_BAR, k: 0.07 }, { id: 'r', name: 'Sağ namlu', ang: DEMIR_BAR, k: 0.07 }],
-  hp: w => Math.round(1150 + (w - 20) * 30),
+  hp: w => Math.round(1020 + (w - 20) * 27),
   attacks: [
     { id: 'taret', w: 3, ok: e => demirMob(e) && e.parts.some(q => q.alive), run: demirTurrets },
     { id: 'agir', w: 2.4, ok: e => demirMob(e), run: demirHeavy },
