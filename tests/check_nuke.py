@@ -1,4 +1,4 @@
-"""Nuclear bomba (1.5): whole-map blast, fixed boss damage (150, floor 10%, 3 s stun), boss-stage charging; the meter fills over kills, the effect, pause freezes the warning, key N, resume keeps the meter.
+"""Nuclear bomba (1.5): whole-map blast, boss damage by wave (150 up to wave 15, +6 per wave, at most 30% of max HP, floor 10%, 3 s stun), boss-stage charging; the meter fills over kills, the effect, pause freezes the warning, key N, resume keeps the meter.
 Waves-to-fill is measured with the autopilot and bot.nuke off (kills made by the nuke itself never count). Screenshots under .tmp/shots."""
 from common import *  # noqa: F401,F403
 
@@ -50,28 +50,72 @@ with sync_playwright() as p:
     page.evaluate("(() => { const t = __tank, p = t.G.player; t.G.nuke.meter = 0; t.spawn('basic', p.x + 60, p.y - 90); t.killAll(); })()")
     R['meter_after_normal_kill'] = page.evaluate('__tank.nuke().meter'); assert R['meter_after_normal_kill'] > 0, 'a normal kill must fill the meter'
 
-    # 4. boss: fixed 150 damage, floor 10%, stun 3 s, enemy bullets cleared, enrage still runs, nuke damage never charges
-    page.evaluate("(() => { const t = __tank, G = t.G; G.enemies.length = 0; G.queue.length = 0; G.phase = 'fight'; G.phaseT = 0; })()")  # step 3's killAll emptied the wave: back to the fight phase
-    R['boss'] = page.evaluate("""() => { const t = __tank, G = t.G, p = G.player, out = {}; const b = t.spawn('boss', p.x + 110, p.y - 170); G.phase = 'fight'; const mx = b.maxHp; out.mx = mx;
-      const shell = () => G.bullets.push({ x: p.x + 40, y: p.y - 40, vx: 0, vy: 0, r: 4, owner: 1, dmg: 1, life: 5, dead: false, hits: null, bricks: null, sx: 0, sy: 0, dist: 0, bounced: false });
-      b.hp = mx; b.stunT = 0; shell(); t.nukeCharge(1); t.nukeFire(); t.step(1.5);
-      out.hp1 = +b.hp.toFixed(2); out.want1 = +Math.max(0.1 * mx, mx - 150).toFixed(2); out.dead = !!b.dead; out.stun = b.stunT; out.shells = G.bullets.filter(q => q.owner === 1).length; out.meter1 = t.nuke().meter;
-      b.hp = mx * 0.52; t.nukeCharge(1); t.nukeFire(); t.step(1.5); out.hp2 = +b.hp.toFixed(2); out.floor2 = +(0.1 * mx).toFixed(2); out.dead2 = !!b.dead;
-      b.hp = 3; t.nukeCharge(1); t.nukeFire(); t.step(1.5); out.hpLow = +b.hp.toFixed(2); out.dead3 = !!b.dead;
-      b.hp = mx; b.stunT = 0.5; t.nukeCharge(1); t.nukeFire(); t.step(1.3); out.stunKeep = b.stunT; return out; }""")
-    r = R['boss']
-    assert not r['dead'] and abs(r['hp1'] - r['want1']) < 0.05, r
-    assert r['stun'] > 1.4 and r['shells'] == 0 and r['meter1'] == 0, r  # 1.5 s step later about 1.5 s of the 3 s stun is left; blast damage does not recharge
-    assert not r['dead2'] and r['hp2'] >= r['floor2'] - 0.05 and r['hp2'] <= r['floor2'] + 0.05 or r['hp2'] <= 0.52 * r['mx'], r
-    assert not r['dead3'] and r['hpLow'] > 0 and r['hpLow'] <= 3.0, r
-    vprint('boss:', R['boss'])
-
-    # 4b. boss-stage charging: nukeOnBossDamage fills the meter at 60% of max HP, once per fight
-    R['bossCharge'] = page.evaluate("""() => { const t = __tank, G = t.G, p = G.player, o = {}; G.enemies.length = 0; const b = t.spawn('boss', p.x + 110, p.y - 170); G.phase = 'fight'; const mx = b.maxHp;
-      G.nuke.meter = 0; G.nuke.bossAcc = 0; G.nukeOnBossDamage(b, 0.3 * mx); o.half = +G.nuke.meter.toFixed(3); G.nukeOnBossDamage(b, 0.3 * mx); o.full = +G.nuke.meter.toFixed(3); o.ready = t.nuke().ready;
-      G.nuke.meter = 0; G.nukeOnBossDamage(b, 5 * mx); o.second = G.nuke.meter; return o; }""")
-    r = R['bossCharge']; assert abs(r['half'] - 0.5) < 0.01 and r['full'] == 1 and r['ready'] and r['second'] == 0, r
-    page.evaluate("(() => { const G = __tank.G; G.enemies.length = 0; G.nuke.meter = 0; })()")
+    # 4. boss stage, real fight at wave 5 and wave 35: blast damage by wave, floor 10%, 3 s stun, hazards cleared,
+    #    no blast while invulnerable (phase transition), body hits charge the meter once per fight
+    START = """(w) => { const t = __tank, G = t.G; t.dbg.freeze = true; G.god = true; localStorage.setItem('tankArena.seenBossIntro', 'true'); t.wave(w); t.bossSkip();
+      for (let i = 0; i < 1200; i++) { t.step(1 / 60); const b = t.bossInfo(); if (b.phase === 'fight' && b.boss && !b.invuln) return i; }
+      return -1; }"""
+    BLAST = """() => { const t = __tank, G = t.G, e = G.boss, mx = e.maxHp; e.hp = mx; e.stunT = 0; G.nuke.bossAcc = 0;
+      t.nukeCharge(1); const fired = t.nukeFire(); const u0 = t.nuke().used; let before = e.hp, n = 0;
+      while (t.nuke().used === u0 && n < 300) { before = e.hp; t.step(1 / 60); n++; }
+      const o = { fired, wave: G.wave, mx, want: Math.min(0.3 * mx, 150 + 6 * Math.max(0, G.wave - 15)), dmg: before - e.hp, hp: e.hp,
+        stunAfter: e.stunT, tele: G.tele.length, shells: G.bullets.filter(b => b.owner === 1).length, meter: t.nuke().meter, dead: !!e.dead };
+      const x0 = e.x, y0 = e.y; t.step(1); o.moved = Math.hypot(e.x - x0, e.y - y0); o.stunLeft = e.stunT; return o; }"""
+    FLOOR = """() => { const t = __tank, G = t.G, e = G.boss, mx = e.maxHp; e.stunT = 0; e.hp = 0.12 * mx;
+      for (let i = 0; i < 420; i++) t.step(1 / 60); // the phase changes this low HP triggers finish first (no damage while invulnerable)
+      const ok = !e.invuln; t.nukeCharge(1); t.nukeFire(); const u0 = t.nuke().used; let n = 0;
+      while (t.nuke().used === u0 && n < 300) { t.step(1 / 60); n++; }
+      return { ok, hp: e.hp, floor: 0.1 * mx, dead: !!e.dead }; }"""
+    BOT = """() => { const t = __tank, G = t.G, e = G.boss, o = {}; for (let i = G.enemies.length - 1; i >= 0; i--) if (G.enemies[i] !== e) G.enemies.splice(i, 1);
+      G.queue.length = 0; G.portals.length = 0; e.hp = e.maxHp; e.stunT = 0; e.trans = 1.5; e.invuln = true; t.nukeCharge(1); t.botNuke(true);
+      const u0 = t.nuke().used; t.sim(1.0, true); o.blocked = t.nuke().used - u0 + (t.nuke().warnT > 0 ? 1 : 0); o.invulnKept = e.invuln;
+      e.trans = 0; e.invuln = false; t.sim(0.1, true); o.fired = t.nuke().warnT > 0 || t.nuke().used > u0; t.botNuke(false); t.step(1.4); return o; }"""
+    CHARGE = """() => { const t = __tank, G = t.G, e = G.boss, mx = e.maxHp, o = {}; e.hp = mx; e.stunT = 0; e.invuln = false; e.trans = 0;
+      G.nuke.meter = 0; G.nuke.warnT = 0; G.nuke.bossAcc = 0;
+      t.hurtBoss(0.3 * mx); o.half = G.nuke.meter; t.hurtBoss(0.3 * mx); o.full = G.nuke.meter; o.ready = t.nuke().ready;
+      t.hurtBoss(0.3 * mx); o.afterExtra = G.nuke.meter; return o; }"""
+    for w in (5, 35):
+        ready = page.evaluate(START, w); assert ready >= 0, f'boss fight at wave {w} did not start'
+        a = page.evaluate(BLAST); f = page.evaluate(FLOOR); c = page.evaluate(BOT); d = page.evaluate(CHARGE)
+        R[f'boss_w{w}'] = {'blast': a, 'floor': f, 'bot': c, 'charge': d}
+        assert a['fired'] and a['wave'] == w and abs(a['dmg'] - a['want']) < 0.05, a
+        assert not a['dead'] and a['hp'] >= 0.1 * a['mx'] - 0.05 and a['meter'] == 0, a
+        assert a['stunAfter'] >= 3 - 1e-6 and a['stunLeft'] > 1.9 and a['moved'] < 1, a      # stunned right after the blast and halted
+        assert a['tele'] == 0 and a['shells'] == 0, a                                       # telegraphs and boss shells cleared
+        assert f['ok'] and not f['dead'] and abs(f['hp'] - f['floor']) < 0.05, f                       # never below 10 %
+        assert c['blocked'] == 0 and c['invulnKept'] and c['fired'], c                      # bot waits out the invulnerable phase
+        assert abs(d['half'] - 0.5) < 0.01 and d['full'] == 1 and d['ready'] and d['afterExtra'] == 1, d  # one full charge per fight
+        vprint(f'boss w{w}: dmg {a["dmg"]:.1f} want {a["want"]:.1f} of max {a["mx"]}, stun {a["stunAfter"]:.2f}')
+    # 4c. invulnerable boss (intro, phase change, death): no blast may start, manual or bot; the charge is kept; after it ends the nuke works
+    assert page.evaluate(START, 5) >= 0
+    INV = """() => { const t = __tank, G = t.G, e = G.boss, o = {}; e.hp = e.maxHp; e.stunT = 0; e.trans = 1.5; e.invuln = true; t.nukeCharge(1);
+      t.step(1 / 60); const u0 = t.nuke().used; o.fire = t.nukeFire(); o.warn = G.nuke.warnT; o.meter = G.nuke.meter; o.used = t.nuke().used - u0;
+      o.btnReady = document.getElementById('btnNuke').classList.contains('ready'); o.hint = document.getElementById('hint').textContent; return o; }"""
+    R['invuln_block'] = page.evaluate(INV)
+    u_before = page.evaluate('__tank.nuke().used'); page.keyboard.press('n'); page.wait_for_timeout(100)
+    R['invuln_key'] = page.evaluate("({ warn: __tank.nuke().warnT, meter: __tank.nuke().meter, used: __tank.nuke().used })")
+    R['invuln_key']['changed'] = R['invuln_key']['used'] - u_before
+    assert R['invuln_block']['fire'] is False and R['invuln_block']['warn'] == 0 and R['invuln_block']['meter'] == 1, R['invuln_block']
+    assert R['invuln_block']['used'] == 0 and not R['invuln_block']['btnReady'] and 'hasar almıyor' in R['invuln_block']['hint'], R['invuln_block']
+    assert R['invuln_key']['warn'] == 0 and R['invuln_key']['meter'] == 1 and R['invuln_key']['changed'] == 0, R['invuln_key']
+    R['invuln_end'] = page.evaluate("""() => { const t = __tank, G = t.G, e = G.boss; e.trans = 0; e.invuln = false; t.step(1 / 60); const ok = t.nukeFire(); return { ok, warn: G.nuke.warnT }; }""")
+    assert R['invuln_end']['ok'] is True and R['invuln_end']['warn'] > 0, R['invuln_end']
+    vprint('invuln:', R['invuln_block'], R['invuln_end'])
+    page.evaluate("(() => { const t = __tank; t.step(1.4); t.G.nuke.meter = 0; })()")
+    # 4d. a phase change starts while the warning runs: the blast skips the invulnerable boss, its damage and stun wait and land when invulnerability ends
+    assert page.evaluate(START, 5) >= 0
+    PEND = """() => { const t = __tank, G = t.G, e = G.boss, mx = e.maxHp; e.hp = mx; e.stunT = 0; e.trans = 0; e.invuln = false; G.nuke.meter = 0; G.nuke.bossAcc = 0;
+      t.nukeCharge(1); const f = t.nukeFire(); t.step(0.3); e.trans = 1.5; e.invuln = true;
+      const u0 = t.nuke().used; let n = 0; while (t.nuke().used === u0 && n < 300) { t.step(1 / 60); n++; }
+      const o = { fired: f, mx, hpAtBlast: e.hp, stunAtBlast: e.stunT, invulAtBlast: e.invuln, pending: e.nukePending ? e.nukePending.want : 0, meterAtBlast: t.nuke().meter };
+      n = 0; while (e.invuln && n < 600) { t.step(1 / 60); n++; }
+      o.hpAfter = e.hp; o.stunAfter = e.stunT; o.pendingAfter = !!e.nukePending; o.meterAfter = t.nuke().meter; o.dead = !!e.dead; return o; }"""
+    R['pending'] = page.evaluate(PEND)
+    r = R['pending']; want = min(0.3 * r['mx'], 150)
+    assert r['fired'] and r['invulAtBlast'] and r['hpAtBlast'] == r['mx'] and r['stunAtBlast'] == 0 and abs(r['pending'] - want) < 0.05, r
+    assert abs(r['hpAfter'] - (r['mx'] - want)) < 0.05 and r['stunAfter'] >= 3 - 1e-6 and not r['pendingAfter'] and r['meterAfter'] == 0 and not r['dead'], r
+    vprint('pending:', r)
+    page.evaluate("(() => { const t = __tank, G = t.G; t.dbg.freeze = false; G.enemies.length = 0; G.queue.length = 0; G.portals.length = 0; G.nuke.meter = 0; })()")
 
     # 5. conditions: not ready, no enemy on the map, outside the fight phase
     R['cond'] = page.evaluate("""() => { const t = __tank, G = t.G, p = G.player, o = {}; G.enemies.length = 0; G.queue.length = 0; G.portals.length = 0;

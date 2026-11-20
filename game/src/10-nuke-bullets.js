@@ -5,8 +5,12 @@
 const NUKE_WAVES = 2.5;                                                  // waves of kills to fill the meter (E tunes this)
 const NUKE_WEIGHT = { basic: 1, fast: 1, hunter: 1.5, heavy: 2, boss: 3 }; // meter weight per enemy type
 const NUKE_WARN = 1.2;      // seconds of warning (game time) before the blast
-const NUKE_BOSS_DMG = 150;  // fixed blast damage to a boss (150 x the base shell damage of 1); never lethal
+const NUKE_BOSS_CAP = 0.3;   // blast damage to a boss is at most this share of its max HP
+const NUKE_BOSS_BASE = 150;  // blast damage to a boss up to wave 15
+const NUKE_BOSS_PER_WAVE = 6; // extra blast damage to a boss per wave after wave 15
 const NUKE_BOSS_FLOOR = 0.1; // a boss keeps at least this share of its max HP after the blast
+// blast damage to a boss at wave w: 150 up to wave 15, +6 per wave after, never above 30% of the boss's max HP
+const nukeBossDmg = (w, maxHp) => Math.min(NUKE_BOSS_CAP * maxHp, NUKE_BOSS_BASE + NUKE_BOSS_PER_WAVE * Math.max(0, w - 15));
 const NUKE_BOSS_STUN = 3;   // seconds a boss is stunned
 const NUKE_BOSS_FILL = 0.6; // share of a boss's max HP that, dealt as damage, fills the meter once (boss stage)
 const NUKE_FLASH = 0.6;     // seconds the white flash fades
@@ -36,6 +40,8 @@ function nukeOnKill(e) {
   n.meter = Math.min(1, n.meter + NUKE_WEIGHT[e.type] / (NUKE_WAVES * nukeWaveWeight(G.wave)));
 }
 const nukeIsBoss = e => e.isBoss === true || e.type === 'boss';
+// a living boss that takes no damage now (intro, phase transition, death scene): no blast may start
+const nukeBossSafe = () => G.enemies.some(e => !e.dead && nukeIsBoss(e) && (e.invuln || e.invulnerable));
 // boss-stage charging: the boss agent calls this from the boss damage path with the damage applied to the boss body.
 // 60% of max HP dealt fills the meter once; at most one charge per fight (per wave). The blast's own damage never counts.
 function nukeOnBossDamage(e, amount) {
@@ -55,12 +61,23 @@ function nukeFire(manual) {
   if (G.state !== 'play' || G.phase !== 'fight' || !p || !p.alive || n.warnT > 0) return false;
   if (!nukeReady()) { if (manual) showHint('Nükleer bomba %' + Math.floor(n.meter * 100) + ' şarjlı, kill yaparak doldur', 2); return false; }
   if (!nukeOnScreen().length) { if (manual) showHint('Haritada düşman yok', 2); return false; }
+  if (nukeBossSafe()) { if (manual) showHint('Boss şu an hasar almıyor', 2); return false; } // the charge is kept
   n.warnT = NUKE_WARN;
   hintT = 0; el.hint.classList.remove('show'); // the "ready" hint is done
   showBanner('NÜKLEER BOMBA', '', NUKE_WARN);
   Sound.nukeWarn(); vibrate([40, 60, 40, 60, 40]);
   return true;
 }
+// the boss damage and stun of a blast: the floor applies at the moment of the hit; the stun bonus (+50%) does not apply to it
+function nukeApplyBoss(b, want) {
+  const n = G.nuke, dmg = Math.min(want, b.hp - NUKE_BOSS_FLOOR * b.maxHp); // never lethal, never below the floor
+  const st = b.stunT || 0; b.stunT = 0;
+  n.firing = true; // blast damage does not charge the meter
+  if (dmg > 0) hurtEnemy(b, dmg, b.x, b.y, 0); // enrage checks still run
+  n.firing = false;
+  b.stunT = Math.max(st, NUKE_BOSS_STUN);
+}
+const nukeInvuln = b => !!(b.invuln || b.invulnerable);
 function nukeBlast() {
   const n = G.nuke, p = G.player;
   n.firing = true; n.used++;
@@ -69,9 +86,9 @@ function nukeBlast() {
   mods.drop = drop;
   for (const b of G.enemies.slice()) {
     if (b.dead || !nukeIsBoss(b)) continue;
-    const dmg = Math.min(NUKE_BOSS_DMG, b.hp - NUKE_BOSS_FLOOR * b.maxHp); // never lethal, never below the floor
-    if (dmg > 0) hurtEnemy(b, dmg, b.x, b.y, 0); // enrage checks still run
-    b.stunT = Math.max(b.stunT || 0, NUKE_BOSS_STUN);
+    const want = nukeBossDmg(G.wave, b.maxHp);
+    if (nukeInvuln(b)) { b.nukePending = { want: (b.nukePending ? b.nukePending.want : 0) + want }; continue; } // invulnerable now: applied when it ends
+    nukeApplyBoss(b, want);
   }
   G.bullets = G.bullets.filter(q => q.owner === 0);
   if (typeof bossClearHazards === 'function') bossClearHazards();
@@ -83,6 +100,9 @@ function nukeBlast() {
 }
 function nukeUpdate(dt) {
   const n = G.nuke, p = G.player;
+  for (const b of G.enemies) { // blast damage that waited for an invulnerable boss: applied when its invulnerability ends
+    if (!b.dead && b.nukePending && !nukeInvuln(b)) { const w = b.nukePending.want; b.nukePending = null; nukeApplyBoss(b, w); }
+  }
   if (n.warnT > 0) {
     if (G.phase !== 'fight' || !p.alive) n.warnT = 0; // wave ended or player died during the warning: the charge is kept
     else if ((n.warnT -= dt) <= 0) { n.warnT = 0; nukeBlast(); }
@@ -97,7 +117,7 @@ function nukeKey(e) {
 }
 el.btnNuke.addEventListener('click', e => { Sound.init(); Sound.resume(); nukeFire(true); e.currentTarget.blur(); });
 function nukeHud() {
-  const n = G.nuke, st = n.warnT > 0 ? 'w' : nukeReady() ? 'r' : 'c', pct = Math.floor(n.meter * 100);
+  const n = G.nuke, st = n.warnT > 0 ? 'w' : nukeReady() && !nukeBossSafe() ? 'r' : 'c', pct = Math.floor(n.meter * 100);
   const key = st + pct;
   if (ui.nk === key) return;
   const stChanged = ui.nkSt !== st; ui.nk = key; ui.nkSt = st;
