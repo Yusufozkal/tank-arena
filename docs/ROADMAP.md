@@ -1,6 +1,6 @@
 # Yol haritası
 
-Durum (20 Kasım 2026): **1.5.3 yayında** (1.5.2 sonrası geri bildirim: düşman görüşü, mermi menzili, boss cepleri, birleşim kartı). Sıra: 1.5.4 Serbest Mod + Kapatıcı; 1.5.5 Kar bölgesi (Kırağı + Ağır Topçu); 1.5.6 Şehir (Son Hisar); sonra 1.6 (çevrimiçi). Yeni kartlar bu sürümlere dağıtılır. Kullanıcı: 1.5.3 bitince token yeterse 1.5.4'e geç.
+Durum (20 Kasım 2026): **1.5.4 yayında** (Serbest Mod + Kapatıcı; 1.5.3: düşman görüşü, mermi menzili, boss cepleri, birleşim kartı). Sıra: 1.5.5 Kar bölgesi (Kırağı + Ağır Topçu); 1.5.6 Şehir (Son Hisar); sonra 1.6 (çevrimiçi). Yeni kartlar bu sürümlere dağıtılır. Kullanıcı: 1.5.3 bitince token yeterse 1.5.4'e geç.
 
 ## Kullanıcının koyduğu ilkeler
 

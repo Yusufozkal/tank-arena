@@ -269,6 +269,7 @@ Kullanıcının isteği: diep.io'daki Arena Closer benzeri, ana oyunda olmayan, 
 - Açık an: her saldırıdan sonra ~1 sn namlu kızarır; bu sırada kaçamaz ve tam hasar alır. Diğer zamanlarda gövdesi mermilerin yarısını sektirir (yarı hasar).
 - Zorluk: tek seviye. Hedef: Serbest Mod'da tam güçlendirilmiş tank ~%30–50 kazanır; ortalama kurulum neredeyse hiç.
 - Ölçüm: boss_probe'a "tam güç" seti eklenir.
+- 1.5.4'te uygulanan: can sabit 1600, gövde yarıçapı 27, hız 230, mermi 430 (Kesin Atış ×2,3). Hasar oyuncunun azami canına oranlı: Kesin %40, Sekme/çarpma/Havan %30. Görüş 12 kare, 200° koni; çalıda 2,3 kare; tepki 0,25 sn; duyma 9,6 kare ±3. Kaçınma 0,85 (saldırı ve açık anda yok). Kapanış 90/120/150/180 sn, her biri 2 sn uyarılı. Arena `ARENAS.kapanis` (Şehir teması, koyu zemin). Serbest Mod'da dalga gücü `sandboxWave` yoksa 30.
 
 ## 9. Bölge düşmanları ve Tamirci (1.5.1, Orman)
 

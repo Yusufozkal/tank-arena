@@ -336,3 +336,14 @@ Düşman görüşü 8,5 kare + 120° koni, doğuşta ipucu yok, duyma 6 kare; oy
 Görmeyen düşmanın oyuncuya yönelme ölçüsü (`check_ai`, ortalama kosinüs): 0,683 → 0,401 (ayna nokta tabanı ~0,3).
 
 Komutan canı (Kışla açıldığı için savaş kısalmıştı): 15. dalga 550 → 960, 25. dalga 840 → 1130. boss_probe (6 savaş): 5. dalga orta 50 sn; 15. dalga orta ~140–220 sn (960 ölçülmedi, 920 ve 1000 arası), zayıf 2/6; 25. dalga orta 183 sn, zayıf 0/6. Sarı ve Demirkök değişmedi.
+
+## 1.5.4: Kapatıcı (bot, 18 savaş, kademe 2 tanklar sırayla)
+
+| Set | Dalga | Kazanma | Ortalama kazanma süresi |
+|---|---|---|---|
+| tam | 40 | 6/18 (%33) | 365 sn |
+| orta | 40 | 5/18 | 313 sn |
+| orta | 25 | 2/18 | 461 sn |
+| orta | 15 | 0/18 | – |
+
+Tam güçle kazanma 6–8 dakika sürüyor (Kapanış 180 sn'de biter). Oyuncu uzun bulursa can (1600) düşürülür.
