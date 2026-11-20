@@ -79,17 +79,21 @@ Kullanıcının istekleri (20 Kasım 2026):
 - Bosslar sade değil, görkemli olsun.
 - Hades'e benzer bir yapı.
 - Oyun 40. dalgada bitmez; zamanla yeni içerik (bölge, boss) eklenir.
-- Boss görselleri başka bir yapay zekâ modeline tasarlatıldı (`docs/img/bosslar-gorsel.png`): Komutan; Sarı Fırtına (Hızlı'nın boss'u, Çöl); Demirkök (Ağır'ın boss'u, Orman); Kırağı (Avcı'nın boss'u, Kar); Son Hisar (son boss, Şehir). Mekanik tasarım aynı modelden bekleniyor; tasarım özeti Claude'daki "Tank Arena: Boss tasarım özeti" belgesinde.
+- Boss görselleri başka bir yapay zekâ modeline tasarlatıldı (`docs/img/bosslar-gorsel.png`): Komutan; Sarı Fırtına (Hızlı'nın boss'u, Çöl); Demirkök (Ağır'ın boss'u, Orman); Kırağı (Avcı'nın boss'u, Kar); Son Hisar (son boss, Şehir). Mekanikleri Claude tasarladı (aşağıdaki "Ayrıntılı tasarım" maddesi).
 - **Boss etabı:** boss savaşı kendi etabında geçer; sahada sadece boss var, başka düşman tankı gelmez (takviye yok).
-- **Uzun savaş:** boss savaşları uzun sürecek (öneri: bölge bossları 4–6 dakika, Komutan daha kısa; botla ölçülecek).
+- **Uzun savaş:** boss savaşları uzun sürecek (öneri: Komutan 3–4 dakika, bölge bossları 4–6 dakika, Son Hisar 6–8 dakika; botla ölçülecek).
 - **Düz arena olmasın:** boss arenalarında yıkılamaz (çelik) blok normal haritalardan çok daha fazla olacak; her boss'un elle tasarlanmış sabit arenası (öneri).
-- Açık sorular: bölge ortasındaki Komutan savaşları da ayrı etapta mı; boss etabında başka düşman olmadığı için onarım ve nükleer sayaç nereden dolacak; çok çelik varken Raylı Top (çeliği delemez) için açık atış hatları.
+- **Komutan ana boss** (20 Kasım 2026): kendi arenası (Kışla), üç evresi ve kırılabilir parçası (komuta kulesi) olan büyük bir savaş; her bölgenin ortasında (5, 15, 25, 35) gelir ve her gelişinde yeni numaralar açar. Bir oyunda 8 büyük boss savaşı olur.
+- **Nükleer bomba** (20 Kasım 2026): ekranı değil bütün haritayı vurur; normal dalgalarda haritadaki bütün düşmanları yok eder. Bosslara yüzde değil sabit, çok yüksek hasar verir (öneri: taban merminin 150 katı), ama tek başına öldürmez (can en az %10'da kalır); 3 sn sersemletir. Boss etabında sayaç boss'a verilen hasarla yavaş dolar.
+- **Zırh ve ölüm** (20 Kasım 2026): her ana boss ölünce oyuncunun zırhı tamamen dolar; boss etabında ölmek oyunu bitirir.
+- **Hasar görünümü** (20 Kasım 2026): isabetler boss'un üstünde görünür (kıvılcım, yanık izi); canın %80, 60, 40 ve 20'sinde bir parça kopar, %50'nin altında duman, %25'in altında alev; boss parça parça dağılır.
+- Ayrıntılı tasarım (saldırılar, evreler, 5 arena haritası, bot kuralları): Claude'daki "Tank Arena: Boss mekanikleri" belgesi. Onarım boss etabında evre geçişlerinden ve kırılan parçalardan gelir.
 
 Önerilen biçim (onay bekliyor):
 
 - **4 bölge, her biri 10 dalga:** Çöl → Orman → Kar → Şehir (bugün harita 3 dalgada bir sırayla değişiyor). Her bölgenin kendi düşman türleri var; bölge sonunda o bölgenin boss'u gelir.
 - **Boss yenilince o bölgenin düşmanları bir daha gelmez** (kullanıcının fikri); yeni bölge yeni türler getirdiği için oyun boşalmaz.
-- **Bölge ortasında mini boss:** Komutan. Tank evrimi 5. ve 10. dalgada kalır (5'te Komutan, 10'da ilk bölge boss'u).
+- **Bölge ortasında Komutan** (artık ana boss, yukarıya bkz.). Tank evrimi 5. ve 10. dalgada kalır (5'te Komutan, 10'da ilk bölge boss'u).
 - **40'tan sonra ikinci tur:** aynı bölgeler, bossların daha zor sürümleriyle (Hades'teki Extreme Measures gibi); zorluk herkes için kendiliğinden artar, tek mod ilkesine uyar. Sıralama en yüksek dalga olarak kalır. Zamanla yeni bölgeler eklenebilir; ikisi birlikte olur.
 - **Görkem:** giriş sahnesi (ekran sarsıntısı, siren, isim başlığı, duvarı yıkarak giriş, müzik değişimi), normal tankın 2–3 katı boyut, ayrı vurulabilen taretler, can eşiklerinde evreler (zırh düşer, duman, yeni saldırılar, son evrede öfke), birkaç saldırı sırayla, harita kullanımı (duvar yıkma, mayın, çelik bloklar; takviye tank yok), ölüm sahnesi (büyük patlama, kısa ağır çekim, ganimet). Komutan da bu seviyeye çıkar.
 - **Görkemi kısmadan üç şart:** her saldırı önceden uyarır (Komutan'ın namlu parlaması gibi); boyut ve kamera telefon ekranına (390 px genişlik) göre ayarlanır; bot yeni saldırılardan kaçmayı ve taretleri vurmayı öğrenir, çünkü denge ölçümü bota dayanır.
