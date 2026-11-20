@@ -281,3 +281,46 @@ Demirkök ayrı ölçümde (20 savaş, can 1150): orta 18/20, 295 sn; güçlü 1
 ### Açık
 - 4–9. dalgalarda dalga başına giden zırh %14,5 (hedefin hemen altında).
 - 26–29. dalgalar oyuncuda sert gelirse ilk ayar Avcı payına tavan ya da `NUKE_WAVES`.
+
+## 1.5.2 sonuçları (20 Kasım 2026)
+
+### Normal dalgalar (survive random, 40 oyun)
+
+| | 1.5.1 | 1.5.2 |
+|---|---|---|
+| Ortalama bitiş dalgası | 22,6 | 24,4 |
+| 40'a ulaşma | %8 | %10 |
+| Dalga 4–9 zırh kaybı | %14,5 | %15,8 |
+| Dalga 10–19 | %32,1 | %32,5 |
+| Dalga 20–29 | %42,6 | %42,5 |
+| Dalga 30–40 | %32,3 | %26,1 |
+
+Ara ölçüm: yalnız harita + kalabalık değişince ortalama 27,8, 40'a ulaşma %20 (fazla kolay); farkındalık eklenince 27,2 / %28. Sonra nitelikle geri ayarlandı (can eklenmedi).
+
+### Değişen sabitler
+
+- `MAP_N` 35, `RULES.maxAlive` 6, `RULES.maxHunters` 3, dalga toplam tavanı `20 + floor((w-20)/3)`, erken canlı sayısı `3 + ceil(w/2)`.
+- Avcı payı `min(0.5, 0.04 + 0.03*(w-12))`; Avcı kaçışı `min(0.75, 0.65 + late*0.005)`, yalnızca 5,5 kare içinden atılan mermiye.
+- Yeniden dolum erken 0,05/dalga, geç 0,013/dalga; nişan hatası erken 0,13 − 0,010/dalga, geç azalma 0,0008/dalga; geç hasar artışı `(w-13)*0.018`, `(w-25)*0.04`.
+- Parça hasarı: parça başına 2 hasar eşiği (`PART_HP`), şans ve dalga koşulu yok.
+
+### Bosslar (bot, 8–10 savaş)
+
+| Dalga | Boss | Set | 1.5.1 | 1.5.2 |
+|---|---|---|---|---|
+| 10 | Sarı | orta | 8/8, 208 sn, hasar 65 | 10/10, 157 sn, hasar 127 |
+| 10 | Sarı | zayıf | 5/8 | 5/10 |
+| 15 | Komutan | orta | 8/8, 205 sn, hasar 98 | 10/10, 194 sn, hasar 137 |
+| 15 | Komutan | zayıf | 1/8 | 3/10 |
+| 20 | Demirkök | orta | 8/8, 320 sn, hasar 114 | 9/10, 224 sn, hasar 144 |
+| 20 | Demirkök | zayıf | 0/8 | 2/10 |
+| 25 | Komutan | orta | 8/8, 197 sn, hasar 85 | 10/10, 176 sn, hasar 178 |
+| 25 | Komutan | zayıf | 0/8 | 0/10 |
+
+Boss canı %8–11 düştü (kullanıcı çok azaltılmasını istemedi). Savaşlar kısaldı çünkü bosslar artık tehlikeli: oyuncu mermisi boss mermisini düşürmüyor, nişan kısmen önden, çarpma hasarı arttı. Canı %55'in altındaki oyuncuya savaşta ~35 sn'de bir Tamir kiti düşer.
+
+### Açık
+
+- Orta set 15–25. dalgalarda canının çoğunu kaybediyor (hedef %40–70'ti); kazanma yine de 9–10/10.
+- Zayıf set 25. dalgada 0/10; çıplak tank Demirkök'ün yarı hasar kalkanına karşı zamanı dolduruyor.
+

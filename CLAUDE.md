@@ -21,7 +21,7 @@ Kullanıcının istekleri (19–20 Kasım 2026): işin çoğunu alt ajanlar yapa
 | Rol | Model | Okuduğu yer | Testler |
 |---|---|---|---|
 | Denge | Sonnet | `02-constants`, `11-enemies`, `04-platform` (`RULES`), `docs/BALANCE.md` | `balance_probe` + `balance_report`, `check_gameplay` |
-| Düşman ve boss | Sonnet | `11-enemies`, `11a-boss-core`, boss modülleri (`11b`, `11c`…), `09-combat-fx`, `02-constants`; çizim `15a`/`15b`…; şartname `docs/BOSSES.md` | `check_boss`, `check_sari`, `check_demirkok`, `check_parts`, `check_region`, `boss_probe`, `check_gameplay`, `stress` |
+| Düşman ve boss | Sonnet | `11-enemies`, `11a-boss-core`, boss modülleri (`11b`, `11c`…), `09-combat-fx`, `02-constants`; çizim `15a`/`15b`…; şartname `docs/BOSSES.md` | `check_boss`, `check_sari`, `check_demirkok`, `check_parts`, `check_region`, `check_ai`, `check_boss_stuck`, `boss_probe`, `check_gameplay`, `stress` |
 | Tank, kart, birleşim, bomba | Sonnet | `03-data`, `07-paths-tanks`, `08-traits`, `10-nuke-bullets` | `check_tanks`, `check_tier2_*`, `check_syn`, `check_nuke` |
 | Çizim ve efekt | Sonnet | `15-render-world`, `16-render-ui`, `06-map`, `04-platform` (sprite) | `check_gameplay`, `check_crosshair`, ekran görüntüsü |
 | Telefon arayüzü ve menü | Sonnet | `style.css`, `shell.html`, `13-flow`, `14-update-hud`, `05-state` | `check_hud_mobile`, `check_hud_buttons` |
@@ -81,6 +81,8 @@ python3 tests/check_sari.py                        # Sarı Fırtına
 python3 tests/check_parts.py                       # parça hasarı: palet, namlu, motor; boss paletleri
 python3 tests/check_demirkok.py                    # Demirkök
 python3 tests/check_region.py                      # bölge kuralı ve Tamirci
+python3 tests/check_ai.py                          # Avcı kaçışı ve siper, son görülen yer, arama
+python3 tests/check_boss_stuck.py                  # bosslar arenada takılmıyor
 python3 tests/boss_probe.py                        # boss savaşı süresi ve kazanma oranı (bot)
 python3 tests/balance_probe.py survive random 40 20 && python3 tests/balance_report.py
 

@@ -1,6 +1,6 @@
 # Yol haritası
 
-Durum (20 Kasım 2026): **1.5.1 yayında** (Demirkök, Orman bölgesi, Tamirci, bölge kuralı). Sıradaki iş seçilmedi: Kırağı ve Kar bölgesi (yeni Kar düşmanıyla) ya da 1.6 (çevrimiçi). Kullanıcı onaylamadan başlama.
+Durum (20 Kasım 2026): **1.5.1 yayında**. **1.5.2 yapılıyor** (kullanıcının oyun sonrası geri bildirimi, aşağıda). Ondan sonra yeni içerik sürümü (Serbest Mod, ek boss, Ağır Topçu, yeni kartlar), sonra 1.6 (çevrimiçi).
 
 ## Kullanıcının koyduğu ilkeler
 
@@ -98,6 +98,28 @@ Kullanıcı "ikisini de yap" dedi (Demirkök + bölge yapısı). Yeni Orman dü�
 - Tamirci (13. dalgadan): silahsız, en hasarlı müttefiki ışınla onarır ve bozuk parçasını hemen düzeltir; yaklaşınca kaçar; tek kalınca kaçmayı bırakıp yaklaşır.
 - Bölge kuralı: Sarı Fırtına yenilince Keşif tankları, Demirkök yenilince Ağır tanklar ve Tamirciler o oyunda bir daha gelmez; yeni bölgenin başında yazı çıkar. Kalkan her tür için dalga +%12 kalabalık, yeniden dolum ×0,93, nişan hatası ×0,90 (can eklenmedi).
 - Bilinen: Kar ve Şehir'in kendi yeni türleri gelene kadar 21–40. dalgalar Normal + Avcı; 26–29. dalgalar zor (dalga başına zırhın %50–68'i).
+
+## 1.5.2 – Oyuncu geri bildirimi: düzeltmeler (20 Kasım 2026)
+
+Kullanıcı 1.5.1'i oynadıktan sonra istedi; kararları:
+
+- Harita daha geniş (25 → ~35). Aynı anda daha az düşman (8 → ~6), zorluk sayıyla değil nitelikle; can şişirme yok.
+- Düşman mermilerine sınır konmayacak ("sayıları azaldığı için gerek yok").
+- Parça hasarı yüzdeye/şansa göre değil, belli bir hasardan sonra kırılır (parça başına sabit hasar eşiği); zayıf erken düşmanlar böylece kendiliğinden korunur.
+- Boss canları çok azaltılmayacak (~%10–20); asıl istenen, vurunca canın azaldığının görünmesi: üstte büyük boss çubuğu, giden can kısa süre açık renkte kalır.
+- Boss çarparken sert vursun; boss mermileri oyuncuya ulaşabilsin ve vurunca can götürsün ama ezici olmasın. Bossların haritada takılması düzelsin.
+- Düşman mermisi oyuncununkinden ayrı görünsün. Kart birleşimlerinin ne yaptığı kartta ve açılınca yazsın.
+- Avcı uzaktan gelen mermiden kaçamasın; uzaktan vurulunca saklansın. Düşmanlar çalıdaki oyuncunun yerini bilmesin: son gördükleri yere gitsinler, orada bulamazlarsa etrafta arasınlar.
+- Sitenin tanıtım bölümü eski sürümlerden kalma; güncellenecek.
+
+Yapılan: harita 35, en çok 6 düşman ve 3 Avcı, parça başına 2 hasar eşiği, son görülen yer + arama + ateş sesi + 9 sn sessizlikte ipucu, Avcı yalnızca 5,5 kare içinden atılan mermiden kaçar, 7 kareden uzaktan vurulunca siper alır; boss canı %8–11 düştü, çarpma ve mermiler sertleşti, oyuncu mermisi boss mermisini düşürmüyor, takılma düzeldi; düşman mermisi kırmızı-turuncu yuvarlak, oyuncununki uzun kapsül; birleşim kartta ve açılınca etkisini yazar; site tanıtımı, boss görselleri ve ekran görüntüleri yenilendi; Rehber metinleri güncellendi. Ana oturumun eklediği: boss savaşında canı düşük oyuncuya Tamir kiti (kullanıcıya soruldu). Ölçümler `docs/BALANCE.md`.
+
+## Sonraki içerik sürümü (planlandı)
+
+- Serbest Mod (sandbox): tank, kartlar, güç, boss ve harita seçilir; rekora sayılmaz.
+- Diep.io'daki Arena Closer benzeri ek boss: çok zeki ve çok güçlü; şimdilik yalnızca Serbest Mod'da. Önerilen ad Kapatıcı (onay bekliyor): mat siyah, uzun tek namlu, kırmızı göz; hile yapmaz (yalnız gördüğünü ve duyduğunu bilir), tepki Avcı'nın yarısı, öne nişan, yakın mermiden kaçar ama saldırırken kaçamaz, kaçış yolunu keser, savaşta oyuncunun alışkanlığını öğrenir; saldırılar Kesin Atış, Sekme Atışı, Kesme Hamlesi, Havan, Kapanış (90 sn'den sonra her 30 sn'de kenar çeliği bir kare içeri yürür); her saldırıdan sonra ~1 sn tam hasar alır; tek zorluk seviyesi.
+- Ağır Topçu: Kar bölgesinin (21–30) yeni düşmanı (kullanıcı onayladı). Mermisi birkaç vuruşla düşürülebilir, ikinci atışı uzun sürer.
+- Daha fazla kart/özellik: oyun çabuk tekrara biniyor.
 
 ## Bölgeler ve görkemli bosslar (taslak, 20 Kasım 2026)
 

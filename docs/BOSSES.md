@@ -273,6 +273,14 @@ SSS...SSS...SSS...SSS
 - Geliş: ilk kez 13. dalgada tek tane ve "Yeni düşman: Tamirci" ipucu; sonra payı 0,03 + 0,015·(dalga − 13), en fazla 0,15; sahada aynı anda en fazla 2.
 - Bot: Tamirci görünüyorsa önce onu vurur.
 
+## 1.5.2'de değişenler (oyuncu geri bildirimi)
+
+- Canlar %8–11 düştü: Komutan 5→185, 15→550, 25→840, 35→1090, sonrası +25/dalga; Sarı Fırtına 460 + 23·(dalga − 10); Demirkök 1020 + 27·(dalga − 20). Kullanıcı canın çok azaltılmasını istemedi; asıl istek vuruşun görünmesiydi: üstte büyük boss çubuğu, yüzde, giden can kısa süre açık renkte kalır, evre çizgileri.
+- Çarpma hasarı: Komutan 40, Sarı Fırtına 30, Demirkök 46 (uyarılar aynı).
+- Boss mermileri: oyuncunun mermisi artık boss mermisini düşürmez (asıl "ulaşmıyor" sebebi buydu); nişan kısmen önden (`def.lead` 0,35); ömür 3,2 sn. Mermi başına hasar düşürüldü (Komutan 9, Sarı 4, Demirkök 6), hız arttı (400 / 450 / 370).
+- Savaşta canı %55'in altındaki oyuncuya ~35 sn'de bir Tamir kiti düşer (yerde kit yoksa).
+- Takılma: boss yol alanı gövde yarıçapına göre (`bossFitMap`); alan dışına itilen boss en yakın uygun kareye döner, ilerleyemezse yana kayar. Test `check_boss_stuck.py` (3 sn'den uzun takılma yok).
+
 ## 1.5.1'de uygulanırken değişenler
 
 - Demirkök canı 1150 + 30·(dalga − 20); taretler canın %12'si. Ağır top mermisi önündeki tuğlayı tek isabette kırar. Kökler oyuncuyu kapalı bir cebe hapsetmez.
