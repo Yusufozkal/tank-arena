@@ -253,6 +253,23 @@ SSS...SSS...SSS...SSS
 - Evre 4 "Son direniş" (%30–0): meydanda durur, çekirdek açılır (2 kat hasar); döner ateş + her 8 sn şok dalgası ve havan; saldırılar %25 hızlı.
 - Ölüm: uzun zincirleme patlama, ağır çekim, "SON HİSAR DÜŞTÜ", ardından "İKİNCİ TUR" ve Çöl'e dönüş.
 
+## 7b. Kapatıcı (ek boss, şimdilik yalnızca Serbest Mod)
+
+Kullanıcının isteği: diep.io'daki Arena Closer benzeri, ana oyunda olmayan, "çok zeki ve çok güçlü" bir boss. Görünüşü Arena Closer'ın kopyası değil, kendi tasarımımız. Ad önerisi Kapatıcı (kullanıcı itiraz etmedi).
+
+- Görünüş: kullanıcının onayladığı görsel `docs/img/kapatici-gorsel.png` (yukarıdan, burnu yukarı): mat siyah açılı zırh, iki yanda kanat gibi zırh plakaları ve beyaz ışık çizgileri, ortada kırmızı göz, iki yanında kısa beyaz ışık, uzun tek namlu ve kalın namlu ağzı, arkada altıgen motor kapağı, koyu paletler, kalın siyah kontur. Kanvas çizimi buna sadık kalır. Boyu normal tankın ~1,3 katı; en hızlı oyuncu tankından ~%40 hızlı.
+- Arena: kendi 21×21 arenası, nötr koyu metal zemin, orta yoğunlukta çelik, birkaç çalı. Bossun gövdesine göre her cebe ulaşılabilir (`check_boss_reach`).
+- Zekâ, hile yok: yalnızca gördüğünü ve duyduğunu bilir (normal düşmanların görüş/duyma kuralları, daha geniş görüş açısı). Tepki süresi Avcı'nın yarısı. Öne nişan: oyuncunun hızı ve dönüşü hesaba katılır. Üstüne gelen mermiden yana kayar, ama saldırı yaparken kaçamaz. Oyuncunun kaçış yolunu keser, köşeye sıkıştırır. Savaş içinde öğrenir: oyuncunun en çok kaçtığı yönü, uzaktan mı yakından mı vurduğunu sayar; uzaktan vurana koşar, yakına gelenden çekilip uzun namluyla vurur. Çalıdaki oyuncuyu göremez; son yönünü hesaplayıp oraya gelir, çalıları mermiyle tarar.
+- Saldırılar:
+  1. Kesin Atış: 0,6 sn kırmızı çizgi, çok hızlı tek mermi; zırh + canın ~%40'ı.
+  2. Sekme Atışı: duvardan bir kez seken mermi; köşe arkasını bulur. Uyarı: kesik kırmızı çizgi.
+  3. Kesme Hamlesi: kaçış yolunun önüne geçip çarpar (çizgi uyarısı).
+  4. Havan: oyuncu 3 sn'den uzun saklanırsa bulunduğu yere (kırmızı daire).
+  5. Kapanış: 90. saniyeden sonra her 30 sn'de kenardaki çelik halka bir kare içeri yürür; alan daralır (kenar okları ve uyarı sesiyle).
+- Açık an: her saldırıdan sonra ~1 sn namlu kızarır; bu sırada kaçamaz ve tam hasar alır. Diğer zamanlarda gövdesi mermilerin yarısını sektirir (yarı hasar).
+- Zorluk: tek seviye. Hedef: Serbest Mod'da tam güçlendirilmiş tank ~%30–50 kazanır; ortalama kurulum neredeyse hiç.
+- Ölçüm: boss_probe'a "tam güç" seti eklenir.
+
 ## 9. Bölge düşmanları ve Tamirci (1.5.1, Orman)
 
 ### Bölge kuralı (kullanıcının fikri)

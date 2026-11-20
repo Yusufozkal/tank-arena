@@ -56,3 +56,69 @@ Notlar: kalıcı engelleme (persistent actions) Hobby'de yok, engel pencere bite
 | 1.5 | 8 | Boss etabı (sahada yalnızca boss, kendi arenası, evreler, uyarılar, hasar görünümü), yeni Komutan, Sarı Fırtına, 10 dalgalık bölgeler, parça hasarı, bütün haritayı vuran nükleer bomba |
 | 1.5.1 | 9 | Demirkök (20. dalga, Orman Kalesi), Tamirci, bölge kuralı (yenilen boss'un türü bir daha gelmez) |
 | 1.5.2 | 10 | Oyuncu geri bildirimi: 35'lik harita, en çok 6 düşman, eşikli parça hasarı, düşmanlar arar, Avcı uzaktan kaçamaz, boss çubuğu ve boss tehdidi, takılma, mermi renkleri, birleşim açıklamaları, site tanıtımı |
+
+## Kurulum
+
+```
+pip install playwright pillow imagequant pyoxipng   # sistem pip'inde: --break-system-packages
+playwright install chromium
+```
+Node yalnızca `tools/extract_gamedata.js` için gerekir. APK için Android SDK (build-tools 35.0.1, platforms/android-35) ve JDK gerekir.
+
+## Klasörler
+
+| Yol | Ne |
+|---|---|
+| `game/src/` | Oyunun kaynağı: `shell.html`, `style.css`, `NN-ad.js` modülleri. Elle düzenlenen asıl yer |
+| `game/index.html` | **Üretilir** (`tools/build_game.py`), elle düzenleme. Site ve APK bundan üretilir |
+| `site/` | Yayındaki site. **Üretilir**, elle düzenleme; `tools/build_site.py` yazar |
+| `vercel.json`, `.vercelignore`, `README.md` | Kökte; bunları da `tools/build_site.py` üretir |
+| `tools/` | Oyun, site, görsel ve oyun verisi araçları; yollar `tools/paths.py` içinde |
+| `android/` | WebView sarmalayıcı (Java, Gradle yok) ve `build.sh` |
+| `TankArena-<sürüm>.apk` | Kökte; oyuncular GitHub raw bağlantısından indirir. Eski sürümleri silme, eski bağlantılar kırılır |
+| `tests/` | Playwright kontrolleri ve denge ölçümü; ortak düzen `tests/common.py` |
+| `docs/` | `MODULES.md` (kod haritası), `ROADMAP.md` (plan), `BALANCE.md` (denge ölçümleri), `OPERATIONS.md` (yayın, güvenlik, imza), `img/` |
+
+## Komutlar
+
+```
+python3 tools/build_game.py                        # game/src → game/index.html
+python3 tools/build_game.py --check                # commit'ten önce; fark varsa 1 döner
+node tools/extract_gamedata.js                     # PU / UPS tabloları değişince (tanıtım sayfası verisi)
+SITE_URL=https://tank-arena-taupe.vercel.app python3 tools/build_site.py
+python3 tools/assets.py                            # tank çizimi ya da tools/raw ekran görüntüleri değişince; sonra build_site
+python3 tools/capture_site.py                      # tools/raw ekran görüntülerini yeniden çeker
+python3 tools/csp_local_test.py                    # site/ yerelde, vercel.json başlıklarıyla; CSP ihlali olmamalı
+
+python3 tests/check_gameplay.py                    # geniş kontrol; ERRORS: none olmalı
+python3 tests/check_hud_mobile.py <etiket>         # telefonda üst gösterge ne kadar yer kaplıyor
+python3 tests/check_hud_buttons.py
+python3 tests/check_crosshair.py                   # fare nişangâhı her harita temasında görünür mü
+python3 tests/stress.py                            # tüm tanklarla yük
+python3 tests/check_tanks.py                       # tank tablosu, evrim akışı, birinci kademe özellikleri
+python3 tests/check_tier2_d1.py                    # Üçlü, Çift Yön, Alev Topu, Şarapnel
+python3 tests/check_tier2_d2.py                    # Raylı Top, Obüs
+python3 tests/check_syn.py                         # altı kart birleşimi
+python3 tests/check_nuke.py                        # nükleer bomba: bütün harita, bosslara dalgaya göre hasar, %10 taban
+python3 tests/check_boss.py                        # boss etabı, arena, evreler, uyarılar, Komutan
+python3 tests/check_sari.py                        # Sarı Fırtına
+python3 tests/check_parts.py                       # parça hasarı: palet, namlu, motor; boss paletleri
+python3 tests/check_demirkok.py                    # Demirkök
+python3 tests/check_region.py                      # bölge kuralı ve Tamirci
+python3 tests/check_ai.py                          # Avcı kaçışı ve siper, son görülen yer, arama
+python3 tests/check_boss_stuck.py                  # bosslar arenada takılmıyor
+python3 tests/check_boss_reach.py                  # arenada bossun ulaşamadığı cep yok
+python3 tests/boss_probe.py                        # boss savaşı süresi ve kazanma oranı (bot)
+python3 tests/balance_probe.py survive random 40 20 && python3 tests/balance_report.py
+
+android/build.sh                                   # APK; ANDROID_HOME ve imza anahtarı gerekir
+python3 tests/check_offline_apk.py                 # build.sh'den sonra: ağsız APK sürümü ve Android köprüsü
+```
+Ekran görüntüleri, test raporları ve ölçüm sonuçları `.tmp/` altına yazılır (git'e girmez).
+
+## APK sürümü çıkarmak
+
+1. `android/AndroidManifest.xml`: `versionCode` +1, `versionName` yeni sürüm.
+2. `game/src/shell.html`: `<p class="version">Tank Arena X</p>`, sonra `build_game.py`.
+3. `tools/build_site.py`: önceki APK adını `OLD_APKS` listesine ekle (sitedeki eski bağlantılar yeni dosyaya yönlenir).
+4. `android/build.sh`, sonra `tests/check_offline_apk.py`, sonra `tools/build_site.py`. Yeni APK kökte oluşur; eskisini silme.
