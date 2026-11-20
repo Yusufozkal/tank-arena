@@ -100,11 +100,20 @@ function updateHUD() {
   if (ui.wave !== G.wave) { ui.wave = G.wave; el.waveT.textContent = 'DALGA ' + G.wave; }
   const boss = G.boss && !G.boss.dead ? G.boss : null;
   if (boss) {
-    if (ui.bossOn !== true) { ui.bossOn = true; el.bossBar.classList.remove('hidden'); el.waveS.classList.add('hidden'); measureHud(); }
-    if (ui.bossName !== boss.name) { ui.bossName = boss.name; el.bossBar.firstElementChild.textContent = boss.name.split(' ').map(w => w.charAt(0) + w.slice(1).toLocaleLowerCase('tr')).join(' '); } // boss name in the bar
-    const k = Math.max(0, boss.hp / boss.maxHp); if (ui.boss !== k) { ui.boss = k; el.bossFill.style.transform = `scaleX(${k})`; }
+    if (ui.bossOn !== true) { ui.bossOn = true; ui.bossName = null; ui.boss = -1; ui.bossTrail = 1; ui.bossHitT = 0; el.bossBar.classList.remove('hidden'); el.waveChip.classList.add('hidden'); measureHud(); }
+    if (ui.bossName !== boss.name) {
+      ui.bossName = boss.name; el.bossName.textContent = boss.name.split(' ').map(w => w.charAt(0) + w.slice(1).toLocaleLowerCase('tr')).join(' ');
+      el.bossMarks.innerHTML = (boss.def && boss.def.phases || []).map(t => `<u style="left:${t}%"></u>`).join(''); // thin marks at the phase thresholds
+    }
+    const k = Math.max(0, boss.hp / boss.maxHp), now = performance.now();
+    if (ui.boss !== k) { if (k < ui.boss) ui.bossHitT = now; ui.boss = k; el.bossFill.style.transform = `scaleX(${k})`; el.bossPct.textContent = Math.ceil(k * 100) + '%'; }
+    if (ui.bossTrail > k) { // the lost chunk stays light for ~0.5 s after the last hit, then shrinks
+      if (now - ui.bossHitT > 500) ui.bossTrail = Math.max(k, ui.bossTrail - 0.9 * Math.min(0.1, (now - (ui.bossTick || now)) / 1000));
+      el.bossLost.style.transform = `scaleX(${ui.bossTrail})`;
+    } else { ui.bossTrail = k; el.bossLost.style.transform = `scaleX(${k})`; }
+    ui.bossTick = now;
   } else {
-    if (ui.bossOn !== false) { ui.bossOn = false; el.bossBar.classList.add('hidden'); el.waveS.classList.remove('hidden'); measureHud(); }
+    if (ui.bossOn !== false) { ui.bossOn = false; el.bossBar.classList.add('hidden'); el.waveChip.classList.remove('hidden'); measureHud(); }
     const remain = G.queue.length + G.enemies.length + G.portals.length;
     const txt = G.phase === 'upgrade' ? 'Yükseltme seç' : G.phase === 'cleared' || G.phase === 'out' ? 'Dalga temizlendi' : G.phase === 'intro' ? 'Hazırlan' : remain + ' düşman kaldı';
     if (ui.sub !== txt) { ui.sub = txt; el.waveS.textContent = txt; }

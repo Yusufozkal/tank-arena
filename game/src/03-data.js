@@ -83,13 +83,14 @@ const SYN_K = {
   fortFire: 0.4,   // ... and a shot within this many seconds
   chainAdd: 3      // Zincir: seconds added to every other active power-up on a pickup
 };
+const synPct = x => Math.round(x * 100);
 const SYN = [
-  { id: 'bb', name: 'Seken patlama', a: 'ricochet', b: 'blast', desc: 'Çelikten seken mermi ilk isabetinde daha geniş patlar.' },
-  { id: 'mov', name: 'Hareketli onarım', a: 'engine', b: 'repair', desc: 'Birkaç saniye hareket edip hasar almazsan onarım iki kat hızlanır.' },
-  { id: 'far', name: 'Uzak vuruş', a: 'caliber', b: 'barrel', desc: 'Mermi uzağa gittikçe sert vurur, en fazla +%40.' },
-  { id: 'amb', name: 'Pusu', a: 'thermal', b: 'caliber', desc: 'Seni görmeyen ya da çalıdaki düşmana ilk isabet çift hasar verir.' },
-  { id: 'fort', name: 'Kale', a: 'armor', b: 'loader', desc: 'Durup ateş ederken aldığın hasar %25 azalır.' },
-  { id: 'chain', name: 'Zincir', a: 'magnet', b: 'boost', desc: 'Güçlendirme alınca etkin olan diğerleri 3 sn uzar.' }
+  { id: 'bb', name: 'Seken patlama', a: 'ricochet', b: 'blast', desc: `Duvardan seken mermi, ilk isabetinde %${synPct(SYN_K.bbR - 1)} daha geniş alanda patlar` },
+  { id: 'mov', name: 'Hareketli onarım', a: 'engine', b: 'repair', desc: `${SYN_K.movNeed} sn hareket edersen Onarım robotu ${SYN_K.movRate} kat hızlı çalışır` },
+  { id: 'far', name: 'Uzak vuruş', a: 'caliber', b: 'barrel', desc: `Mermi uzağa gittikçe daha sert vurur, en çok +%${synPct(SYN_K.farMax)} hasar` },
+  { id: 'amb', name: 'Pusu', a: 'thermal', b: 'caliber', desc: `Seni görmeyen ya da çalıdaki düşmana ilk isabet ${SYN_K.ambMul} kat hasar verir` },
+  { id: 'fort', name: 'Kale', a: 'armor', b: 'loader', desc: `Durup ateş ederken aldığın hasar %${synPct(1 - SYN_K.fortMul)} azalır` },
+  { id: 'chain', name: 'Zincir', a: 'magnet', b: 'boost', desc: `Güçlendirme alınca etkin diğerleri ${SYN_K.chainAdd} sn uzar` }
 ];
 const synOnS = (sy, up = G.up) => ((up[sy.a] | 0) > 0) && ((up[sy.b] | 0) > 0);
 const synOn = id => synOnS(SYN.find(x => x.id === id));
@@ -149,12 +150,12 @@ function synBadgeHTML(k) {
   if (!mine.length) return '';
   const partner = sy => sy.a === k ? sy.b : sy.a;
   const done = mine.find(sy => !upL(k) && upL(partner(sy)) > 0);
-  if (done) return `<span class="up-syn on">Birleşim: ${done.name}</span>`;
+  if (done) return `<span class="up-syn on"><b>Birleşim: ${done.name}</b><i>${done.desc}</i></span>`;
   const open = mine.find(sy => !upL(partner(sy)));
-  return open ? `<span class="up-syn">${UPS[partner(open)].name} ile birleşir</span>` : '';
+  return open ? `<span class="up-syn"><b>${UPS[partner(open)].name} ile birleşir: ${open.name}</b><i>${open.desc}</i></span>` : '';
 }
 // chooseUpgrade: before = ids active before the card, returns the new ones; the banner is shown by the caller's phase delay
 function synUnlocked(before) { return synList().filter(sy => !before.includes(sy.id)); }
-function synChipsHTML() { return synList().map(sy => `<span class="up-chip syn">${sy.name}</span>`).join(''); }
+function synChipsHTML() { return synList().map(sy => `<div class="syn-row"><b>${sy.name}</b><span>${sy.desc}</span></div>`).join(''); }
 function renderSynList(wrap, list) { const h = synChipsHTML(); $(list).innerHTML = h; $(wrap).classList.toggle('hidden', !h); }
 

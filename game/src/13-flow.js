@@ -174,7 +174,7 @@ function chooseUpgrade(k) {
   addText(p.x, p.y - 34, label, '#f2c14e', 18);
   addPart('ring', p.x, p.y, 0, 0, 0.5, 14, 170, 0, '242,193,78');
   G.phase = 'out'; G.phaseT = -0.55; // a moment to see the new part before the next wave fades in
-  if (unlocked.length) { showBanner('BİRLEŞİM AÇILDI', unlocked.map(sy => sy.name).join(', '), 1.9); G.phaseT = -1.6; } // longer pause: the wave banner must not overwrite it
+  if (unlocked.length) { showBanner('BİRLEŞİM AÇILDI', unlocked.map(sy => sy.name + ': ' + sy.desc).join('\n'), 3.2); G.phaseT = -3; } // longer pause: the wave banner must not overwrite it
   Sound.upgrade(); vibrate(20);
 }
 function upChipsHTML() {
