@@ -375,7 +375,7 @@ button:focus-visible{outline:2px solid var(--bone);outline-offset:2px}
       </div>
     </div>
     <button type="button" class="btn primary" id="btnSettingsBack">TAMAM</button>
-    <p class="version">Tank Arena 1.4.1</p>
+    <p class="version">Tank Arena 1.5</p>
   </section>
 </div>
 
@@ -400,12 +400,13 @@ button:focus-visible{outline:2px solid var(--bone);outline-offset:2px}
       <li><canvas data-tank="fast" aria-hidden="true"></canvas><div><b>Keşif tankı</b><span>1 isabet. Çok hızlıdır, üzerine doğru gelir.</span></div></li>
       <li><canvas data-tank="heavy" aria-hidden="true"></canvas><div><b>Ağır tank</b><span>5 isabet. Çift namlulu, iri mermisi çok can yakar.</span></div></li>
       <li><canvas data-tank="hunter" aria-hidden="true"></canvas><div><b>Avcı</b><span>3 isabet. Mermilerden kaçar, siperden ateş eder, seni kaybettiği yere ateş açar. Ateş etmeden önce yeşil hedef ışığı yakar.</span></div></li>
-      <li><canvas data-tank="boss" aria-hidden="true"></canvas><div><b>Komutan</b><span>Her 5. dalgada gelir: ilk gelişinde 16 isabet, sonra her gelişinde 12 fazla. Üç namludan ateş etmeden önce namluları parlar.</span></div></li>
+      <li><canvas data-tank="boss" aria-hidden="true"></canvas><div><b>Komutan</b><span>Normal tankın boss'u. Her bölgenin ortasında (5, 15, 25, 35. dalga) kendi arenasında gelir. Üç evresi var; sırtındaki komuta kulesi topçu çağırır. Her gelişinde yeni saldırılar açar.</span></div></li>
+      <li><canvas data-tank="fast" aria-hidden="true"></canvas><div><b>Sarı Fırtına</b><span>Keşif tankının boss'u, 10. dalgada Kum Çukuru'nda. Kırmızı çizgi boyunca hücum eder; onu çeliğe çarptırırsan sersemler.</span></div></li>
     </ul>
     <h3 class="gh">GÜÇLENDİRMELER</h3>
     <ul class="pus" id="guidePus" aria-label="Güçlendirmeler"></ul>
     <h3 class="gh">YÜKSELTMELER</h3>
-    <p class="guide-p">Her dalga bitince atölyede üç karttan birini seçersin. Seçtiğin parça tankına takılır ve oyun bitene kadar kalır; aynı kartı yeniden seçersen seviyesi artar. Sarı simgeli kartlar nadirdir, Komutanı yendiğin dalganın sonunda biri mutlaka gelir.</p>
+    <p class="guide-p">Her dalga bitince atölyede üç karttan birini seçersin. Seçtiğin parça tankına takılır ve oyun bitene kadar kalır; aynı kartı yeniden seçersen seviyesi artar. Sarı simgeli kartlar nadirdir, bir boss'u yendiğin dalganın sonunda biri mutlaka gelir.</p>
     <ul class="ups-grid" id="guideUps" aria-label="Yükseltmeler"></ul>
     <h3 class="gh">BİRLEŞİMLER</h3>
     <p class="guide-p">İki belirli parça birlikte takılınca yeni bir etki açılır. Atölyede kartın üstünde hangi parçayla birleştiği yazar.</p>
@@ -417,6 +418,9 @@ button:focus-visible{outline:2px solid var(--bone);outline-offset:2px}
       <li>Tuğlalar üç isabette yıkılır, çelik bloklar hiç yıkılmaz.</li>
       <li>Avcı mermilerden kaçar: onu yakından ya da üçlü atışla vur.</li>
       <li>Delici mermi tuğlaların ve tankların içinden geçer, arkadaki düşmanı da vurur.</li>
+      <li>Bosslar saldırmadan önce uyarır: parlayan namlu düz atış, kırmızı çizgi hücum, kırmızı daire havan, büyüyen halka şok dalgası demektir. Çelik seni korur.</li>
+      <li>Düşmanı yandan vurursan paleti kırılır, önden vurursan namlusu tutukluk yapar, arkadan vurursan motoru yavaşlar; kısa süre sonra onarır.</li>
+      <li>Nükleer bomba bütün haritayı vurur. Bossları öldürmez ama canlarının büyük bir kısmını alır ve onları sersemletir.</li>
       <li>Zırhın azken atölyeye girersen kartlardan biri acil onarım olur.</li>
     </ul>
     <button type="button" class="btn primary" id="btnGuideBack">TAMAM</button>
@@ -466,6 +470,6 @@ button:focus-visible{outline:2px solid var(--bone);outline-offset:2px}
   </section>
 </div>
 
-<script src="/oyna/game.99f6e602e6.js"></script>
+<script src="/oyna/game.3bc91e36c8.js"></script>
 </body>
 </html>

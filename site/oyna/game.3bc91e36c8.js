@@ -74,15 +74,21 @@ const SPECS = {
     col: { body: '#cf9f30', dk: '#8c691b', hi: '#efca60', acc: '#2a2622' } },
   heavy: { hp: 5, speed: 55, turn: 2.2, tTurn: 2.1, r: 20, mass: 2, len: 46, wid: 40, tread: 10, tR: 12.5, barrel: 28, bW: 6.5, cool: 2.4, bSpeed: 330, dmg: 22, bR: 6, score: 250, hold: 5.5, drop: 0.32, twin: true,
     col: { body: '#60656c', dk: '#3b3f44', hi: '#8c929a', acc: '#c9402d' } },
-  boss: { hp: 34, speed: 46, turn: 1.7, tTurn: 1.8, r: 22, mass: 4, len: 54, wid: 46, tread: 11, tR: 15, barrel: 32, bW: 7.5, cool: 1.6, bSpeed: 360, dmg: 16, bR: 5.5, score: 1500, hold: 5, drop: 1, triple: true,
+  boss: { hp: 34, speed: 45, turn: 1.7, tTurn: 1.8, r: 38, mass: 4, len: 90, wid: 70, tread: 14, tR: 24, barrel: 58, bW: 9, cool: 1.6, bSpeed: 360, dmg: 16, bR: 5.5, score: 1500, hold: 5, drop: 1, triple: true,
     col: { body: '#7d2431', dk: '#4b131d', hi: '#ad4356', acc: '#f2c14e' } },
   // Avcı: the smart tank. Dodges shells, fires from cover, sneaks around open ground
   hunter: { hp: 3, speed: 106, turn: 4.6, tTurn: 4.4, r: 16, mass: 1, len: 38, wid: 32, tread: 7.5, tR: 9.5, barrel: 27, bW: 5.5, cool: 1.25, bSpeed: 480, dmg: 14, bR: 4, score: 300, hold: 4.5, drop: 0.3, smart: true,
     col: { body: '#6c4fa3', dk: '#432f6b', hi: '#9d84d1', acc: '#7ef0d0' } }
 };
 
-const BOSS_HP0 = 16, BOSS_HP_STEP = 12; // Komutan: weaker on its first visit (wave 5), tougher on every later visit
-const bossHp = w => BOSS_HP0 + BOSS_HP_STEP * (Math.max(1, Math.floor(w / 5)) - 1);
+// Komutan HP per boss wave, tuned with tests/boss_probe.py so that a medium card set (and the bot) takes about 3-4 minutes from wave 15 on; the wave-5 Komutan is the easy one
+const BOSS_HP_AT = [[5, 200], [15, 600], [25, 920], [35, 1190]];
+const bossHp = w => {
+  const P = BOSS_HP_AT, last = P[P.length - 1];
+  if (w <= P[0][0]) return P[0][1];
+  if (w >= last[0]) return Math.round(last[1] + (w - last[0]) * 27);
+  for (let i = 1; i < P.length; i++) if (w <= P[i][0]) return Math.round(P[i - 1][1] + (P[i][1] - P[i - 1][1]) * (w - P[i - 1][0]) / (P[i][0] - P[i - 1][0]));
+};
 
 const PU = {
   repair: { col: '#6fd46b', rgb: '111,212,107', name: 'Tamir', dur: 0, w: 3, from: 1, note: '+35 zırh (Uzun etkiyle daha fazla)' },
@@ -377,6 +383,7 @@ const SPR = {
   fire: glowSprite('rgba(255,248,215,1)', 'rgba(255,165,55,.75)', 'rgba(255,80,20,0)'),
   flash: glowSprite('rgba(255,255,240,1)', 'rgba(255,225,150,.5)', 'rgba(255,200,100,0)'),
   smoke: glowSprite('rgba(62,58,52,.62)', 'rgba(62,58,52,.32)', 'rgba(62,58,52,0)'),
+  smokeK: glowSprite('rgba(16,14,12,.85)', 'rgba(16,14,12,.5)', 'rgba(16,14,12,0)'),
   blue: glowSprite('rgba(230,248,255,1)', 'rgba(110,195,240,.6)', 'rgba(60,140,220,0)')
 };
 for (const k in PU) { PU[k].glow = glowSprite(`rgba(${PU[k].rgb},.95)`, `rgba(${PU[k].rgb},.4)`, `rgba(${PU[k].rgb},0)`); SPR['pu_' + k] = PU[k].glow; }
@@ -446,6 +453,17 @@ const Sound = (() => {
     bounce(v) { if (!ok('bc', 40)) return; tn(ac.currentTime, 0.07, 2600, 1700, 0.09 * v, 'triangle'); },
     pop(v) { if (!ok('pp', 70)) return; const t = ac.currentTime; nz(t, 0.22, 1600, 120, 0.3 * v); tn(t, 0.16, 140, 50, 0.22 * v); },
     over() { if (!ok('ov', 300)) return; const t = ac.currentTime; [392, 330, 262, 196].forEach((f, i) => tn(t + i * 0.18, 0.32, f, f * 0.98, 0.14, 'triangle')); },
+    siren() { if (!ok('sr', 800)) return; const t = ac.currentTime; for (let i = 0; i < 4; i++) { tn(t + i * 0.7, 0.7, 420, 760, 0.13, 'sawtooth'); tn(t + i * 0.7 + 0.35, 0.35, 760, 420, 0.1, 'sawtooth'); } },
+    wind(v, dur) { // swelling, wavering gust of filtered noise (Sarı Fırtına: intro whirlwind, Rüzgâr)
+      if (!ok('wd', 400)) return; dur = dur || 3;
+      const t = ac.currentTime, src = ac.createBufferSource(); src.buffer = noise; src.loop = true;
+      const f = ac.createBiquadFilter(); f.type = 'bandpass'; f.Q.value = 1.4;
+      f.frequency.setValueAtTime(260, t); f.frequency.linearRampToValueAtTime(900, t + dur * 0.45); f.frequency.linearRampToValueAtTime(320, t + dur);
+      const lfo = ac.createOscillator(), lg = ac.createGain(); lfo.frequency.value = 0.9; lg.gain.value = 160; lfo.connect(lg); lg.connect(f.frequency);
+      const g = ac.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.28 * v, t + dur * 0.4); g.gain.linearRampToValueAtTime(0.0001, t + dur);
+      src.connect(f); f.connect(g); g.connect(master); src.start(t); src.stop(t + dur + 0.1); lfo.start(t); lfo.stop(t + dur + 0.1);
+    },
+    warnRise(v) { if (!ok('wr', 300)) return; const t = ac.currentTime; tn(t, 1.2, 180, 900, 0.14 * v, 'sawtooth'); tn(t, 1.2, 360, 1500, 0.06 * v, 'square'); },
     nukeWarn() { if (!ok('nw', 600)) return; const t = ac.currentTime; for (let i = 0; i < 6; i++) tn(t + i * 0.2, 0.19, i & 1 ? 560 : 820, i & 1 ? 560 : 820, 0.16, 'square'); },
     nuke() { if (!ok('nk', 500)) return; const t = ac.currentTime; nz(t, 1.8, 2400, 45, 0.95, 'lowpass', 0.8); tn(t, 1.5, 78, 20, 0.75, 'sine'); nz(t + 0.25, 2.1, 700, 40, 0.5, 'lowpass', 0.9); tn(t, 0.5, 1200, 200, 0.12, 'sawtooth'); }
   };
@@ -475,7 +493,7 @@ const G = {
   wave: 0, score: 0, kills: 0, shots: 0, hits: 0, hurt: 0, fade: 0, god: false,
   buffs: freshBuffs(), buffMax: freshBuffs(), bushHint: false, resume: null, overFree: null,
   D: RULES, dodges: 0, covers: 0,
-  up: {}, strikes: [], jet: null, airQ: 0,
+  up: {}, strikes: [], jet: null, airQ: 0, stage: null, tele: [], pieces: [], introGate: false, introSeen: false,
   tank: 'std', upMode: 'cards', evoWait: 0, noEvo: false
 };
 const upL = k => G.up[k] | 0;
@@ -1220,6 +1238,7 @@ const TT_obus = {
 // Enemy status effects, once per frame per enemy before its AI. Returns true while the tank is stunned (it stands still and holds fire, like Dondurucu).
 // stunT: Ikiz.   kvx/kvy: knockback velocity (px/s, divided by mass where it is set), decays quickly.   burnT/burnDps: Alev Topu burn, ticks every 0.25 s.
 function tickStatus(e, dt) {
+  if (e.pt) partTick(e, dt); // 11: part damage timers
   if (e.kvx || e.kvy) { // D1: Sarapnel / Cift knockback
     moveTank(e, e.kvx * dt, e.kvy * dt);
     const k = Math.exp(-8 * dt); e.kvx *= k; e.kvy *= k;
@@ -1326,16 +1345,16 @@ const wreckOf = t => {
 };
 function hurtEnemy(e, dmg, x, y, dir, quiet) { // quiet: burn ticks and flame, no sparks or sound
   if (e.dead) return;
+  if (e.isBoss) { bossHurt(e, dmg, x, y, dir, quiet); return; } // 11a: phases, parts, stun bonus
   e.hp -= dmg; e.flash = 0.1;
   if (!quiet) sparks(x, y, 6, '#ffd27a', 200, dir, 1.4);
   if (e.hp <= 0.001) { killEnemy(e); return; }
   if (!quiet) Sound.metal(volAt(e.x, e.y));
-  if (e.type === 'boss' && !e.enraged && e.hp <= e.maxHp / 2) {
-    e.enraged = true; e.speedMul *= 1.2; e.coolMul *= 0.7;
-    addText(e.x, e.y - 36, 'Komutan öfkelendi', '#ff7a5c', 16);
-  }
 }
-const damageEnemy = (e, b) => hurtEnemy(e, b.dmg * synDmg(b, e), b.x, b.y, Math.atan2(-b.vy, -b.vx));
+function damageEnemy(e, b) {
+  hurtEnemy(e, b.dmg * synDmg(b, e), b.x, b.y, Math.atan2(-b.vy, -b.vx));
+  if (!e.dead) partBreak(e, b); // 11: a surviving enemy tank loses a part by the hit direction
+}
 // Explosive shells (Patlayıcı mermi): a small blast that hurts every other enemy tank in reach
 function blastAt(b, x, y, skip) {
   const sp = splashFor(b); // hook (B): Seken patlama
@@ -1360,7 +1379,8 @@ function killEnemy(e) {
   addText(e.x, e.y - 12, '+' + fmt(pts), '#f2c14e', e.type === 'boss' ? 22 : 16);
   if (e.type === 'boss') {
     G.boss = null;
-    showBanner('KOMUTAN İMHA EDİLDİ', '+' + fmt(pts) + ' puan', 1.9);
+    if (e.isBoss) bossDefeated(e); // armour back to full, hazards gone (11a)
+    else showBanner('KOMUTAN İMHA EDİLDİ', '+' + fmt(pts) + ' puan', 1.9);
     ['repair', 'shield', pick(['triple', 'rapid', 'pierce', 'freeze', 'air'])].forEach((k, i) => dropPickup(e.x + Math.cos(i * 2.1) * 26, e.y + Math.sin(i * 2.1) * 26, k, e.x, e.y));
     vibrate([40, 30, 80]);
   } else if (Math.random() < s.drop * G.mods.drop * (1 + 0.25 * upL('magnet'))) dropPickup(e.x, e.y);
@@ -1464,10 +1484,17 @@ function regen(p, dt) {
 // Owner: package C (nuclear bomb).
 // Hooks called from shared code: nukeOnKill (killEnemy), nukeUpdate (updatePlay), nukeKey (keydown), nukeHud (updateHUD), drawNuke (render).
 // Meter: every kill adds weight / (NUKE_WAVES * expected weight of a whole wave), so a wave of any size gives about 1/NUKE_WAVES of the meter.
-const NUKE_WAVES = 2.5;                                                  // waves of kills to fill the meter (E tunes this)
+const NUKE_WAVES = 3.5;                                                  // waves of kills to fill the meter (E tunes this)
 const NUKE_WEIGHT = { basic: 1, fast: 1, hunter: 1.5, heavy: 2, boss: 3 }; // meter weight per enemy type
 const NUKE_WARN = 1.2;      // seconds of warning (game time) before the blast
-const NUKE_BOSS_CUT = 0.25; // share of the Komutan's max HP the blast takes (never kills)
+const NUKE_BOSS_CAP = 0.3;   // blast damage to a boss is at most this share of its max HP
+const NUKE_BOSS_BASE = 150;  // blast damage to a boss up to wave 15
+const NUKE_BOSS_PER_WAVE = 6; // extra blast damage to a boss per wave after wave 15
+const NUKE_BOSS_FLOOR = 0.1; // a boss keeps at least this share of its max HP after the blast
+// blast damage to a boss at wave w: 150 up to wave 15, +6 per wave after, never above 30% of the boss's max HP
+const nukeBossDmg = (w, maxHp) => Math.min(NUKE_BOSS_CAP * maxHp, NUKE_BOSS_BASE + NUKE_BOSS_PER_WAVE * Math.max(0, w - 15));
+const NUKE_BOSS_STUN = 3;   // seconds a boss is stunned
+const NUKE_BOSS_FILL = 0.6; // share of a boss's max HP that, dealt as damage, fills the meter once (boss stage)
 const NUKE_FLASH = 0.6;     // seconds the white flash fades
 // expected total weight of wave w's roster; mirrors buildRoster without touching its random numbers
 function nukeWaveWeight(w) {
@@ -1484,7 +1511,7 @@ function nukeWaveWeight(w) {
   const { pf, ph, pu } = typeShares(w);
   return total * (ph * W.heavy + pf * W.fast + pu * W.hunter + Math.max(0, 1 - ph - pf - pu) * W.basic);
 }
-const nukeFresh = m => ({ meter: clamp(+m || 0, 0, 1), warnT: 0, flashT: -1e9, firing: false, used: 0, hinted: false });
+const nukeFresh = m => ({ meter: clamp(+m || 0, 0, 1), warnT: 0, flashT: -1e9, firing: false, used: 0, hinted: false, bossAcc: 0, bossWave: 0 });
 G.nuke = nukeFresh(0);
 const nukeReady = () => G.nuke.meter >= 0.9999;
 const nukeSave = () => +G.nuke.meter.toFixed(4);
@@ -1494,40 +1521,75 @@ function nukeOnKill(e) {
   if (n.firing || G.phase === 'dying' || !G.player || !G.player.alive) return; // blast kills and kills while dying do not count
   n.meter = Math.min(1, n.meter + NUKE_WEIGHT[e.type] / (NUKE_WAVES * nukeWaveWeight(G.wave)));
 }
-const nukeOnScreen = () => G.enemies.filter(e => !e.dead && onScreen(e.x, e.y, 0));
+const nukeIsBoss = e => e.isBoss === true || e.type === 'boss';
+// a living boss that takes no damage now (intro, phase transition, death scene): no blast may start
+const nukeBossSafe = () => G.enemies.some(e => !e.dead && nukeIsBoss(e) && (e.invuln || e.invulnerable));
+// boss-stage charging: the boss agent calls this from the boss damage path with the damage applied to the boss body.
+// 60% of max HP dealt fills the meter once; at most one charge per fight (per wave). The blast's own damage never counts.
+function nukeOnBossDamage(e, amount) {
+  const n = G.nuke;
+  if (n.firing || !(amount > 0) || !e || !(e.maxHp > 0) || G.phase === 'dying' || !G.player || !G.player.alive) return;
+  if (n.bossWave !== G.wave) { n.bossWave = G.wave; n.bossAcc = 0; }
+  const room = 1 - n.bossAcc; if (room <= 0) return;
+  const add = Math.min(room, amount / (NUKE_BOSS_FILL * e.maxHp));
+  n.bossAcc += add; n.meter = Math.min(1, n.meter + add);
+}
+G.nukeOnBossDamage = nukeOnBossDamage; // also reachable for tests (module 19 is not edited here)
+// every living enemy on the whole map (not only the visible screen); the name stays because the debug API reads it
+const nukeOnScreen = () => G.enemies.filter(e => !e.dead);
 // true when the warning started; says why not (hint) when the player asked for it by hand
 function nukeFire(manual) {
   const n = G.nuke, p = G.player;
   if (G.state !== 'play' || G.phase !== 'fight' || !p || !p.alive || n.warnT > 0) return false;
   if (!nukeReady()) { if (manual) showHint('Nükleer bomba %' + Math.floor(n.meter * 100) + ' şarjlı, kill yaparak doldur', 2); return false; }
-  if (!nukeOnScreen().length) { if (manual) showHint('Ekranda düşman yok', 2); return false; }
+  if (!nukeOnScreen().length) { if (manual) showHint('Haritada düşman yok', 2); return false; }
+  if (nukeBossSafe()) { if (manual) showHint('Boss şu an hasar almıyor', 2); return false; } // the charge is kept
   n.warnT = NUKE_WARN;
   hintT = 0; el.hint.classList.remove('show'); // the "ready" hint is done
   showBanner('NÜKLEER BOMBA', '', NUKE_WARN);
   Sound.nukeWarn(); vibrate([40, 60, 40, 60, 40]);
   return true;
 }
+// the boss damage and stun of a blast: the floor applies at the moment of the hit; the stun bonus (+50%) does not apply to it
+function nukeApplyBoss(b, want) {
+  const n = G.nuke, dmg = Math.min(want, b.hp - NUKE_BOSS_FLOOR * b.maxHp); // never lethal, never below the floor
+  const st = b.stunT || 0; b.stunT = 0;
+  n.firing = true; // blast damage does not charge the meter
+  if (dmg > 0) hurtEnemy(b, dmg, b.x, b.y, 0); // enrage checks still run
+  n.firing = false;
+  b.stunT = Math.max(st, NUKE_BOSS_STUN);
+}
+const nukeInvuln = b => !!(b.invuln || b.invulnerable);
 function nukeBlast() {
   const n = G.nuke, p = G.player;
   n.firing = true; n.used++;
   const mods = G.mods, drop = mods.drop; mods.drop = 0; // no pickup drops from blast kills
-  for (const e of G.enemies.slice()) if (!e.dead && e.type !== 'boss' && onScreen(e.x, e.y, 0)) killEnemy(e);
+  for (const e of G.enemies.slice()) if (!e.dead && !nukeIsBoss(e)) killEnemy(e); // the whole map, on or off screen
   mods.drop = drop;
-  const b = G.boss && !G.boss.dead ? G.boss : null;
-  if (b) hurtEnemy(b, Math.min(NUKE_BOSS_CUT * b.maxHp, b.hp - 0.5), b.x, b.y, 0); // never lethal; the enrage check still runs
+  for (const b of G.enemies.slice()) {
+    if (b.dead || !nukeIsBoss(b)) continue;
+    const want = nukeBossDmg(G.wave, b.maxHp);
+    if (nukeInvuln(b)) { b.nukePending = { want: (b.nukePending ? b.nukePending.want : 0) + want }; continue; } // invulnerable now: applied when it ends
+    nukeApplyBoss(b, want);
+  }
   G.bullets = G.bullets.filter(q => q.owner === 0);
+  if (typeof bossClearHazards === 'function') bossClearHazards();
   n.firing = false; n.meter = 0; n.hinted = false; n.flashT = G.time;
-  addPart('ring', cam.x, cam.y, 0, 0, 0.9, 30, 1700, 0, '255,244,214');
-  addPart('ring', cam.x, cam.y, 0, 0, 1.3, 20, 1300, 0, '255,170,90');
+  const mx = G.map.w / 2, my = G.map.h / 2, R = Math.hypot(G.map.w, G.map.h) * 0.75; // shockwave from the arena centre reaches every corner
+  addPart('ring', mx, my, 0, 0, 0.9, 30, R, 0, '255,244,214');
+  addPart('ring', mx, my, 0, 0, 1.3, 20, R * 0.8, 0, '255,170,90');
   shake(16); Sound.nuke(); vibrate([80, 40, 160, 40, 260]);
 }
 function nukeUpdate(dt) {
   const n = G.nuke, p = G.player;
+  for (const b of G.enemies) { // blast damage that waited for an invulnerable boss: applied when its invulnerability ends
+    if (!b.dead && b.nukePending && !nukeInvuln(b)) { const w = b.nukePending.want; b.nukePending = null; nukeApplyBoss(b, w); }
+  }
   if (n.warnT > 0) {
     if (G.phase !== 'fight' || !p.alive) n.warnT = 0; // wave ended or player died during the warning: the charge is kept
     else if ((n.warnT -= dt) <= 0) { n.warnT = 0; nukeBlast(); }
   } else if (bot.on && bot.nuke && G.phase === 'fight' && p.alive && nukeReady()) {
-    if (nukeOnScreen().length >= 3 || (G.boss && !G.boss.dead)) nukeFire();
+    if (nukeOnScreen().length >= 3 || G.enemies.some(e => !e.dead && nukeIsBoss(e) && !e.invuln && !e.invulnerable)) nukeFire();
   }
 }
 function nukeKey(e) {
@@ -1537,7 +1599,7 @@ function nukeKey(e) {
 }
 el.btnNuke.addEventListener('click', e => { Sound.init(); Sound.resume(); nukeFire(true); e.currentTarget.blur(); });
 function nukeHud() {
-  const n = G.nuke, st = n.warnT > 0 ? 'w' : nukeReady() ? 'r' : 'c', pct = Math.floor(n.meter * 100);
+  const n = G.nuke, st = n.warnT > 0 ? 'w' : nukeReady() && !nukeBossSafe() ? 'r' : 'c', pct = Math.floor(n.meter * 100);
   const key = st + pct;
   if (ui.nk === key) return;
   const stChanged = ui.nkSt !== st; ui.nk = key; ui.nkSt = st;
@@ -1650,14 +1712,7 @@ function typeShares(w) {
 }
 function buildRoster(w) {
   const D = G.D, list = [];
-  if (w % 5 === 0) {
-    const esc = 1 + Math.floor(w / 5);
-    for (let i = 0; i < esc; i++) list.push(i % 2 && w >= D.fastFrom ? 'fast' : 'basic');
-    if (w >= Math.max(20, D.hunterFrom)) list[list.length - 1] = 'hunter'; // escorts follow the same introduction schedule as normal waves
-    if (w >= 20) { list[0] = 'heavy'; list[2] = 'hunter'; }
-    list.splice(1, 0, 'boss');
-    return { list, maxAlive: Math.min(D.maxAlive, 3 + Math.min(5, Math.floor(w / 8)) + D.alive) };
-  }
+  if (w % 5 === 0) return { list: ['boss'], maxAlive: 1 }; // boss stage: only the boss on the field, no escorts (startBossStage spawns it)
   const total = clamp(Math.round((3 + w + Math.floor(w / 2)) * D.count), 3, 24 + Math.floor(Math.max(0, w - 20) / 2));
   const { pf, ph, pu } = typeShares(w);
   for (let i = 0; i < total; i++) { const r = Math.random(); list.push(r < ph ? 'heavy' : r < ph + pf ? 'fast' : r < ph + pf + pu ? 'hunter' : 'basic'); }
@@ -1685,20 +1740,20 @@ const NEW_FOE = {
   heavy: ['tankArena.seenHeavy', 'Yeni düşman: Ağır. Yavaş ama çok sağlam, çift namlu ateş eder.'],
   hunter: ['tankArena.seenHunter', 'Yeni düşman: Avcı. Mermilerden kaçar, siperden ateş eder; ateş etmeden önce yeşil hedef ışığı yakar.'] };
 function spawnEnemy(type, x, y) {
+  if (type === 'boss') { // debug / old paths: a boss in an ordinary wave (no phases, no stage)
+    const a = Math.atan2(G.player.y - y, G.player.x - x), e = spawnBoss(bossDefAt(G.wave) || BOSS_DEFS.komutan, x, y, a);
+    addPart('ring', x, y, 0, 0, 0.4, 10, 120, 0, '224,83,58'); return e;
+  }
   const e = makeTank(type, x, y), p = G.player;
   const a = Math.atan2(p.y - y, p.x - x);
   e.angle = Math.round(a / (Math.PI / 2)) * (Math.PI / 2); e.turret = a;
   e.cool = rand(0.9, 1.7) * G.mods.cool; e.speedMul = G.mods.speed; e.coolMul = G.mods.cool; e.aimErr = rand(-G.mods.err, G.mods.err);
   if (G.mods.hp > 1) e.hp = e.maxHp = Math.max(1, Math.round(e.spec.hp * G.mods.hp)); // later waves bring tougher tanks
-  if (type === 'boss') { // Komutan ignores mods.hp: its HP grows per visit instead, and it fires slower on its first visits (x1.6, x1.3, ...)
-    e.hp = e.maxHp = bossHp(G.wave); e.coolMul *= 1 + 0.6 / Math.max(1, Math.floor(G.wave / 5));
-  }
   G.enemies.push(e);
   const intro = NEW_FOE[type];
   if (intro && !store.get(intro[0], false)) { store.set(intro[0], true); showHint(intro[1], 6); }
   for (let k = 0; k < 10; k++) { const an = rand(0, TAU), sp = rand(30, 90); addPart('dust', x, y, Math.cos(an) * sp, Math.sin(an) * sp, rand(0.5, 0.9), rand(16, 26), 26, 3); }
   addPart('ring', x, y, 0, 0, 0.4, 10, 120, 0, '224,83,58');
-  if (type === 'boss') { G.boss = e; showBanner('KOMUTAN GELDİ', G.wave <= 5 ? 'Namluları parlayınca yana kaç' : 'Her gelişinde daha güçlü', 1.9); shake(6); }
 }
 function updateSpawns(dt) {
   G.spawnTimer -= dt;
@@ -1745,17 +1800,17 @@ function updateEnemy(e, dt) {
       else { tx = e.wp.x; ty = e.wp.y; hasT = true; }
     }
   }
-  const before = e.angle, ox = e.x, oy = e.y;
-  if (hasT) {
+  const before = e.angle, ox = e.x, oy = e.y, trB = !!e.pt && e.pt.tread > 0, jam = !!e.pt && e.pt.barrel > 0, pk = e.pt && e.pt.engine > 0 ? 0.5 : 1; // part damage: broken tread / jammed barrel / damaged engine
+  if (hasT && !trB) {
     const desired = Math.atan2(ty - e.y, tx - e.x);
     e.angle = turnTo(e.angle, desired, s.turn * dt);
     const diff = Math.abs(angDiff(e.angle, desired));
-    const spd = diff < 0.55 ? s.speed * e.speedMul * (1 - diff * 0.9) : 0;
+    const spd = diff < 0.55 ? s.speed * e.speedMul * pk * (1 - diff * 0.9) : 0;
     moveTank(e, Math.cos(e.angle) * spd * dt, Math.sin(e.angle) * spd * dt);
     const dw = Math.hypot(tx - e.x, ty - e.y);
     if (dw < e.wpBest - 0.5) { e.wpBest = dw; e.stuckT = 0; } else e.stuckT += dt;
     if (e.stuckT > 1.2) { e.wp = randomNeighbor(e); e.wpBest = 1e9; e.stuckT = 0; }
-  } else if (e.blast) {
+  } else if (e.blast && !trB) {
     e.angle = turnTo(e.angle, Math.atan2(e.blast.y - e.y, e.blast.x - e.x), s.turn * dt);
   }
   if (dt > 0) { e.avx = (e.x - ox) / dt; e.avy = (e.y - oy) / dt; }
@@ -1769,7 +1824,7 @@ function updateEnemy(e, dt) {
   if (e.type === 'boss') e.chargeT = e.canSee && p.alive && e.cool < 0.55 ? e.chargeT + dt : 0; // Komutan's barrels glow while charging
   if (aim !== null) {
     e.turret = turnTo(e.turret, aim, s.tTurn * dt);
-    if (may && e.cool <= 0 && Math.abs(angDiff(e.turret, aim)) < 0.07 && (e.type !== 'boss' || !e.canSee || e.chargeT >= 0.45)) {
+    if (may && e.cool <= 0 && !jam && Math.abs(angDiff(e.turret, aim)) < 0.07 && (e.type !== 'boss' || !e.canSee || e.chargeT >= 0.45)) {
       fireTank(e); e.cool = s.cool * e.coolMul * rand(0.85, 1.25); e.aimErr = rand(-G.mods.err, G.mods.err);
       if (e.type === 'boss') e.chargeT = 0;
     }
@@ -1848,12 +1903,13 @@ function updateHunter(e, dt) {
   else if (e.mode === 'cover') { if (e.cool <= 0.3 || !p.alive) { e.mode = 'hunt'; e.path = null; } }
   else if (e.canSee && G.time - e.lastShot < 0.25 && e.cool > 0.7) { e.mode = 'cover'; e.path = null; G.covers++; }
 
-  const before = e.angle, ox = e.x, oy = e.y;
+  const before = e.angle, ox = e.x, oy = e.y, trB = !!e.pt && e.pt.tread > 0, jam = !!e.pt && e.pt.barrel > 0, pk = e.pt && e.pt.engine > 0 ? 0.5 : 1; // part damage
   let goal = null;
   e.blast = null;
+  if (trB) e.dodge = null;
   if (e.dodge) {
     e.dodge.t -= dt;
-    const sp = s.speed * 1.6 * e.speedMul;
+    const sp = s.speed * 1.6 * e.speedMul * pk;
     moveTank(e, e.dodge.x * sp * dt, e.dodge.y * sp * dt);
     if (e.dodge.t <= 0) { e.dodge = null; e.wp = null; e.path = null; }
   } else if (e.mode === 'cover' || e.mode === 'retreat') {
@@ -1873,16 +1929,16 @@ function updateHunter(e, dt) {
       if (v === BRICK) e.blast = e.wp; else if (blocksTank(v)) e.wp = null; else goal = e.wp;
     }
   }
-  if (goal) {
+  if (goal && !trB) {
     const desired = Math.atan2(goal.y - e.y, goal.x - e.x);
     e.angle = turnTo(e.angle, desired, s.turn * dt);
     const diff = Math.abs(angDiff(e.angle, desired));
-    const spd = diff < 0.6 ? s.speed * e.speedMul * (1 - diff * 0.8) : 0;
+    const spd = diff < 0.6 ? s.speed * e.speedMul * pk * (1 - diff * 0.8) : 0;
     moveTank(e, Math.cos(e.angle) * spd * dt, Math.sin(e.angle) * spd * dt);
     const dw = Math.hypot(goal.x - e.x, goal.y - e.y);
     if (dw < e.wpBest - 0.5) { e.wpBest = dw; e.stuckT = 0; } else e.stuckT += dt;
     if (e.stuckT > 1) { e.wp = randomNeighbor(e); e.path = null; e.wpBest = 1e9; e.stuckT = 0; }
-  } else if (e.blast) e.angle = turnTo(e.angle, Math.atan2(e.blast.y - e.y, e.blast.x - e.x), s.turn * dt);
+  } else if (e.blast && !trB) e.angle = turnTo(e.angle, Math.atan2(e.blast.y - e.y, e.blast.x - e.x), s.turn * dt);
   if (dt > 0) { e.avx = (e.x - ox) / dt; e.avy = (e.y - oy) / dt; }
   trackUpdate(e, (e.x - ox) * Math.cos(e.angle) + (e.y - oy) * Math.sin(e.angle), angDiff(before, e.angle));
 
@@ -1903,7 +1959,7 @@ function updateHunter(e, dt) {
     e.turret = turnTo(e.turret, aim, s.tTurn * dt);
     const off = Math.abs(angDiff(e.turret, aim));
     e.lock = e.canSee && may && e.cool < 0.45 && off < 0.3;
-    if (may && e.cool <= 0 && off < 0.06) {
+    if (may && e.cool <= 0 && !jam && off < 0.06) {
       fireTank(e);
       e.cool = s.cool * e.coolMul * rand(0.9, 1.15);
       e.aimErr = rand(-G.mods.err, G.mods.err);
@@ -1913,6 +1969,867 @@ function updateHunter(e, dt) {
   damageSmoke(e, dt);
 }
 
+
+/* ================= parça hasarı (docs/BOSSES.md section 2) ================= */
+// A shell hit that does not kill breaks a part by the direction it came from (against the hull): side -> tread (cannot move), front -> barrel (cannot fire), rear -> engine (half speed).
+// e.pt = { tread, barrel, engine: seconds left broken; imm: seconds of immunity after the repair; dur: the repair time (ring); side }. Boss treads and barrels: 11a.
+const PART_T = { tread: 1.5, barrel: 1.2, engine: 1.8, imm: 1.5, fast: 1.3, fastFrom: 20 }, PART_NAME = { tread: 'Palet kırıldı', barrel: 'Namlu tutukluk', engine: 'Motor hasarlı' };
+const partSeen = {};
+function partWorld(e, k) { // world position of a part: tread (the broken side), barrel (muzzle), engine (rear deck)
+  const s = e.spec, ca = Math.cos(e.angle), sa = Math.sin(e.angle);
+  if (k === 'barrel') return { x: e.x + Math.cos(e.turret) * s.barrel, y: e.y + Math.sin(e.turret) * s.barrel };
+  const lx = k === 'engine' ? -s.len / 2 : 0, ly = k === 'tread' ? (e.pt.side ? 1 : -1) * (s.wid / 2 - s.tread / 2) : 0;
+  return { x: e.x + ca * lx - sa * ly, y: e.y + sa * lx + ca * ly };
+}
+function partBreak(e, b) { // called from damageEnemy: a direct shell of the player hit tank e and did not kill it
+  if (e.dead || e.isBoss || e.type === 'boss' || b.owner !== 0 || b.lob || G.boss === e) return;
+  if (b.vol && e.pvol === b.vol) return; // the other shells of one volley (Ikiz, Uclu, Sarapnel) count once
+  e.pvol = b.vol;
+  const a = angDiff(e.angle, Math.atan2(-b.vy, -b.vx)), aa = Math.abs(a); // direction towards the shooter, against the hull
+  const k = aa < 0.785 ? 'barrel' : aa > 2.356 ? 'engine' : 'tread';
+  const pt = e.pt || (e.pt = { tread: 0, barrel: 0, engine: 0, imm: { tread: 0, barrel: 0, engine: 0 }, dur: { tread: 0, barrel: 0, engine: 0 }, side: 0, fx: 0 });
+  if (pt[k] > 0 || pt.imm[k] > 0) return;
+  pt[k] = pt.dur[k] = PART_T[k] / (G.wave > PART_T.fastFrom ? PART_T.fast : 1);
+  if (k === 'tread') pt.side = a > 0 ? 1 : 0;
+  const q = partWorld(e, k), vl = volAt(e.x, e.y);
+  if (k === 'tread') {
+    for (let i = 0, n = Math.max(3, Math.round(7 * fxScale)); i < n; i++) { const an = rand(0, TAU), v = rand(40, 170); addPart('debris', q.x + rand(-8, 8), q.y + rand(-8, 8), Math.cos(an) * v, Math.sin(an) * v, rand(0.7, 1.3), rand(3, 5.5), 0, 3.4, i & 1 ? '#4b473e' : '#1f1d19'); }
+    sparks(q.x, q.y, 9, '#ffd27a', 240);
+  } else if (k === 'barrel') { sparks(q.x, q.y, 8, '#ffb04a', 220); for (let i = 0; i < 3; i++) addPart('smoke', q.x, q.y, rand(-20, 20), rand(-30, -8), rand(0.6, 1), rand(10, 15), 22, 2); }
+  else { for (let i = 0, n = Math.max(2, Math.round(5 * fxScale)); i < n; i++) addPart('smoke', q.x + rand(-4, 4), q.y + rand(-4, 4), rand(-40, 10) - Math.cos(e.angle) * 20, rand(-30, 5), rand(0.8, 1.4), rand(12, 20), 26, 1.6, 'k'); sparks(q.x, q.y, 5, '#ffb04a', 160); }
+  Sound.metal(vl);
+  if (!partSeen[k]) { partSeen[k] = true; addText(e.x, e.y - e.r - 12, PART_NAME[k], '#ffd27a', 13); }
+}
+function partTick(e, dt) { // timers, repair, smoke; once per frame per enemy (tickStatus)
+  const pt = e.pt;
+  pt.fx -= dt; const fx = pt.fx <= 0; if (fx) pt.fx = 0.1;
+  for (const k of ['tread', 'barrel', 'engine']) {
+    if (pt[k] > 0) {
+      pt[k] -= dt;
+      if (pt[k] <= 0) { // repaired: a spark burst and a ring, then 1.5 s immune
+        pt[k] = 0; pt.imm[k] = PART_T.imm; const q = partWorld(e, k);
+        sparks(q.x, q.y, 5, '#fff0b0', 150); addPart('ring', q.x, q.y, 0, 0, 0.3, 4, 40, 0, '255,230,150');
+      } else if (fx) {
+        const q = partWorld(e, k);
+        if (k === 'tread') { if (Math.random() < 0.5) addPart('spark', q.x, q.y, rand(-60, 60), rand(-90, -20), rand(0.15, 0.3), 1, 0, 4, '#ffb04a'); }
+        else if (k === 'barrel') addPart('smoke', q.x, q.y, rand(-8, 8), rand(-30, -14), rand(0.7, 1.1), rand(8, 13), 20, 1.5);
+        else if (fxScale === 1 || Math.random() < 0.5) addPart('smoke', q.x, q.y, rand(-10, 10) - Math.cos(e.angle) * 22, rand(-30, -12), rand(0.8, 1.3), rand(10, 16), 24, 1.5, 'k');
+      }
+    } else if (pt.imm[k] > 0) pt.imm[k] -= dt;
+  }
+}
+/* ================= boss framework ================= */
+// Data-driven boss stage (docs/BOSSES.md section 1). A boss is an enemy with isBoss = true, a def from BOSS_DEFS (11b registers Komutan; later bosses add
+// their own def with the same fields), phases (HP thresholds in %), parts with their own HP and a list of attacks written as generators.
+// Boss waves: arena + intro + fight with only the boss on the field (nextWave -> startBossStage).
+
+// Region themes: 10-wave blocks (Çöl, Orman, Kar, Şehir, then again)
+const themeFor = w => THEMES[Math.floor((w - 1) / 10) % THEMES.length];
+
+/* ---- fixed arenas (21x21 text maps: S steel, B brick, W water, G bush, . empty, X boss start, P player start) ---- */
+const ARENAS = {
+  kisla: { name: 'Kışla', gate: [[9, 3], [10, 3], [11, 3]], rows: [
+    '.....................',
+    '.SS..BBBB...BBBB..SS.',
+    '.SS..BSSB.X.BSSB..SS.',
+    '.....BBBB...BBBB.....',
+    '.....................',
+    '..S...............S..',
+    '.....................',
+    '......BBB...BBB......',
+    '.....................',
+    '.SS...............SS.',
+    '.SS.......S.......SS.',
+    '.....................',
+    '.....................',
+    '......BBB...BBB......',
+    '.....................',
+    '..S...............S..',
+    '.....................',
+    '.....BBBB...BBBB.....',
+    '.SS..BSSB...BSSB..SS.',
+    '.SS..BBBB.P.BBBB..SS.',
+    '.....................'] }
+};
+function parseArena(a) {
+  const n = a.rows.length, t = new Uint8Array(n * n); let boss = null, player = null;
+  a.rows.forEach((row, r) => {
+    for (let c = 0; c < n; c++) {
+      const ch = row[c];
+      if (CH[ch]) t[r * n + c] = CH[ch]; else if (ch === 'X') boss = { c, r }; else if (ch === 'P') player = { c, r };
+    }
+  });
+  return { n, t, boss, player };
+}
+// the arena as a map; the brick gate in front of the boss is part of the map until the intro smashes it (tests compare tiles except the gate cells)
+function loadArena(key, theme) {
+  const a = ARENAS[key], pa = parseArena(a);
+  for (const [c, r] of a.gate || []) pa.t[r * pa.n + c] = BRICK;
+  const m = makeArena({ n: pa.n, t: pa.t, spawns: [] }, theme);
+  m.arena = key; m.frame = true; m.gate = a.gate || [];
+  m.bossAt = { x: pa.boss.c * T + T / 2, y: pa.boss.r * T + T / 2 }; m.playerAt = { x: pa.player.c * T + T / 2, y: pa.player.r * T + T / 2 };
+  return m;
+}
+
+/* ---- boss table ---- */
+// def: { id, name, arena, hp(w), phases: [66, 33], plates: [kind lost in phase 2, kind lost in phase 3], attacks: [{ id, w, ok(e), run*(e) }], hold, setup(e, w), onPhase(e, i), draw(e, g, alpha),
+//        deathText, loot, introSub, unlocks(w) }.  Later bosses: BOSS_DEFS.sariFirtina = {...}; BOSS_ON[10] = 'sariFirtina'.
+const BOSS_DEFS = {};
+const BOSS_ON = { 10: 'komutan', 20: 'komutan', 30: 'komutan', 40: 'komutan' }; // boss wave (within the 40-wave cycle) -> def id; every 5th wave not listed is a Komutan
+const bossDefAt = w => {
+  if (w < 1 || w % 5) return null;
+  const k = ((w - 1) % 40) + 1;
+  return BOSS_DEFS[BOSS_ON[k] || 'komutan'] || null;
+};
+const TELE_MIN = { glow: 0.45, heavy: 0.8, line: 1.0, circle: 1.2, ring: 1.2 }; // minimum warning time per telegraph kind (uyarı dili)
+const bossDmg = base => Math.max(1, Math.round(base * G.mods.dmg));
+
+function spawnBoss(def, x, y, angle) {
+  const w = G.wave, e = makeTank('boss', x, y);
+  e.isBoss = true; e.def = def; e.name = def.name; e.stage = !!G.stage; e.phased = e.stage;
+  e.maxHp = e.hp = def.hp(w); e.r = def.r || e.spec.r;
+  e.angle = e.turret = angle; e.visit = Math.max(1, Math.floor(w / 5));
+  e.phase = 0; e.trans = 0; e.invuln = false; e.dying = false; e.parts = []; e.gen = null; e.wait = 0; e.atkId = ''; e.lastAtk = ''; e.acd = {};
+  e.cool = 1.5; e.pace = 1 + 0.6 / e.visit; e.scorch = []; e.lost = {}; e.broke = [false, false, false, false]; e.hitSide = [0, 0, 0, 0];
+  e.glow = 0; e.fxT = 0; e.flowT = 0; e.flow = null; e.dt = 0; e.log = []; e.unlock = def.unlocks ? def.unlocks(w) : {};
+  initBossParts(e);
+  def.setup(e, w);
+  G.enemies.push(e); G.boss = e;
+  return e;
+}
+
+/* ---- telegraphs (uyarı dili) ---- */
+// kinds: glow (barrel/turret heats up), line (red line, last `lock` seconds darker and locked), circle (filling circle), ring (growing ring around the boss)
+function addTele(e, o) { const tl = Object.assign({ t: 0, e, dur: TELE_MIN[o.kind] }, o); G.tele.push(tl); return tl; }
+function removeTele(tl) { const i = G.tele.indexOf(tl); if (i >= 0) G.tele.splice(i, 1); }
+function clearTele() { G.tele.length = 0; }
+function release(e, id, tl) { // the strike behind a telegraph happens now: log how long it was shown
+  e.log.push({ atk: id, kind: tl.kind, dur: +tl.t.toFixed(3), min: TELE_MIN[tl.kind] }); if (e.log.length > 300) e.log.shift();
+}
+// Hazards of the boss fight vanish: shells, pending telegraphed strikes, mines (used by phase changes, the death scene and the nuke)
+function bossClearHazards() {
+  G.tele.length = 0;
+  G.bullets = G.bullets.filter(b => b.owner !== 1);
+  if (G.mines) G.mines.length = 0;
+  for (const e of G.enemies) if (e.isBoss) { e.gen = null; e.atkId = ''; e.glow = 0; e.cool = Math.max(e.cool, 1); if (e.def.onClear) e.def.onClear(e); }
+}
+const steelBetween = (x0, y0, x1, y1) => {
+  const m = G.map, dx = x1 - x0, dy = y1 - y0, n = Math.ceil(Math.hypot(dx, dy) / 12);
+  for (let i = 1; i < n; i++) if (m.at(x0 + dx * i / n, y0 + dy * i / n) === STEEL) return true;
+  return false;
+};
+// distance a boss can travel from (x, y) along angle a before its front (margin ahead of the centre) meets steel or water
+function rayClip(x, y, a, max, margin) {
+  const m = G.map, ca = Math.cos(a), sa = Math.sin(a);
+  for (let d = 0; d <= max; d += 6) { const v = m.at(x + ca * (d + margin), y + sa * (d + margin)); if (v === STEEL || v === WATER) return Math.max(0, d - 6); }
+  return max;
+}
+
+/* ---- danger map for the autopilot: every active warning is a dangerous area ---- */
+function bossDanger(x, y, pad, react) { // react: seconds a warning must have been showing before it counts (the bot's reaction time)
+  pad = pad || 0; const e = G.boss; if (!e || e.dead) return false;
+  if (e.def.danger && e.def.danger(e, x, y, pad)) return true; // per-boss hazards that are not telegraphs (sand strips)
+  for (const tl of G.tele) {
+    if (react && tl.t < react) continue;
+    if (tl.kind === 'circle') { const rr = tl.r + pad; if (dist2(x, y, tl.x, tl.y) < rr * rr) return true; }
+    else if (tl.kind === 'line') {
+      const ca = Math.cos(tl.a), sa = Math.sin(tl.a), dx = x - tl.x, dy = y - tl.y, al = dx * ca + dy * sa, pr = -dx * sa + dy * ca;
+      if (al > -pad - 10 && al < tl.len + e.r + pad && Math.abs(pr) < tl.w / 2 + pad) return true;
+    } else if (tl.kind === 'ring') {
+      const rr = tl.r + pad; if (dist2(x, y, e.x, e.y) < rr * rr && !steelBetween(e.x, e.y, x, y)) return true;
+    } else if (tl.kind === 'glow' && tl.fan) {
+      for (const off of tl.fan) {
+        const a = e.turret + off, ca = Math.cos(a), sa = Math.sin(a), dx = x - e.x, dy = y - e.y, al = dx * ca + dy * sa, pr = -dx * sa + dy * ca;
+        if (al > 0 && al < 640 && Math.abs(pr) < 22 + pad && los(e.x, e.y, x, y)) return true;
+      }
+    }
+  }
+  return false;
+}
+
+/* ---- boss shells ---- */
+function bossShell(e, ang, o) {
+  o = o || {};
+  const s = e.spec, m = G.map, ca = Math.cos(ang), sa = Math.sin(ang), len = o.len || s.barrel;
+  let bx = e.x, by = e.y, blocked = false;
+  for (let d = 6; d <= len; d += 6) { bx = e.x + ca * d; by = e.y + sa * d; if (isWall(m.at(bx, by))) { blocked = true; break; } }
+  const sp = s.bSpeed * (o.speed || 1);
+  const b = { x: bx, y: by, vx: ca * sp, vy: sa * sp, r: s.bR, owner: 1, dmg: bossDmg(s.dmg * (o.dmgK || 1)), life: 2.4, big: true, dead: false,
+    pierce: false, bounce: 0, splash: null, look: 'enemy', hits: null, bricks: null, sx: bx, sy: by, dist: 0, bounced: false, vol: 0, volN: 0, pn: 0, boss: true };
+  if (blocked) hitTile(b, bx, by); else G.bullets.push(b);
+}
+function bossVolley(e, fan) { // one volley: a shell per entry of fan (radians relative to the turret), muzzle puffs, recoil
+  for (const off of fan) if (!barrelSilent(e, off)) bossShell(e, e.turret + off); // a silent barrel does not fire
+  e.recoil = 1;
+  const ca = Math.cos(e.turret), sa = Math.sin(e.turret);
+  for (let k = 0; k < 3; k++) {
+    const a = e.turret + (k - 1) * 0.2, mx = e.x + Math.cos(a) * (e.spec.barrel + 4), my = e.y + Math.sin(a) * (e.spec.barrel + 4);
+    addPart('fire', mx, my, Math.cos(a) * 70, Math.sin(a) * 70, 0.1, 22, 40, 0);
+    addPart('smoke', mx, my, ca * 40 + rand(-10, 10), sa * 40 + rand(-10, 10), rand(0.5, 0.8), 14, 28, 3);
+  }
+  moveTank(e, -ca * 1.2, -sa * 1.2);
+  shake(2.5 * prox(e.x, e.y)); Sound.shoot(false, true, volAt(e.x, e.y));
+}
+// a mortar-style blast on the ground: scorch, explosion, damage to the player when inside
+function bossBlast(x, y, r, dmg) {
+  const p = G.player;
+  explode(x, y, r / 56 * 0.9);
+  addDecals(G.map, [{ k: 'scorch', x, y, r: r * 0.8 }]);
+  if (p.alive && dist2(x, y, p.x, p.y) < (r + p.r * 0.4) * (r + p.r * 0.4)) damagePlayer({ x: p.x, y: p.y, dmg: bossDmg(dmg), owner: 1, vx: 0, vy: 0 });
+}
+const aimAtPlayer = (e, dt, k) => { const p = G.player; if (p.alive) e.turret = turnTo(e.turret, Math.atan2(p.y - e.y, p.x - e.x), e.spec.tTurn * (k || 1) * dt); };
+function* glowAim(e, id, dur, fan) { // barrel glow telegraph while the turret keeps aiming; the shot itself is the caller's
+  const tl = addTele(e, { kind: 'glow', dur, fan });
+  while (tl.t < tl.dur) { aimAtPlayer(e, e.dt, 1.6); yield 0; }
+  release(e, id, tl); removeTele(tl);
+}
+
+/* ---- movement: a flow field over the tiles where the boss's body fits ---- */
+const bossFits = (m, c, r) => { for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if (blocksTank(m.get(c + dx, r + dy))) return false; return true; };
+function computeBossFlow(e) {
+  const m = G.map, n = m.n, p = G.player, N = n * n;
+  if (!e.flow || e.flow.length !== N) e.flow = new Float32Array(N);
+  e.flow.fill(1e9);
+  const pc = clamp(Math.floor(p.x / T), 0, n - 1), pr = clamp(Math.floor(p.y / T), 0, n - 1);
+  let goal = -1, gd = 1e9;
+  for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) {
+    if (!bossFits(m, c, r)) continue;
+    const d = (c - pc) * (c - pc) + (r - pr) * (r - pr); if (d < gd) { gd = d; goal = r * n + c; }
+  }
+  if (goal < 0) return;
+  const q = [goal]; e.flow[goal] = 0;
+  for (let h = 0; h < q.length; h++) {
+    const i = q[h], c = i % n, r = (i - c) / n;
+    for (const [dx, dy] of DIRS) {
+      const x = c + dx, y = r + dy; if (x < 0 || y < 0 || x >= n || y >= n || !bossFits(m, x, y)) continue;
+      const j = y * n + x; if (e.flow[j] < 1e8) continue;
+      e.flow[j] = e.flow[i] + 1; q.push(j);
+    }
+  }
+}
+function bossWaypoint(e) {
+  const m = G.map, n = m.n, c = clamp(Math.floor(e.x / T), 0, n - 1), r = clamp(Math.floor(e.y / T), 0, n - 1);
+  if (!e.flow || e.flow[r * n + c] > 1e8) return nextWaypoint(e); // squeezed outside the field: the ordinary tile flow
+  let best = null, bv = e.flow[r * n + c];
+  for (const [dx, dy] of shuffle(DIRS.slice())) { const x = c + dx, y = r + dy; if (x < 0 || y < 0 || x >= n || y >= n) continue; const f = e.flow[y * n + x]; if (f < bv) { bv = f; best = { c: x, r: y }; } }
+  if (!best) return null;
+  best.x = best.c * T + T / 2; best.y = best.r * T + T / 2; return best;
+}
+function bossMove(e, dt, hold) {
+  if (e.treadT > 0) { e.avx = e.avy = 0; return; } // a broken tread: the boss stands still while the crew repairs it
+  const s = e.spec, p = G.player, before = e.angle, ox = e.x, oy = e.y;
+  e.flowT -= dt; if (e.flowT <= 0) { computeBossFlow(e); e.flowT = 0.3; }
+  if (p.alive && !(e.canSee && e.distP < hold * T)) {
+    if (!e.wp || dist2(e.wp.x, e.wp.y, e.x, e.y) < 30) { e.wp = bossWaypoint(e); e.wpBest = 1e9; e.stuckT = 0; }
+    if (e.wp) {
+      const desired = Math.atan2(e.wp.y - e.y, e.wp.x - e.x);
+      e.angle = turnTo(e.angle, desired, s.turn * dt);
+      const diff = Math.abs(angDiff(e.angle, desired)), spd = diff < 0.55 ? s.speed * e.speedMul * (1 - diff * 0.9) : 0;
+      moveTank(e, Math.cos(e.angle) * spd * dt, Math.sin(e.angle) * spd * dt);
+      const dw = Math.hypot(e.wp.x - e.x, e.wp.y - e.y);
+      if (dw < e.wpBest - 0.5) { e.wpBest = dw; e.stuckT = 0; } else e.stuckT += dt;
+      if (e.stuckT > 1.2) { e.wp = randomNeighbor(e); e.wpBest = 1e9; e.stuckT = 0; }
+    }
+  }
+  if (dt > 0) { e.avx = (e.x - ox) / dt; e.avy = (e.y - oy) / dt; }
+  trackUpdate(e, (e.x - ox) * Math.cos(e.angle) + (e.y - oy) * Math.sin(e.angle), angDiff(before, e.angle));
+}
+
+/* ---- per-frame boss update ---- */
+function updateBoss(e, dt, halted) {
+  if (e.dead) return;
+  const p = G.player;
+  e.flash = Math.max(0, e.flash - dt); e.recoil = Math.max(0, e.recoil - dt * 6);
+  if (e.def.tick) e.def.tick(e, dt); // per-boss frame hook (Sarı Fırtına: sand strips, wind); runs in the intro and the death scene too
+  if (G.phase === 'bossIntro') return; // the intro script drives the boss
+  if (e.dying) { bossDeathTick(e, dt); return; }
+  bossFx(e, dt); bossPartTick(e, dt);
+  if (e.trans > 0) { // phase change: no damage, no attacks
+    e.trans -= dt; e.flash = 0.05 + 0.05 * Math.sin(G.time * 30);
+    if (e.trans <= 0) { e.trans = 0; e.invuln = false; e.wp = null; }
+    return;
+  }
+  if (e.phased) { bossPhaseCheck(e); if (e.trans > 0) return; }
+  if (halted) return; // stunned or frozen: neither moves nor attacks
+  e.distP = Math.hypot(p.x - e.x, p.y - e.y);
+  e.canSee = p.alive && los(e.x, e.y, p.x, p.y);
+  e.cool -= dt;
+  e.glow = 0;
+  for (const tl of G.tele) { tl.t += dt; if (tl.kind === 'glow') e.glow = Math.max(e.glow, tl.t / tl.dur); }
+  if (e.gen) {
+    e.dt = dt; e.wait -= dt;
+    if (e.wait <= 0) { const r = e.gen.next(); if (r.done) endAttack(e); else e.wait = r.value || 0; }
+  } else {
+    if (e.cool <= 0 && p.alive) startAttack(e); else bossMove(e, dt, e.def.hold || 4.5);
+    if (!e.gen) { if (e.canSee) aimAtPlayer(e, dt); else e.turret = turnTo(e.turret, e.angle, e.spec.tTurn * 0.6 * dt); }
+  }
+}
+function startAttack(e) {
+  const list = e.def.attacks.filter(a => a.ok(e) && a.id !== e.lastAtk && !(e.acd[a.id] > G.time) && !(a.mov && e.treadT > 0)); // mov: an attack that needs the treads (charge)
+  if (!list.length) { e.cool = 0.5; return; }
+  let r = Math.random() * list.reduce((s, a) => s + a.w, 0), at = list[list.length - 1];
+  for (const a of list) { r -= a.w; if (r <= 0) { at = a; break; } }
+  e.atkId = at.id; e.lastAtk = at.id; e.wait = 0; e.gen = at.run(e);
+  if (at.cd) e.acd[at.id] = G.time + at.cd;
+}
+function endAttack(e) {
+  e.gen = null; e.atkId = ''; clearTele();
+  e.cool = rand(0.9, 1.6) * e.pace * (e.phase >= 2 ? 0.8 : 1);
+}
+
+/* ---- phases ---- */
+function bossPhaseCheck(e) {
+  const th = e.def.phases;
+  if (e.phase < th.length && e.hp / e.maxHp * 100 <= th[e.phase]) startTransition(e);
+}
+function startTransition(e) {
+  e.phase++; e.trans = 1.5; e.invuln = true;
+  bossClearHazards();
+  const kind = e.def.plates && e.def.plates[e.phase - 1];
+  if (kind) { e.lost[kind] = true; spawnPiece(e, kind, true); }
+  for (let k = 0; k < 10; k++) addPart('smoke', e.x + rand(-26, 26), e.y + rand(-26, 26), rand(-40, 40), rand(-40, 40), rand(1.2, 2), rand(18, 30), 34, 1.2);
+  sparks(e.x, e.y, 18, '#ffd27a', 320); explode(e.x, e.y, 0.9); shake(12); Sound.crumble(volAt(e.x, e.y)); vibrate([30, 40, 60]);
+  addText(e.x, e.y - e.r - 14, 'EVRE ' + (e.phase + 1), '#ff9a6c', 20);
+  dropRepairAway(e);
+  if (e.def.onPhase) e.def.onPhase(e, e.phase);
+}
+// a Tamir pickup on a tile the player can reach, away from the boss
+function dropRepairAway(e) {
+  const m = G.map, n = m.n, p = G.player, c0 = clamp(Math.floor(p.x / T), 0, n - 1), r0 = clamp(Math.floor(p.y / T), 0, n - 1);
+  if (m.flowFrom < 0 || m.flowDirty) { computeFlow(m, r0 * n + c0); m.flowFrom = r0 * n + c0; m.flowDirty = false; }
+  const ok = [];
+  for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) {
+    if (blocksTank(m.get(c, r)) || m.flow[r * n + c] > 1e8) continue;
+    const x = c * T + T / 2, y = r * T + T / 2, db = Math.hypot(x - e.x, y - e.y), dp = Math.hypot(x - p.x, y - p.y);
+    if (db >= 4.5 * T && dp <= 9 * T) ok.push({ x, y, s: Math.abs(dp - 4 * T) });
+  }
+  ok.sort((a, b) => a.s - b.s);
+  const q = ok.length ? pick(ok.slice(0, Math.max(1, Math.ceil(ok.length / 4)))) : { x: p.x, y: p.y };
+  dropPickup(q.x, q.y, 'repair', q.x, q.y);
+}
+
+/* ---- parts ---- */
+const partPos = (e, pt) => { const ca = Math.cos(e.angle), sa = Math.sin(e.angle); return { x: e.x + ca * pt.ox - sa * pt.oy, y: e.y + sa * pt.ox + ca * pt.oy }; };
+function partHit(e, pt, x, y, dir) { // a shell hits the part when its path through the hull crosses it
+  if (dir === undefined || (x === e.x && y === e.y)) return false;
+  const q = partPos(e, pt), tx = Math.cos(dir + Math.PI), ty = Math.sin(dir + Math.PI), dx = q.x - x, dy = q.y - y, along = dx * tx + dy * ty;
+  if (along < -pt.r || along > e.r * 2.2) return false;
+  return Math.abs(dx * ty - dy * tx) <= pt.r;
+}
+function breakPart(e, pt) {
+  pt.alive = false; pt.hp = 0;
+  const q = partPos(e, pt);
+  explode(q.x, q.y, 0.8); sparks(q.x, q.y, 14, '#ffd27a', 300); shake(7);
+  addText(q.x, q.y - 22, pt.name + ' kırıldı', '#ffd27a', 16);
+  dropPickup(q.x, q.y, Math.random() < 0.7 ? 'repair' : pick(['shield', 'rapid', 'triple', 'pierce']), e.x, e.y);
+  if (pt.atk && e.atkId === pt.atk) { e.gen = null; e.atkId = ''; e.glow = 0; clearTele(); e.cool = 1; } // the attack the part powered stops at once
+  if (e.def.onPartBreak) e.def.onPartBreak(e, pt);
+  vibrate(30);
+}
+/* ---- part damage: treads and barrels (docs/BOSSES.md section 2) ---- */
+// Treads (one per side) have their own HP (BT.tread of the boss's max HP). A shell from the side hits the tread on that side; at 0 the boss stands still for BT.halt seconds while the crew repairs it,
+// then the tread is full again and the next break needs BT.more more. Breaking a tread during a charge warning (a 'line' telegraph) cancels the charge.
+// def.barrels: [{ id, name, ang (radians against the turret), k (share of max HP before it goes silent) }]: a shell from the front adds its damage to the nearest barrel; a full barrel is silent for BT.silent seconds
+// (its shells are left out of the volleys) and a glow telegraph in progress is cancelled. Attacks with mov: true do not start while a tread is broken.
+const BT = { tread: 0.08, halt: 4, more: 0.5, silent: 3 };
+function initBossParts(e) {
+  const mx = Math.max(2, Math.round(e.maxHp * BT.tread));
+  e.tr = [0, 1].map(() => ({ hp: mx, max: mx, br: 0, t: 0 })); e.treadT = 0; e.cancels = 0;
+  e.bars = (e.def.barrels || []).map(b => ({ id: b.id, name: b.name, ang: b.ang, thr: Math.max(2, Math.round(e.maxHp * (b.k || 0.07))), acc: 0, t: 0 }));
+}
+const barrelSilent = (e, off) => !!e.bars && e.bars.some(b => b.t > 0 && Math.abs(off - b.ang) < 0.08);
+function cancelAttack(e, why) { // the part the attack needed broke during its warning
+  e.gen = null; e.atkId = ''; e.glow = 0; clearTele(); e.cool = 1.2; e.cancels++;
+  e.log.push({ atk: 'cancel', kind: why, dur: 0, min: 0 }); if (e.log.length > 300) e.log.shift();
+  addText(e.x, e.y - e.r - 16, 'SALDIRI İPTAL', '#bfeaff', 16);
+}
+const warning = (e, kind) => G.tele.some(t => t.e === e && t.kind === kind && t.t < t.dur);
+function treadWorld(e, i) { const s = e.spec, ly = (i ? 1 : -1) * (s.wid / 2 - s.tread / 2), ca = Math.cos(e.angle), sa = Math.sin(e.angle); return { x: e.x - sa * ly, y: e.y + ca * ly }; }
+function bossPartHit(e, dmg, x, y, dir) {
+  const a = angDiff(e.angle, dir), aa = Math.abs(a);
+  if (aa >= 0.785 && aa <= 2.356) { // side hit: that side's tread
+    const i = a > 0 ? 1 : 0, tr = e.tr[i]; if (tr.t > 0) return;
+    tr.hp -= dmg; if (tr.hp > 0) return;
+    tr.hp = 0; tr.br++; tr.t = BT.halt; e.treadT = BT.halt;
+    const q = treadWorld(e, i);
+    for (let k = 0, n = Math.max(4, Math.round(10 * fxScale)); k < n; k++) { const an = rand(0, TAU), v = rand(50, 200); addPart('debris', q.x + rand(-14, 14), q.y + rand(-14, 14), Math.cos(an) * v, Math.sin(an) * v, rand(0.8, 1.5), rand(3.5, 6), 0, 3.2, k & 1 ? '#4b473e' : '#1f1d19'); }
+    sparks(q.x, q.y, 14, '#ffd27a', 300); explode(q.x, q.y, 0.5); shake(6);
+    addText(q.x, q.y - 24, 'Palet kırıldı', '#ffd27a', 16);
+    if (warning(e, 'line')) cancelAttack(e, 'palet');
+  } else if (e.bars.length && Math.abs(angDiff(e.turret, dir)) < 0.9) { // front hit: the barrel nearest to where the shell passes
+    const ct = Math.cos(e.turret), st = Math.sin(e.turret), lat = -st * (x - e.x) + ct * (y - e.y);
+    let best = null, bd = 1e9;
+    for (const b of e.bars) { if (b.t > 0) continue; const d = Math.abs(Math.sin(b.ang) * e.spec.barrel - lat); if (d < bd) { bd = d; best = b; } }
+    if (!best) return;
+    best.acc += dmg; if (best.acc < best.thr) return;
+    best.acc = 0; best.t = BT.silent;
+    const mx = e.x + Math.cos(e.turret + best.ang) * e.spec.barrel, my = e.y + Math.sin(e.turret + best.ang) * e.spec.barrel;
+    sparks(mx, my, 10, '#ffb04a', 240); explode(mx, my, 0.35); addText(mx, my - 20, best.name + ' tutukluk', '#ffd27a', 15);
+    if (warning(e, 'glow')) cancelAttack(e, 'namlu');
+  }
+}
+function bossPartTick(e, dt) {
+  if (e.dying) return;
+  e.treadT = 0;
+  for (let i = 0; i < 2; i++) {
+    const tr = e.tr[i]; if (tr.t <= 0) continue;
+    tr.t -= dt; const q = treadWorld(e, i);
+    if (tr.t <= 0) { // repaired: full again, the next break needs more
+      tr.t = 0; tr.max = Math.round(Math.max(2, Math.round(e.maxHp * BT.tread)) * (1 + BT.more * tr.br)); tr.hp = tr.max;
+      sparks(q.x, q.y, 10, '#fff0b0', 200); addPart('ring', q.x, q.y, 0, 0, 0.4, 6, 70, 0, '255,230,150');
+    } else {
+      e.treadT = Math.max(e.treadT, tr.t);
+      if (Math.random() < dt * 14) addPart('spark', q.x + rand(-16, 16), q.y + rand(-4, 4), rand(-70, 70), rand(-120, -30), rand(0.2, 0.4), 1, 0, 4, '#ffb04a');
+    }
+  }
+  for (const b of e.bars) {
+    if (b.t <= 0) continue; b.t -= dt; if (b.t < 0) b.t = 0;
+    if (Math.random() < dt * 10) { const mx = e.x + Math.cos(e.turret + b.ang) * e.spec.barrel, my = e.y + Math.sin(e.turret + b.ang) * e.spec.barrel; addPart('smoke', mx, my, rand(-10, 10), rand(-30, -12), rand(0.7, 1.1), rand(10, 15), 22, 1.5); }
+  }
+}
+const partAlive = (e, id) => e.parts.some(pt => pt.id === id && pt.alive);
+
+/* ---- damage ---- */
+function bossHurt(e, dmg, x, y, dir, quiet) {
+  if (e.dead || e.dying) return;
+  const direct = x !== e.x || y !== e.y;
+  if (e.invuln || G.phase === 'bossIntro') { if (!quiet && direct) { sparks(x, y, 3, '#ffffff', 160, dir, 1.2); Sound.metal(volAt(e.x, e.y)); } return; }
+  const k = e.stunT > 0 ? 1.5 : 1; // stunned bosses take +50%
+  for (const pt of e.parts) {
+    if (!pt.alive || !partHit(e, pt, x, y, dir)) continue;
+    pt.hp -= dmg * k; pt.flash = 0.1;
+    if (!quiet) { sparks(x, y, 6, '#ffd27a', 200, dir, 1.4); Sound.metal(volAt(e.x, e.y)); }
+    if (pt.hp <= 0) breakPart(e, pt);
+    return;
+  }
+  if (direct && dir !== undefined && !quiet) bossPartHit(e, dmg * k, x, y, dir); // treads and barrels: own HP / accumulated hits (the hull takes the damage too)
+  const applied = Math.min(dmg * k, e.hp);
+  e.hp -= dmg * k; e.flash = 0.1;
+  if (typeof nukeOnBossDamage === 'function') nukeOnBossDamage(e, applied); // hook (C): the nuke meter fills with the damage dealt to the boss
+  if (direct && !quiet) markHit(e, x, y);
+  if (!quiet) { sparks(x, y, 6, '#ffd27a', 200, dir, 1.4); Sound.metal(volAt(e.x, e.y)); }
+  if (e.hp <= 0.001) { bossBeginDeath(e); return; }
+  const f = e.hp / e.maxHp;
+  [0.8, 0.6, 0.4, 0.2].forEach((th, i) => { if (!e.broke[i] && f <= th) { e.broke[i] = true; spawnPiece(e, BOSS_PIECES[i], false); } });
+}
+const BOSS_PIECES = ['fender', 'plate', 'antenna', 'exhaust'];
+function markHit(e, x, y) { // scorch mark on the hull (max 12) and which side takes the beating
+  const ca = Math.cos(e.angle), sa = Math.sin(e.angle), dx = x - e.x, dy = y - e.y, lx = ca * dx + sa * dy, ly = -sa * dx + ca * dy;
+  e.scorch.push({ x: clamp(lx, -e.spec.len * 0.45, e.spec.len * 0.45), y: clamp(ly, -e.spec.wid * 0.4, e.spec.wid * 0.4), r: rand(2.5, 4.5), a: rand(0, TAU) });
+  if (e.scorch.length > 12) e.scorch.shift();
+  e.hitSide[Math.abs(lx) > Math.abs(ly) ? (lx > 0 ? 0 : 1) : (ly < 0 ? 2 : 3)]++;
+}
+const PIECE_AT = { fender: [-30, -36], plate: [14, 32], antenna: [-40, -12], exhaust: [-46, 0], shoulder: [18, 22], skirt: [0, 34], flag: [-24, 0] };
+function spawnPiece(e, kind, big) { // a piece of armour breaks off, falls and stays on the ground for a few seconds
+  const [lx, ly] = PIECE_AT[kind] || [0, 0], ca = Math.cos(e.angle), sa = Math.sin(e.angle), x = e.x + ca * lx - sa * ly, y = e.y + sa * lx + ca * ly;
+  const out = Math.atan2(ly * ca + lx * sa, lx * ca - ly * sa), sp = rand(90, 160);
+  G.pieces.push({ k: kind, x, y, vx: Math.cos(out) * sp, vy: Math.sin(out) * sp, a: e.angle + rand(-0.4, 0.4), vr: rand(-6, 6), t: 0, life: big ? 6.5 : 5, big, col: e.spec.col });
+  sparks(x, y, 8, '#ffd27a', 220); addPart('flash', x, y, 0, 0, 0.12, 60, 0, 0);
+  for (let k = 0; k < 4; k++) addPart('smoke', x + rand(-6, 6), y + rand(-6, 6), rand(-20, 20), rand(-20, 20), rand(0.8, 1.4), rand(12, 20), 26, 1.5);
+  Sound.metal(volAt(x, y)); shake(3);
+}
+function updatePieces(dt) {
+  for (const q of G.pieces) { q.t += dt; const k = Math.exp(-4.5 * dt); q.vx *= k; q.vy *= k; q.x += q.vx * dt; q.y += q.vy * dt; q.a += q.vr * dt; q.vr *= k; }
+  if (G.pieces.some(q => q.t > q.life)) G.pieces = G.pieces.filter(q => q.t <= q.life);
+}
+// smoke below 50% (from the side hit most), fire below 25%, sparks above a stunned boss, sparks from broken part sockets
+function bossFx(e, dt) {
+  e.fxT -= dt; if (e.fxT > 0) return;
+  e.fxT = 0.09;
+  const f = e.hp / e.maxHp, s = e.spec, ca = Math.cos(e.angle), sa = Math.sin(e.angle), put = (lx, ly) => ({ x: e.x + ca * lx - sa * ly, y: e.y + sa * lx + ca * ly });
+  if (f < 0.5) {
+    let side = 0, tot = 0; for (const v of e.hitSide) tot += v + 1; let r = Math.random() * tot;
+    for (let i = 0; i < 4; i++) { r -= e.hitSide[i] + 1; if (r <= 0) { side = i; break; } }
+    const lx = side === 0 ? s.len * 0.4 : side === 1 ? -s.len * 0.4 : rand(-s.len * 0.3, s.len * 0.3), ly = side === 2 ? -s.wid * 0.38 : side === 3 ? s.wid * 0.38 : rand(-s.wid * 0.3, s.wid * 0.3);
+    const q = put(lx, ly);
+    addPart('smoke', q.x, q.y, rand(-12, 12), rand(-30, -12), rand(0.9, 1.5), rand(12, 20), 24, 1.5);
+    if (f < 0.25) addPart('fire', q.x, q.y, rand(-14, 14), rand(-40, -15), rand(0.25, 0.5), rand(10, 16), 12, 2);
+  }
+  if (e.stunT > 0) { addPart('spark', e.x + rand(-22, 22), e.y - e.r - 6 + rand(-6, 6), rand(-90, 90), rand(-160, -60), rand(0.2, 0.4), 1, 0, 4, '#bfeaff'); }
+  for (const pt of e.parts) if (!pt.alive && Math.random() < 0.25) { const q = partPos(e, pt); addPart('spark', q.x, q.y, rand(-60, 60), rand(-90, -20), rand(0.15, 0.3), 1, 0, 4, '#ffb04a'); }
+}
+
+/* ---- death scene ---- */
+function bossBeginDeath(e) {
+  e.dying = true; e.invuln = true; e.deathT = 0; e.chainT = 0; e.hp = 0.001; e.gen = null; e.glow = 0;
+  bossClearHazards();
+  showBanner(e.def.deathText || 'BOSS DÜŞTÜ', '', 2.4);
+  spawnPiece(e, 'flag', true); // the standard topples
+  Sound.metal(1); shake(10); vibrate([40, 30, 80]);
+}
+function bossDeathTick(e, dt) {
+  e.deathT += dt; e.chainT -= dt; e.flash = 0.04;
+  if (e.chainT <= 0 && e.deathT < 2.2) {
+    e.chainT = 0.17;
+    const a = e.angle, lx = rand(-e.spec.len * 0.45, e.spec.len * 0.45), ly = rand(-e.spec.wid * 0.4, e.spec.wid * 0.4);
+    const x = e.x + Math.cos(a) * lx - Math.sin(a) * ly, y = e.y + Math.sin(a) * lx + Math.cos(a) * ly;
+    explode(x, y, rand(0.45, 0.85)); sparks(x, y, 8, '#ffd27a', 280);
+  }
+  if (e.deathT >= 2.4) killEnemy(e);
+}
+// called from killEnemy for a boss: armour back to full
+function bossDefeated(e) {
+  const p = G.player; if (p && p.alive) { p.hp = p.maxHp; addText(p.x, p.y - 30, 'Zırh tam', '#6fd46b', 18); addPart('ring', p.x, p.y, 0, 0, 0.6, 12, 200, 0, '111,212,107'); }
+  bossClearHazards();
+}
+
+/* ---- boss stage: arena, intro, fight ---- */
+function startBossStage(def) {
+  const m = G.map, p = G.player, at = m.bossAt;
+  G.stage = def; G.queue = []; G.maxAlive = 1;
+  const e = spawnBoss(def, at.x, at.y, Math.PI / 2);
+  e.invuln = true;
+  G.phase = 'bossIntro'; G.phaseT = 0; G.fade = 1; G.introGate = false; G.introSeen = !!store.get(BOSS_SEEN_KEY, false);
+  cam.x = at.x; cam.y = at.y + T; clampCam(); computeView();
+  Sound.siren();
+  showBanner(def.name, (def.introSub || m.arena) + ' · Dalga ' + G.wave, 3);
+  return e;
+}
+const BOSS_SEEN_KEY = 'tankArena.seenBossIntro';
+function bossIntroTick(rdt) {
+  const e = G.boss, m = G.map, t = G.phaseT;
+  G.fade = clamp(1 - t / 0.5, 0, 1);
+  if (!e || e.dead) { G.phase = 'fight'; G.phaseT = 0; return; }
+  const home = m.bossAt;
+  if (t < 1.35) { e.x = home.x + Math.sin(t * 40) * 1.6; if (Math.random() < rdt * 14) addPart('dust', home.x + rand(-30, 30), home.y + e.r + 4, rand(-20, 20), rand(10, 40), rand(0.5, 0.9), rand(12, 20), 24, 2); }
+  else {
+    if (!G.introGate) { smashGate(true); G.introGate = true; e.x = home.x; }
+    if (e.y < home.y + 2 * T) { e.y = Math.min(home.y + 2 * T, e.y + 70 * rdt); trackUpdate(e, 70 * rdt, 0); }
+  }
+  if (t >= 3.0) endBossIntro(false);
+}
+function smashGate(loud) {
+  const m = G.map;
+  for (const [c, r] of m.gate) {
+    if (m.t[r * m.n + c] !== BRICK) continue;
+    if (loud) { explode(c * T + T / 2, r * T + T / 2, 0.8); destroyBrick(m, c, r, 1); } else { m.t[r * m.n + c] = EMPTY; m.hp[r * m.n + c] = 0; m.flowDirty = true; miniTile(m, c, r); }
+  }
+  if (loud) { shake(12); } else paintRegion(m, 0, 0, m.n - 1, m.n - 1);
+}
+function endBossIntro(skipped) {
+  const e = G.boss, m = G.map;
+  if (!skipped) store.set(BOSS_SEEN_KEY, true);
+  if (skipped) { smashGate(false); if (e) { e.x = m.bossAt.x; e.y = m.bossAt.y + 2 * T; } hideBanner(); G.fade = 0; }
+  if (e) { e.invuln = false; e.cool = 1.4; }
+  G.phase = 'fight'; G.phaseT = 0;
+}
+// a tap skips the intro, once it has been seen
+function bossIntroTap() { if (G.state === 'play' && G.phase === 'bossIntro' && G.introSeen && G.phaseT > 0.25) endBossIntro(true); }
+/* ================= Komutan (docs/BOSSES.md section 3) ================= */
+// Attacks are generators: `yield n` waits n seconds (0 = next frame), e.dt is the frame time. Each one shows its telegraph first (see TELE_MIN).
+const KOM_FAN3 = [-0.2, 0, 0.2], KOM_FAN5 = [-0.34, -0.17, 0, 0.17, 0.34];
+function* komTriple(e) { yield* glowAim(e, 'triple', 0.45, KOM_FAN3); bossVolley(e, KOM_FAN3); yield 0.4; }
+function* komPenta(e) { yield* glowAim(e, 'penta', 0.45, KOM_FAN5); bossVolley(e, KOM_FAN5); yield 0.5; }
+function* komSalvo(e) { // yaylım: three triple volleys, the fan turning a little each time, each with its own glow
+  for (let k = 0; k < 3; k++) {
+    const tl = addTele(e, { kind: 'glow', dur: 0.45, fan: KOM_FAN3 }), p = G.player, base = Math.atan2(p.y - e.y, p.x - e.x) + (k - 1) * 0.3;
+    while (tl.t < tl.dur) { e.turret = turnTo(e.turret, base, e.spec.tTurn * 2.2 * e.dt); yield 0; }
+    release(e, 'yaylim', tl); removeTele(tl); bossVolley(e, KOM_FAN3); yield 0.15;
+  }
+  yield 0.3;
+}
+function* komCharge(e) { // ezme hücumu: red line (last 0.3 s locked), then a 6-tile rush that flattens bricks; steel stops it and stuns the Komutan for 2 s
+  const p = G.player, s = e.spec, margin = e.r + 4;
+  const tl = addTele(e, { kind: 'line', dur: 1.05, lock: 0.3, x: e.x, y: e.y, a: e.angle, len: 6 * T, w: 2 * (e.r + 12) });
+  Sound.warnRise(volAt(e.x, e.y));
+  while (tl.t < tl.dur) {
+    if (tl.t < tl.dur - tl.lock) e.angle = turnTo(e.angle, Math.atan2(p.y - e.y, p.x - e.x), 3.2 * e.dt);
+    aimAtPlayer(e, e.dt);
+    tl.x = e.x; tl.y = e.y; tl.a = e.angle; tl.len = rayClip(e.x, e.y, e.angle, 6 * T, margin);
+    yield 0;
+  }
+  release(e, 'ezme', tl);
+  const m = G.map, ca = Math.cos(e.angle), sa = Math.sin(e.angle), plan = tl.len, clipped = plan < 6 * T - 1;
+  let trav = 0, hurt = false;
+  while (trav < plan) {
+    const step = Math.min(430 * e.dt, plan - trav);
+    for (const [fa, lat] of [[e.r + 10, 0], [e.r + 8, e.r * 0.7], [e.r + 8, -e.r * 0.7]]) { // flatten the bricks in front
+      const bx = e.x + ca * fa - sa * lat, by = e.y + sa * fa + ca * lat;
+      if (m.at(bx, by) === BRICK) { destroyBrick(m, Math.floor(bx / T), Math.floor(by / T), volAt(bx, by)); shake(4); }
+    }
+    const ox = e.x, oy = e.y;
+    moveTank(e, ca * step, sa * step);
+    const moved = Math.hypot(e.x - ox, e.y - oy);
+    trackUpdate(e, moved, 0); trav += moved;
+    if (fxScale === 1 && Math.random() < 0.6) addPart('dust', e.x - ca * e.r, e.y - sa * e.r + rand(-14, 14), rand(-30, 30), rand(-30, 30), rand(0.4, 0.8), rand(14, 24), 26, 2);
+    if (!hurt && p.alive && dist2(e.x, e.y, p.x, p.y) < (e.r + p.r + 2) * (e.r + p.r + 2)) {
+      hurt = true; damagePlayer({ x: p.x, y: p.y, dmg: bossDmg(26), owner: 1, vx: 0, vy: 0 });
+      moveTank(p, -sa * 36, ca * 36 * (Math.random() < 0.5 ? 1 : -1)); shake(8);
+    }
+    if (moved < step * 0.35) break; // jammed against something
+    yield 0;
+  }
+  removeTele(tl);
+  if (clipped || trav < plan - 6) { // slammed into steel: stunned
+    e.stunT = 2; shake(12); explode(e.x + ca * e.r, e.y + sa * e.r, 0.7); Sound.metal(volAt(e.x, e.y));
+    addText(e.x, e.y - e.r - 14, 'SERSEMLEDİ', '#bfeaff', 18);
+  }
+  if (e.unlock.shock && e.phase >= 2) { while (e.stunT > 0) yield 0; yield* komShock(e); }
+  yield 0.3;
+}
+function* komShock(e) { // şok dalgası: ring of 3 tiles; steel in between protects
+  const tl = addTele(e, { kind: 'ring', dur: 1.2, r: 3 * T });
+  Sound.warnRise(volAt(e.x, e.y));
+  while (tl.t < tl.dur) yield 0;
+  release(e, 'shock', tl); removeTele(tl);
+  const p = G.player, R = 3 * T;
+  addPart('ring', e.x, e.y, 0, 0, 0.5, 20, R * 2.2, 0, '255,200,140'); addPart('flash', e.x, e.y, 0, 0, 0.2, 140, 0, 0); shake(12); Sound.boom(1.2, volAt(e.x, e.y));
+  if (p.alive && dist2(e.x, e.y, p.x, p.y) < (R + p.r) * (R + p.r) && !steelBetween(e.x, e.y, p.x, p.y)) {
+    damagePlayer({ x: p.x, y: p.y, dmg: bossDmg(20), owner: 1, vx: 0, vy: 0 });
+    const a = Math.atan2(p.y - e.y, p.x - e.x); moveTank(p, Math.cos(a) * 40, Math.sin(a) * 40);
+  }
+  yield 0.3;
+}
+function* komMortar(e) { // topçu desteği: three circles around the player (fall over walls)
+  const p = G.player, m = G.map, circ = [];
+  Sound.warnRise(volAt(e.x, e.y));
+  for (let i = 0; i < 3; i++) {
+    const a = rand(0, TAU), d = i === 0 ? rand(0, 40) : rand(70, 140);
+    circ.push(addTele(e, { kind: 'circle', r: 56, x: clamp(p.x + Math.cos(a) * d, T, m.w - T), y: clamp(p.y + Math.sin(a) * d, T, m.h - T) }));
+  }
+  while (circ[0].t < circ[0].dur) { aimAtPlayer(e, e.dt, 0.5); yield 0; }
+  for (const tl of circ) { release(e, 'topcu', tl); removeTele(tl); bossBlast(tl.x, tl.y, 56, 18); }
+  yield 0.4;
+}
+function* komBombard(e) { // bombardıman hattı: a row of circles across the arena with a gap, then blasts along it
+  const p = G.player, m = G.map, horiz = Math.random() < 0.5, step = 80, circ = [];
+  const along = horiz ? p.x : p.y, gap = along + (Math.random() < 0.5 ? -1 : 1) * rand(50, 110), line = horiz ? p.y : p.x, span = horiz ? m.w : m.h;
+  Sound.warnRise(volAt(e.x, e.y));
+  for (let v = step / 2; v < span; v += step) {
+    if (Math.abs(v - gap) < step * 1.2) continue;
+    const x = horiz ? v : line, y = horiz ? line : v;
+    if (m.at(x, y) === STEEL) continue;
+    circ.push(addTele(e, { kind: 'circle', r: 44, x, y }));
+  }
+  while (circ.length && circ[0].t < circ[0].dur) { aimAtPlayer(e, e.dt, 0.5); yield 0; }
+  for (const tl of circ) { release(e, 'bomb', tl); removeTele(tl); bossBlast(tl.x, tl.y, 44, 16); yield 0.045; }
+  yield 0.4;
+}
+const KOM_ATTACKS = [
+  { id: 'triple', w: 3, ok: e => true, run: komTriple },
+  { id: 'ezme', w: 2.2, ok: e => e.distP > 2.5 * T, run: komCharge, mov: true },
+  { id: 'topcu', w: 2, ok: e => e.unlock.topcu && partAlive(e, 'tower'), run: komMortar },
+  { id: 'yaylim', w: 2, ok: e => e.unlock.yaylim && e.phase >= 1, run: komSalvo },
+  { id: 'bomb', w: 1.6, ok: e => e.unlock.bomb && e.phase >= 1, run: komBombard, cd: 9 },
+  { id: 'penta', w: 2.4, ok: e => e.unlock.penta && e.phase >= 2, run: komPenta }
+];
+BOSS_DEFS.komutan = {
+  id: 'komutan', name: 'KOMUTAN', arena: 'kisla', introSub: 'Kışla', hold: 4.5, phases: [66, 33], plates: ['shoulder', 'skirt'],
+  deathText: 'KOMUTAN DÜŞTÜ', loot: 'KOMUTAN GANİMETİ',
+  hp: bossHp, attacks: KOM_ATTACKS, barrels: [{ id: 'mid', name: 'Orta namlu', ang: 0, k: 0.07 }],
+  unlocks: w => ({ tower: w >= 15, topcu: w >= 15, yaylim: w >= 25, bomb: w >= 25, penta: w >= 35, shock: w >= 35 }),
+  setup(e, w) {
+    if (e.unlock.tower) e.parts.push({ id: 'tower', name: 'Komuta kulesi', atk: 'topcu', ox: -24, oy: 0, r: 15, maxHp: Math.max(2, Math.round(e.maxHp * 0.1)), hp: Math.max(2, Math.round(e.maxHp * 0.1)), alive: true, flash: 0 });
+  },
+  onPhase(e, i) { if (i === 2) { e.speedMul *= 1.3; addText(e.x, e.y - e.r - 54, 'SON EMİR', '#ff7a5c', 18); } },
+  onPartBreak(e, pt) { if (pt.id === 'tower') spawnPiece(e, 'flag', true); }
+};
+/* ================= Sarı Fırtına (docs/BOSSES.md section 4) ================= */
+// Çöl's boss, the fast one: circles the player and fires bursts, then charges along a red line that breaks bricks; steel (or the map edge) stuns it.
+// Phase 2: exhausts light up (+15% speed), double charge, sand strips left on the charge path. Phase 3 "Fırtına": wind every 12 s, triple charge.
+// Per-boss state lives in e.sari; the generic hooks it uses in 11a: def.tick (every frame), def.danger (bot), def.onClear, def.drawGround (15a).
+ARENAS.kum = { name: 'Kum Çukuru', gate: [[9, 4], [10, 4], [11, 4]], rows: [ // the brick wall in front of the boss is the gate: the intro smashes it
+  '.....................',
+  '.SS...............SS.',
+  '.SS.......X.......SS.',
+  '.....................',
+  '....S...SBBBS...S....',
+  '.....................',
+  '.....................',
+  '.....................',
+  '....S...S...S...S....',
+  'GG.................GG',
+  'WW........S........WW',
+  'GG.................GG',
+  '....S...S...S...S....',
+  '.....................',
+  '.....................',
+  '.....................',
+  '....S...SBBBS...S....',
+  '.....................',
+  '.SS...............SS.',
+  '.SS.......P.......SS.',
+  '.....................'] };
+
+const SARI_CHARGE_LEN = 9 * T;   // a charge covers this far (more with the wind) unless steel is in the way
+const SARI_RUSH = 650;           // charge speed, px/s
+const SARI_SAND_LIFE = 4, SARI_SAND_SLOW = 0.35, SARI_SAND_W = 64;
+const SARI_WIND_WARN = 1.5, SARI_WIND_BLOW = 5, SARI_WIND_EVERY = 12, SARI_WIND_PUSH = 75;
+const SARI_SPEC = { speed: 175, turn: 5, tTurn: 5.5, len: 72, wid: 48, r: 27, tread: 9, tR: 12, barrel: 44, bW: 8, cool: 1, bSpeed: 420, dmg: 5, bR: 5, mass: 3, score: 1500,
+  col: { body: '#cf9f30', dk: '#8c691b', hi: '#efca60', acc: '#f08a2c' } };
+
+const sariWindVec = e => { const W = e.sari.wind; return W.st === 'blow' ? { x: Math.cos(W.a) * SARI_WIND_PUSH, y: Math.sin(W.a) * SARI_WIND_PUSH } : null; };
+const sariSegDist = (q, x, y) => { // distance from (x, y) to the strip's centre line
+  const dx = q.x2 - q.x1, dy = q.y2 - q.y1, l2 = dx * dx + dy * dy, t = l2 > 1 ? clamp(((x - q.x1) * dx + (y - q.y1) * dy) / l2, 0, 1) : 0;
+  return Math.hypot(x - (q.x1 + dx * t), y - (q.y1 + dy * t));
+};
+// how far a charge goes: a tailwind carries it farther
+function sariChargeLen(e) {
+  const w = sariWindVec(e); if (!w) return SARI_CHARGE_LEN;
+  return SARI_CHARGE_LEN * (1 + 0.45 * Math.max(0, Math.cos(e.angle - e.sari.wind.a)));
+}
+
+/* ---- attacks ---- */
+function sariOrbit(e, st, dt, R) { // circle the player at about R px, tangent plus a radial correction; a blocked boss turns around
+  const p = G.player, s = e.spec, ang = Math.atan2(e.y - p.y, e.x - p.x), d = Math.hypot(e.x - p.x, e.y - p.y), tang = ang + st.sign * Math.PI / 2;
+  const rad = clamp((d - R) / (2 * T), -1, 1);
+  const hx = Math.cos(tang) - Math.cos(ang) * rad * 1.2, hy = Math.sin(tang) - Math.sin(ang) * rad * 1.2;
+  if (e.treadT > 0) return; // a broken tread: the boss stands still (it still turns its turret in the callers)
+  const des = Math.atan2(hy, hx), before = e.angle, ox = e.x, oy = e.y;
+  e.angle = turnTo(e.angle, des, s.turn * dt);
+  const diff = Math.abs(angDiff(e.angle, des)), spd = diff < 0.8 ? s.speed * e.speedMul * (1 - diff * 0.5) : s.speed * e.speedMul * 0.25;
+  moveTank(e, Math.cos(e.angle) * spd * dt, Math.sin(e.angle) * spd * dt);
+  const moved = Math.hypot(e.x - ox, e.y - oy);
+  trackUpdate(e, moved, angDiff(before, e.angle));
+  st.stuck = moved < spd * dt * 0.35 ? st.stuck + dt : 0;
+  if (st.stuck > 0.3) { st.sign = -st.sign; st.stuck = 0; }
+}
+function* sariShots(e) { // çevik atış: two bursts of three shots while circling 5-7 tiles from the player; each burst warned by a 0.45 s glow
+  const st = { sign: Math.random() < 0.5 ? 1 : -1, stuck: 0 }, R = rand(5, 7) * T;
+  for (let b = 0; b < 2; b++) {
+    for (let t = 0; t < (b ? 0.5 : 0.9); t += e.dt) { sariOrbit(e, st, e.dt, R); aimAtPlayer(e, e.dt, 1.4); yield 0; }
+    const tl = addTele(e, { kind: 'glow', dur: 0.45, fan: [0] });
+    while (tl.t < tl.dur) { sariOrbit(e, st, e.dt, R); aimAtPlayer(e, e.dt, 1.8); yield 0; }
+    release(e, 'cevik', tl); removeTele(tl);
+    for (let k = 0; k < 3; k++) {
+      bossVolley(e, [0]);
+      for (let t = 0; t < 0.13; t += e.dt) { sariOrbit(e, st, e.dt, R); aimAtPlayer(e, e.dt, 1.8); yield 0; }
+    }
+  }
+  yield 0.2;
+}
+// one charge: red line (1 s, the first two of the fight 1.3 s; the last 0.3 s locked), the rush, a stun when steel stopped it. Returns true when stunned.
+function* sariRush(e) {
+  const p = G.player, S = e.sari, margin = e.r + 4, m = G.map, dur = S.chargeN < 2 ? 1.3 : 1.0;
+  S.chargeN++;
+  const tl = addTele(e, { kind: 'line', dur, lock: 0.3, x: e.x, y: e.y, a: e.angle, len: SARI_CHARGE_LEN, w: 2 * (e.r + 8) });
+  Sound.warnRise(volAt(e.x, e.y));
+  while (tl.t < tl.dur) {
+    if (tl.t < tl.dur - tl.lock) e.angle = turnTo(e.angle, Math.atan2(p.y - e.y, p.x - e.x), 4.6 * e.dt);
+    e.turret = e.angle;
+    tl.x = e.x; tl.y = e.y; tl.a = e.angle; tl.len = rayClip(e.x, e.y, e.angle, sariChargeLen(e), margin);
+    yield 0;
+  }
+  release(e, 'hucum', tl);
+  const ca = Math.cos(e.angle), sa = Math.sin(e.angle), plan = tl.len, clipped = plan < sariChargeLen(e) - 1;
+  const strip = e.phase >= 1 ? { x1: e.x, y1: e.y, x2: e.x, y2: e.y, w: SARI_SAND_W, t: -1 } : null; // Kum izi: grows behind the boss, fades 4 s after the charge ends
+  if (strip) S.sand.push(strip);
+  let trav = 0, hurt = false;
+  Sound.crumble(volAt(e.x, e.y) * 0.6);
+  while (trav < plan) {
+    const step = Math.min(SARI_RUSH * e.speedMul * e.dt, plan - trav);
+    for (const [fa, lat] of [[e.r + 8, 0], [e.r + 6, 20], [e.r + 6, -20]]) { // flatten the bricks in front
+      const bx = e.x + ca * fa - sa * lat, by = e.y + sa * fa + ca * lat;
+      if (m.at(bx, by) === BRICK) { destroyBrick(m, Math.floor(bx / T), Math.floor(by / T), volAt(bx, by)); shake(3); }
+    }
+    const ox = e.x, oy = e.y;
+    moveTank(e, ca * step, sa * step);
+    const moved = Math.hypot(e.x - ox, e.y - oy);
+    trackUpdate(e, moved, 0); trav += moved;
+    if (strip) { strip.x2 = e.x - ca * e.r * 0.6; strip.y2 = e.y - sa * e.r * 0.6; }
+    if (fxScale === 1) for (let k = 0; k < 2; k++) addPart('dust', e.x - ca * e.r + rand(-6, 6), e.y - sa * e.r + rand(-18, 18), -ca * rand(40, 120) + rand(-30, 30), -sa * rand(40, 120) + rand(-30, 30), rand(0.4, 0.8), rand(14, 24), 26, 2);
+    if (!hurt && p.alive && dist2(e.x, e.y, p.x, p.y) < (e.r + p.r + 2) * (e.r + p.r + 2)) { // ağır hasar + geri itme
+      hurt = true; damagePlayer({ x: p.x, y: p.y, dmg: bossDmg(15), owner: 1, vx: 0, vy: 0 });
+      const side = (p.x - e.x) * -sa + (p.y - e.y) * ca < 0 ? -1 : 1;
+      moveTank(p, -sa * 64 * side + ca * 30, ca * 64 * side + sa * 30); shake(9); vibrate(40);
+    }
+    if (moved < step * 0.35) break; // jammed against something
+    yield 0;
+  }
+  removeTele(tl);
+  if (strip) strip.t = 0;
+  if (clipped || trav < plan - 6) { // steel or the edge: stunned (shorter in the storm phase)
+    e.stunT = e.phase >= 2 ? 1.8 : 2.5; shake(12); explode(e.x + ca * e.r, e.y + sa * e.r, 0.7); Sound.metal(volAt(e.x, e.y)); vibrate(30);
+    addText(e.x, e.y - e.r - 14, 'SERSEMLEDİ', '#bfeaff', 18);
+    for (let k = 0; k < 10; k++) addPart('dust', e.x + ca * e.r + rand(-14, 14), e.y + sa * e.r + rand(-14, 14), rand(-80, 80), rand(-80, 80), rand(0.5, 0.9), rand(14, 22), 26, 2);
+    return true;
+  }
+  return false;
+}
+function* sariCharge(e) { yield* sariRush(e); yield 0.3; }
+function* sariDouble(e) { // çift hücum: the second line appears the moment the first charge ends (a stun cancels it)
+  for (let k = 0; k < 2; k++) if (yield* sariRush(e)) break;
+  yield 0.3;
+}
+function* sariTriple(e) { // üçlü hücum
+  for (let k = 0; k < 3; k++) if (yield* sariRush(e)) break;
+  yield 0.3;
+}
+
+/* ---- per-frame hook: sand strips slow the player, the wind pushes tanks, the death scene ---- */
+function sariTick(e, dt) {
+  const S = e.sari, p = G.player;
+  if (G.phase === 'bossIntro') { if (!S.snd) { S.snd = true; Sound.wind(1, 3.4); } return; }
+  if (e.dying) {
+    S.sand.length = 0; S.wind.st = 'idle';
+    if (!S.boom && e.deathT >= 2.1) { // the last big blast, as the whirlwind dies down
+      S.boom = true; explode(e.x, e.y, 1.7); addPart('flash', e.x, e.y, 0, 0, 0.3, 220, 0, 0); addPart('ring', e.x, e.y, 0, 0, 0.7, 20, 340, 0, '240,170,60');
+      sparks(e.x, e.y, 30, '#ffd27a', 420); shake(18); Sound.boom(1.6, volAt(e.x, e.y)); vibrate([50, 30, 90]);
+    }
+    return;
+  }
+  if (e.trans > 0) return;
+  // sand strips (age from the end of the charge)
+  for (const q of S.sand) if (q.t >= 0) q.t += dt;
+  if (S.sand.some(q => q.t >= SARI_SAND_LIFE)) S.sand = S.sand.filter(q => q.t < SARI_SAND_LIFE);
+  S.slow = false;
+  if (p.alive) for (const q of S.sand) if (sariSegDist(q, p.x, p.y) < q.w / 2 + p.r * 0.3) { S.slow = true; break; }
+  if (S.slow) { // 35% slower: take back that share of this frame's movement
+    moveTank(p, -p.avx * SARI_SAND_SLOW * dt, -p.avy * SARI_SAND_SLOW * dt); p.avx *= 1 - SARI_SAND_SLOW; p.avy *= 1 - SARI_SAND_SLOW;
+    if (fxScale === 1 && Math.random() < dt * 14) addPart('dust', p.x + rand(-10, 10), p.y + rand(-10, 10), rand(-20, 20), rand(-30, -5), rand(0.4, 0.7), rand(8, 14), 22, 2);
+  }
+  // wind (phase 3): arrows 1.5 s ahead, then 5 s of push
+  const W = S.wind;
+  if (e.phase >= 2) {
+    if (W.st === 'idle') {
+      S.windT -= dt;
+      if (S.windT <= 0) { W.st = 'warn'; W.t = 0; W.a = Math.floor(Math.random() * 8) * Math.PI / 4; Sound.wind(0.9, SARI_WIND_WARN + SARI_WIND_BLOW); addText(G.map.w / 2, 70, 'RÜZGÂR', '#f08a2c', 22); }
+    } else {
+      W.t += dt;
+      if (W.st === 'warn' && W.t >= SARI_WIND_WARN) { W.st = 'blow'; W.t = 0; }
+      else if (W.st === 'blow' && W.t >= SARI_WIND_BLOW) { W.st = 'idle'; W.t = 0; S.windT = SARI_WIND_EVERY - SARI_WIND_WARN - SARI_WIND_BLOW; }
+    }
+  }
+  const wv = sariWindVec(e);
+  if (wv) {
+    if (p.alive) moveTank(p, wv.x * dt, wv.y * dt);
+    moveTank(e, wv.x * dt, wv.y * dt);
+    if (fxScale === 1 && Math.random() < dt * 40) { const m = G.map; addPart('dust', rand(0, m.w), rand(0, m.h), wv.x * 3.5, wv.y * 3.5, rand(0.5, 0.9), rand(10, 18), 20, 0); }
+  }
+  // the bot drives against the wind: it steers by (its own heading x speed) - wind, from the heading the autopilot last chose
+  if (bot.on && p.alive) {
+    if (!(bot.mx === S.omx && bot.my === S.omy)) { S.rmx = bot.mx; S.rmy = bot.my; }
+    if (wv) { const sp = p.spec.speed, vx = S.rmx * sp - wv.x, vy = S.rmy * sp - wv.y, l = Math.hypot(vx, vy) || 1; bot.mx = vx / l; bot.my = vy / l; } else { bot.mx = S.rmx; bot.my = S.rmy; }
+    S.omx = bot.mx; S.omy = bot.my;
+  }
+}
+
+BOSS_DEFS.sari = {
+  id: 'sari', name: 'SARI FIRTINA', arena: 'kum', introSub: 'Kum Çukuru', hold: 4, phases: [66, 33], plates: ['plate', 'fender'], r: SARI_SPEC.r,
+  deathText: 'SARI FIRTINA DİNDİ', loot: 'SARI FIRTINA GANİMETİ',
+  barrels: [{ id: 'main', name: 'Namlu', ang: 0, k: 0.1 }],
+  hp: w => Math.round(510 + (w - 10) * 25),
+  attacks: [
+    { id: 'cevik', w: 3, ok: e => true, run: sariShots },
+    { id: 'hucum', w: 3, ok: e => e.distP > 2.5 * T && e.phase < 2, run: sariCharge, mov: true },
+    { id: 'cift', w: 3, ok: e => e.distP > 2.5 * T && e.phase >= 1, run: sariDouble, mov: true },
+    { id: 'uclu', w: 3, ok: e => e.distP > 2.5 * T && e.phase >= 2, run: sariTriple, mov: true }
+  ],
+  setup(e, w) {
+    e.spec = Object.assign({}, SPECS.boss, SARI_SPEC); e.r = SARI_SPEC.r; e.pace = 1.5;
+    e.sari = { chargeN: 0, sand: [], wind: { st: 'idle', t: 0, a: 0 }, windT: 5, snd: false, boom: false, slow: false, omx: NaN, omy: NaN, rmx: 0, rmy: 0 };
+  },
+  onPhase(e, i) {
+    if (i === 1) { e.speedMul *= 1.15; addText(e.x, e.y - e.r - 54, 'EGZOZLAR YANDI', '#f08a2c', 18); }
+    if (i === 2) { e.sari.windT = 4; addText(e.x, e.y - e.r - 54, 'FIRTINA', '#f08a2c', 20); }
+  },
+  tick: sariTick,
+  onClear(e) { const S = e.sari; S.sand.length = 0; if (S.wind.st !== 'idle') { S.wind.st = 'idle'; S.windT = Math.max(S.windT, 5); } },
+  danger(e, x, y, pad) { for (const q of e.sari.sand) if (sariSegDist(q, x, y) < q.w / 2 + pad) return true; return false; },
+  draw: (e, g, alpha) => drawSari(e, g, alpha),
+  drawGround: (e, g) => drawSariGround(e, g)
+};
+BOSS_ON[10] = 'sari';
 /* ================= input ================= */
 let STICK_R = 56; // set from the joystick size setting
 const mkStick = () => ({ id: null, ox: 0, oy: 0, vx: 0, vy: 0, t0: 0, max: 0 });
@@ -1950,6 +2867,7 @@ window.addEventListener('pointerup', e => { if (e.pointerType === 'mouse' && e.b
 canvas.addEventListener('contextmenu', e => e.preventDefault());
 canvas.addEventListener('pointerdown', e => {
   Sound.init(); Sound.resume();
+  bossIntroTap(); // a seen boss intro is skipped with a tap
   if (e.pointerType === 'mouse') {
     input.touch = false; input.mouseAim = true; mouse.x = e.clientX; mouse.y = e.clientY; mouse.lastMove = mouse.lastDown = performance.now();
     if (e.button === 0) mouse.down = true;
@@ -2111,18 +3029,19 @@ function startGame(resume) {
 }
 function nextWave() {
   G.wave++;
-  const w = G.wave, theme = THEMES[Math.floor((w - 1) / 3) % THEMES.length];
-  G.map = makeArena(generate(), theme);
+  const w = G.wave, theme = themeFor(w), bd = bossDefAt(w); // theme: 10-wave regions; boss waves get a fixed arena (11a)
+  G.map = bd ? loadArena(bd.arena, theme) : makeArena(generate(), theme);
+  G.stage = null; G.tele = []; G.pieces = [];
   G.enemies = []; G.bullets = []; G.pickups = []; G.portals = []; G.texts = []; G.strikes = []; G.jet = null; parts.length = 0; tm.n = 0; tm.head = 0;
-  const p = G.player;
-  p.x = HALF * T + T / 2; p.y = HALF * T + T / 2; p.vx = p.vy = p.avx = p.avy = 0; p.angle = p.turret = -Math.PI / 2; p.pl = p.pr = null;
+  const p = G.player, start = bd ? G.map.playerAt : { x: HALF * T + T / 2, y: HALF * T + T / 2 };
+  p.x = start.x; p.y = start.y; p.vx = p.vy = p.avx = p.avy = 0; p.angle = p.turret = -Math.PI / 2; p.pl = p.pr = null;
   p.heat = 0; p.overheatT = 0; p.pushT = 0; p.flameOn = false; // Makineli heat etc. start cold every wave
   const ro = buildRoster(w); G.queue = ro.list; G.maxAlive = ro.maxAlive; G.mods = waveMods(w); G.spawnTimer = 0.4; G.boss = null;
   G.phase = 'intro'; G.phaseT = 0; G.fade = 1;
   cam.x = p.x; cam.y = p.y; cam.shake = 0; clampCam(); computeView();
-  const bossWave = w % 5 === 0;
-  showBanner('DALGA ' + w, bossWave ? 'Komutan yaklaşıyor' : theme.name, 2.2);
-  Sound.wave(bossWave);
+  if (bd) { startBossStage(bd); return; } // fade-in, siren, name title, boss breaks out of the gate
+  showBanner('DALGA ' + w, theme.name, 2.2);
+  Sound.wave(false);
 }
 function waveCleared() {
   G.phase = 'cleared'; G.phaseT = 0;
@@ -2135,6 +3054,7 @@ function waveCleared() {
 function updatePhase(rdt) {
   G.phaseT += rdt;
   switch (G.phase) {
+    case 'bossIntro': bossIntroTick(rdt); break;
     case 'intro': G.fade = clamp(1 - G.phaseT / 0.5, 0, 1); if (G.phaseT > 1.5) { G.phase = 'fight'; G.phaseT = 0; } break;
     case 'fight': if (!G.queue.length && !G.enemies.length && !G.portals.length) waveCleared(); break;
     case 'cleared': if (G.phaseT > 2.2) showUpgrades(); break;
@@ -2204,7 +3124,7 @@ function showUpgrades() {
   } else {
     upChoices = rollUpgrades();
     const boss = G.wave % 5 === 0;
-    $('upTitle').textContent = boss ? 'KOMUTAN GANİMETİ' : 'ATÖLYE';
+    $('upTitle').textContent = boss ? (G.stage ? G.stage.loot : 'KOMUTAN GANİMETİ') : 'ATÖLYE';
     $('upSub').textContent = `Dalga ${G.wave} bitti. Tankına bir yükseltme seç.`;
     el.upCards.innerHTML = upChoices.map(cardHTML).join('');
   }
@@ -2389,7 +3309,7 @@ function renderGuideSprites() {
   });
 }
 function toMenu() {
-  G.state = 'menu'; G.phase = 'intro'; G.timeScale = 1; G.fade = 0; G.boss = null; G.hurt = 0;
+  G.state = 'menu'; G.phase = 'intro'; G.timeScale = 1; G.fade = 0; G.boss = null; G.stage = null; G.tele = []; G.pieces = []; G.hurt = 0;
   for (const x of [el.hud, el.over, el.pause, el.upgrade, $('settings'), $('guide')]) x.classList.add('hidden');
   el.menu.classList.remove('hidden');
   hideBanner(); el.hint.classList.remove('show'); hintT = 0;
@@ -2451,13 +3371,15 @@ function updateCamera(rdt) {
   let tx = m.w / 2, ty = m.h / 2;
   if (p) {
     tx = p.x; ty = p.y;
-    if (G.state === 'over' && G.overFree) { tx = p.x - (G.overFree.x - view.w / 2) / view.scale; ty = p.y - (G.overFree.y - view.h / 2) / view.scale; }
+    if (G.phase === 'bossIntro' && G.boss) { tx = G.boss.x; ty = G.boss.y + T * 1.5; } // intro: the camera watches the boss
+    else if (G.state === 'over' && G.overFree) { tx = p.x - (G.overFree.x - view.w / 2) / view.scale; ty = p.y - (G.overFree.y - view.h / 2) / view.scale; }
     else {
       if (p.alive) { tx += Math.cos(p.turret) * T * 0.7; ty += Math.sin(p.turret) * T * 0.7; }
       if (input.touch && view.h > view.w) ty += view.h / view.scale * 0.07;
     }
   }
-  const zt = G.state === 'menu' ? 1 : TANKS[G.tank].zoom; // Keskin Nişancı: the camera pulls back
+  let zt = G.state === 'menu' ? 1 : TANKS[G.tank].zoom; // Keskin Nişancı: the camera pulls back
+  if (G.stage && G.state !== 'menu') zt = Math.min(zt, 0.85); // boss stage: the camera pulls back
   if (view.zoomK !== zt) { view.zoomK = Math.abs(zt - view.zoomK) < 0.001 ? zt : view.zoomK + (zt - view.zoomK) * (1 - Math.exp(-3 * rdt)); view.scale = view.base * view.zoomK; }
   const k = 1 - Math.exp(-5 * rdt);
   cam.x += (tx - cam.x) * k; cam.y += (ty - cam.y) * k;
@@ -2493,7 +3415,7 @@ function updatePlay(rdt) {
     updateParticles(rdt); updateTexts(rdt); updateCamera(rdt); updateHUD(); return;
   }
   const p = G.player;
-  if (p.alive) { updatePlayer(p, dt); synTrack(p, dt); regen(p, dt); }
+  if (p.alive && G.phase !== 'bossIntro') { updatePlayer(p, dt); synTrack(p, dt); regen(p, dt); }
   updateFlow(dt);
   if (G.phase === 'fight') updateSpawns(dt);
   const frozen = G.buffs.freeze > 0;
@@ -2501,6 +3423,7 @@ function updatePlay(rdt) {
     if (e.dead) continue;
     const stunned = tickStatus(e, dt);
     if (e.dead) continue;
+    if (e.isBoss) { e.lock = false; updateBoss(e, dt, frozen || stunned); continue; } // 11a: phases, attacks, stun
     if (frozen || stunned) { e.lock = false; e.flash = Math.max(0, e.flash - dt); e.recoil = 0; } // Dondurucu / Ikiz stun: enemies stand still and hold fire
     else updateEnemy(e, dt);
   }
@@ -2508,6 +3431,7 @@ function updatePlay(rdt) {
   separateTanks();
   updateBullets(dt);
   updateStrikes(dt);
+  updatePieces(dt);
   updatePickups(dt);
   updateParticles(dt);
   updateTexts(dt);
@@ -2519,7 +3443,7 @@ function updatePlay(rdt) {
 function updateOver(rdt) {
   G.time += rdt;
   updateFlow(rdt);
-  for (const e of G.enemies) if (!e.dead) updateEnemy(e, rdt);
+  for (const e of G.enemies) if (!e.dead) { if (e.isBoss) updateBoss(e, rdt, e.dying ? false : true); else updateEnemy(e, rdt); }
   separateTanks(); updateBullets(rdt); updateParticles(rdt); updateTexts(rdt);
   if (G.enemies.some(e => e.dead)) G.enemies = G.enemies.filter(e => !e.dead);
   updateCamera(rdt);
@@ -2544,6 +3468,7 @@ function updateHUD() {
   const boss = G.boss && !G.boss.dead ? G.boss : null;
   if (boss) {
     if (ui.bossOn !== true) { ui.bossOn = true; el.bossBar.classList.remove('hidden'); el.waveS.classList.add('hidden'); measureHud(); }
+    if (ui.bossName !== boss.name) { ui.bossName = boss.name; el.bossBar.firstElementChild.textContent = boss.name.split(' ').map(w => w.charAt(0) + w.slice(1).toLocaleLowerCase('tr')).join(' '); } // boss name in the bar
     const k = Math.max(0, boss.hp / boss.maxHp); if (ui.boss !== k) { ui.boss = k; el.bossFill.style.transform = `scaleX(${k})`; }
   } else {
     if (ui.bossOn !== false) { ui.bossOn = false; el.bossBar.classList.add('hidden'); el.waveS.classList.remove('hidden'); measureHud(); }
@@ -2581,7 +3506,10 @@ function render() {
   const c0 = Math.max(0, Math.floor(view.x0 / T) - 1), c1 = Math.min(m.n - 1, Math.floor(view.x1 / T) + 1);
   const r0 = Math.max(0, Math.floor(view.y0 / T) - 1), r1 = Math.min(m.n - 1, Math.floor(view.y1 / T) + 1);
   drawWaterFx(c0, c1, r0, r1);
+  if (m.frame) { ctx.strokeStyle = m.theme.steelDk; ctx.lineWidth = 12; ctx.strokeRect(-6, -6, m.w + 12, m.h + 12); ctx.strokeStyle = m.theme.steel; ctx.lineWidth = 3; ctx.strokeRect(-1.5, -1.5, m.w + 3, m.h + 3); }
   drawTreads();
+  drawPieces();
+  drawTele();
   drawPortals();
   const p = G.player, pAlive = !!(p && p.alive), cloak = G.buffs.stealth > 0;
   const pa = cloak ? 0.4 + 0.08 * Math.sin(G.time * 7) : 1; // Kamuflaj: the player's tank shimmers, half seen
@@ -2782,6 +3710,7 @@ function turretMarks(g, s, c, tr) {
 const NO_UP = {};
 function drawTank(t, alpha, g) {
   g = g || ctx;
+  if (t.isBoss) { drawBoss(t, alpha, g); return; }
   const s = t.spec, c = s.col, L = s.len, W = s.wid, tw = s.tread, tr = s.tR, U = s.up || NO_UP;
   g.save(); g.translate(t.x, t.y); g.rotate(t.angle); g.globalAlpha = alpha;
   if (U.engine) { g.fillStyle = '#2b2823'; for (const yy of U.engine >= 3 ? [-5.5, 5.5] : [0]) { rrect(g, -L / 2 - 3.5, yy - 2.4, 6, 4.8, 1.5); g.fill(); } } // exhaust stacks
@@ -2794,6 +3723,12 @@ function drawTank(t, alpha, g) {
   for (let x = -L / 2 + o; x < L / 2 - 1.5; x += st) g.fillRect(x, -W / 2 + 1.3, 1.7, tw - 2.6);
   o = ((t.treadR % st) + st) % st;
   for (let x = -L / 2 + o; x < L / 2 - 1.5; x += st) g.fillRect(x, W / 2 - tw + 1.3, 1.7, tw - 2.6);
+  if (t.pt && t.pt.tread > 0) { // broken tread: a stretch of links is gone, the rest hangs loose
+    const y0 = t.pt.side ? W / 2 - tw : -W / 2;
+    g.fillStyle = 'rgba(8,6,4,.78)'; g.fillRect(-L * 0.3, y0 + 0.5, L * 0.46, tw - 1);
+    g.fillStyle = '#4b473e'; for (let k = 0; k < 4; k++) g.fillRect(-L * 0.34 + k * 4.2, y0 + ((k * 5) % 3) + 0.6, 2.6, 1.7);
+    g.strokeStyle = '#ffb04a'; g.lineWidth = 0.9; g.globalAlpha = alpha * (0.5 + 0.5 * Math.sin(G.time * 18)); g.beginPath(); g.moveTo(-L * 0.3, y0 + 1); g.lineTo(-L * 0.3, y0 + tw - 1); g.stroke(); g.globalAlpha = alpha;
+  }
   const hx = -L / 2 + 2.5, hw = L - 5, hy = -W / 2 + tw - 2.5, hh = W - 2 * tw + 5;
   g.fillStyle = c.dk; rrect(g, hx, hy, hw, hh, 4); g.fill();
   g.fillStyle = c.body; rrect(g, hx + 1.5, hy + 1.5, hw - 3, hh - 3, 3); g.fill();
@@ -2833,6 +3768,9 @@ function drawTank(t, alpha, g) {
     }
   } else if (s.triple) { for (const a of [-0.2, 0.2, 0]) { g.save(); g.rotate(a); barrel(s, rec, c, g); g.restore(); } }
   else if (s.twin) { const off = s.twinOff || s.bW * 0.62; for (const yo of [-1, 1]) { g.save(); g.translate(0, yo * off); barrel(s, rec, c, g); g.restore(); } }
+  else if (t.pt && t.pt.barrel > 0) { // jammed barrel: bent upward with a scorched tip
+    g.save(); g.rotate(-0.2); barrel(s, rec, c, g); g.fillStyle = '#17110f'; g.fillRect(s.barrel - 7, -s.bW * 0.7, 7, s.bW * 1.4); g.restore();
+  }
   else barrel(s, rec, c, g);
   if (t.type === 'boss' && t.chargeT > 0) { // Komutan telegraph: the three muzzles heat up over 0.45 s before the triple shot
     const k = clamp(t.chargeT / 0.45, 0, 1), tipX = s.barrel - rec;
@@ -2877,6 +3815,13 @@ function drawTank(t, alpha, g) {
   else g.fillRect(tr * 0.15, -tr * 0.12, tr * 0.5, tr * 0.24);
   if (fl) { g.globalAlpha = alpha * fl; g.fillStyle = '#fff'; rrect(g, -tr * 1.05, -tr * 0.9, tr * 1.95, tr * 1.8, tr * 0.5); g.fill(); }
   g.restore();
+  if (t.pt) for (const k of ['tread', 'barrel', 'engine']) if (t.pt[k] > 0) { const q = partWorld(t, k); repairRing(g, q.x, q.y - 15, 1 - t.pt[k] / t.pt.dur[k], alpha); } // repair progress above the part
+}
+// a small ring that fills while a broken part is being repaired (normal enemies and boss treads)
+function repairRing(g, x, y, k, alpha) {
+  g.save(); g.globalAlpha = alpha; g.lineWidth = 2.6; g.strokeStyle = 'rgba(20,16,10,.7)'; g.beginPath(); g.arc(x, y, 5.5, 0, TAU); g.stroke();
+  g.lineWidth = 2; g.strokeStyle = '#ffd24a'; g.beginPath(); g.arc(x, y, 5.5, -Math.PI / 2, -Math.PI / 2 + TAU * clamp(k, 0.02, 1)); g.stroke();
+  g.fillStyle = '#ffd24a'; g.fillRect(x - 0.9, y - 2.6, 1.8, 5.2); g.fillRect(x - 2.6, y - 0.9, 5.2, 1.8); g.restore();
 }
 // Dondurucu: an ice shell over every frozen tank, fading out in the last half second
 function drawFrost(e) {
@@ -2894,6 +3839,254 @@ function drawThermal(e) {
   const gs = e.spec.len * 1.7; ctx.drawImage(SPR.fire, e.x - gs / 2, e.y - gs / 2, gs, gs);
   ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
   drawTank(e, 0.5);
+}
+/* ================= boss drawing ================= */
+// drawTank hands bosses to drawBoss. Komutan: bordeaux hull, gold trim, three barrels, command tower with a banner (bigger than the old Komutan: 90 long).
+function drawBoss(e, alpha, g) {
+  if (e.def && e.def.draw) e.def.draw(e, g, alpha); else drawKomutan(e, g, alpha);
+  if (e.tr) drawBossPartDamage(e, g, alpha);
+}
+// part damage on every boss (11a): broken treads (missing links, loose pieces), silent barrels (bent dark stub), repair rings above the treads
+function drawBossPartDamage(e, g, alpha) {
+  const s = e.spec, L = s.len, W = s.wid, tw = s.tread;
+  g.save(); g.translate(e.x, e.y); g.rotate(e.angle); g.globalAlpha = alpha;
+  for (let i = 0; i < 2; i++) {
+    if (e.tr[i].t <= 0) continue;
+    const y0 = i ? W / 2 - tw : -W / 2;
+    g.fillStyle = 'rgba(8,6,4,.8)'; g.fillRect(-L * 0.34, y0 + 0.5, L * 0.5, tw - 1);
+    g.fillStyle = '#4b473e'; for (let k = 0; k < 5; k++) g.fillRect(-L * 0.38 + k * 5.5, y0 + ((k * 5) % 4) + 0.8, 3.4, 2.2);
+    g.strokeStyle = '#ffb04a'; g.lineWidth = 1.2; g.globalAlpha = alpha * (0.5 + 0.5 * Math.sin(G.time * 18)); g.beginPath(); g.moveTo(-L * 0.34, y0 + 1); g.lineTo(-L * 0.34, y0 + tw - 1); g.stroke(); g.globalAlpha = alpha;
+  }
+  g.rotate(e.turret - e.angle);
+  for (const b of e.bars) {
+    if (b.t <= 0) continue;
+    g.save(); g.rotate(b.ang); const tip = s.barrel + 2 - e.recoil * 5;
+    g.rotate(-0.25); g.fillStyle = '#17110f'; g.fillRect(tip - 16, -7, 18, 14); g.fillStyle = '#ffb04a'; g.globalAlpha = alpha * (0.4 + 0.4 * Math.sin(G.time * 20)); g.fillRect(tip, -2, 2.5, 4);
+    g.restore();
+  }
+  g.restore();
+  for (let i = 0; i < 2; i++) { const tr = e.tr[i]; if (tr.t > 0) { const q = treadWorld(e, i); repairRing(g, q.x, q.y - 18, 1 - tr.t / BT.halt, alpha); } }
+  const jam = e.bars.find(b => b.t > 0); if (jam) { const mx = e.x + Math.cos(e.turret + jam.ang) * s.barrel, my = e.y + Math.sin(e.turret + jam.ang) * s.barrel; repairRing(g, mx, my - 18, 1 - jam.t / BT.silent, alpha); }
+  g.globalAlpha = 1;
+}
+function drawKomutan(e, g, alpha) {
+  const s = e.spec, c = s.col, L = s.len, W = s.wid, tw = s.tread, tr = s.tR, lost = e.lost, tower = e.parts.find(p => p.id === 'tower');
+  g.save(); g.translate(e.x, e.y); g.rotate(e.angle); g.globalAlpha = alpha;
+  // treads
+  g.fillStyle = '#1f1d19'; rrect(g, -L / 2, -W / 2, L, tw, 4); g.fill(); rrect(g, -L / 2, W / 2 - tw, L, tw, 4); g.fill();
+  g.fillStyle = '#4b473e'; const st = 6;
+  let o = ((e.treadL % st) + st) % st; for (let x = -L / 2 + o; x < L / 2 - 2; x += st) g.fillRect(x, -W / 2 + 1.5, 2, tw - 3);
+  o = ((e.treadR % st) + st) % st; for (let x = -L / 2 + o; x < L / 2 - 2; x += st) g.fillRect(x, W / 2 - tw + 1.5, 2, tw - 3);
+  // hull
+  const hx = -L / 2 + 3, hw = L - 6, hy = -W / 2 + tw - 3, hh = W - 2 * tw + 6;
+  g.fillStyle = c.dk; rrect(g, hx, hy, hw, hh, 6); g.fill();
+  g.fillStyle = c.body; rrect(g, hx + 2, hy + 2, hw - 4, hh - 4, 5); g.fill();
+  g.fillStyle = c.hi; g.globalAlpha = alpha * 0.8; g.fillRect(hx + hw - 16, hy + 4, 8, hh - 8); g.globalAlpha = alpha; // front glacis
+  g.fillStyle = c.acc; g.fillRect(hx + 8, hy + 5, hw - 34, 2); g.fillRect(hx + 8, hy + hh - 7, hw - 34, 2);
+  g.fillStyle = c.dk; for (let k = 0; k < 4; k++) g.fillRect(hx + 6 + k * 4, hy + hh * 0.5 - 8, 2, 16);
+  if (!lost.exhaust) { g.fillStyle = '#2b2823'; rrect(g, -L / 2 - 4, -9, 8, 18, 2); g.fill(); g.fillStyle = '#6d5a50'; for (let k = -1; k <= 1; k++) g.fillRect(-L / 2 - 2.5, k * 5 - 1, 5, 2); }
+  else { g.fillStyle = '#14110f'; rrect(g, -L / 2 - 2, -9, 5, 18, 2); g.fill(); }
+  g.strokeStyle = 'rgba(0,0,0,.6)'; g.lineWidth = 1.5; rrect(g, -L / 2, -W / 2, L, W, 5); g.stroke();
+  // skirts (fall in phase 3)
+  if (!lost.skirt) for (const sy of [-1, 1]) for (let k = 0; k < 4; k++) {
+    const x0 = -L / 2 + 6 + k * (L - 12) / 4, ww = (L - 12) / 4 - 1.5, y0 = sy < 0 ? -W / 2 - 4 : W / 2 + 4 - 9;
+    g.fillStyle = c.dk; g.fillRect(x0, y0, ww, 9); g.fillStyle = 'rgba(255,255,255,.22)'; g.fillRect(x0, y0, ww, 1.4); g.fillStyle = c.acc; g.fillRect(x0 + ww / 2 - 1, y0 + 4, 2, 2);
+  } else { g.fillStyle = '#14110f'; for (const sy of [-1, 1]) for (let k = 0; k < 4; k++) g.fillRect(-L / 2 + 6 + k * (L - 12) / 4, sy < 0 ? -W / 2 - 1 : W / 2 + 1, 3, 2); }
+  // shoulder armour (falls in phase 2)
+  if (!lost.shoulder) for (const sy of [-1, 1]) {
+    g.fillStyle = c.dk; rrect(g, 6, sy < 0 ? -W / 2 + tw - 2 - 14 : W / 2 - tw + 2, 26, 14, 4); g.fill();
+    g.fillStyle = c.hi; g.globalAlpha = alpha * 0.55; rrect(g, 8, sy < 0 ? -W / 2 + tw - 2 - 12 : W / 2 - tw + 4, 22, 5, 2); g.fill(); g.globalAlpha = alpha;
+    g.fillStyle = c.acc; g.fillRect(8, sy < 0 ? -W / 2 + tw - 2 - 3 : W / 2 - tw + 3, 22, 1.8);
+  }
+  if (!lost.fender) { g.fillStyle = c.dk; rrect(g, -L / 2 + 2, -W / 2 - 1, 18, 7, 3); g.fill(); g.fillStyle = c.acc; g.fillRect(-L / 2 + 6, -W / 2 + 1, 10, 1.4); }
+  // command tower with the banner; destroyed: a blackened, sparking socket
+  const tx = -24;
+  if (!tower || tower.alive) {
+    if (tower) { g.fillStyle = c.dk; rrect(g, tx - 11, -11, 22, 22, 4); g.fill(); g.fillStyle = '#2d0d13'; rrect(g, tx - 8, -8, 16, 16, 3); g.fill(); g.fillStyle = c.acc; g.fillRect(tx - 8, -8, 16, 2.5); g.fillRect(tx - 5, -1, 10, 2); }
+    if (!lost.flag) {
+      const sw = Math.sin(G.time * 6) * 3, fx = tx - 4;
+      g.strokeStyle = '#1f1d19'; g.lineWidth = 1.6; g.beginPath(); g.moveTo(tx, 0); g.lineTo(fx, 0); g.stroke();
+      g.fillStyle = c.acc; g.beginPath(); g.moveTo(fx, -8); g.lineTo(fx - 22, -8 + sw); g.lineTo(fx - 18, 0); g.lineTo(fx - 22, 8 - sw); g.lineTo(fx, 8); g.closePath(); g.fill();
+      g.strokeStyle = 'rgba(40,16,6,.8)'; g.lineWidth = 1.2; g.stroke(); g.fillStyle = c.dk; g.beginPath(); g.arc(fx - 9, 0, 3, 0, TAU); g.fill();
+    }
+  } else {
+    g.fillStyle = '#17110f'; g.beginPath(); g.arc(tx, 0, 11, 0, TAU); g.fill();
+    g.strokeStyle = '#000'; g.lineWidth = 1.4; g.beginPath(); g.moveTo(tx - 8, -4); g.lineTo(tx - 1, 1); g.lineTo(tx + 6, -5); g.moveTo(tx - 2, 1); g.lineTo(tx + 2, 9); g.stroke();
+    g.fillStyle = 'rgba(255,150,60,' + (0.35 + 0.35 * Math.sin(G.time * 17)).toFixed(2) + ')'; g.beginPath(); g.arc(tx + 2, 2, 3, 0, TAU); g.fill();
+    g.fillStyle = 'rgba(240,190,70,.55)'; g.fillRect(tx + 8, 6, 14, 5); // the fallen banner on the deck
+  }
+  if (!lost.antenna) { const ax = -L / 2 + 8, ay = -W / 2 + tw + 4; g.strokeStyle = '#1f1d19'; g.lineWidth = 1.3; g.lineCap = 'round'; g.beginPath(); g.moveTo(ax, ay); g.lineTo(ax - 14, ay - 8); g.stroke(); g.globalAlpha = alpha * (0.6 + 0.4 * Math.sin(G.time * 6)); g.fillStyle = '#ff5a3a'; g.beginPath(); g.arc(ax - 14, ay - 8, 2, 0, TAU); g.fill(); g.globalAlpha = alpha; }
+  if (!lost.plate) { g.fillStyle = c.dk; g.fillRect(hx + hw - 30, -hh / 2 + 3, 10, 6); g.fillStyle = c.acc; g.fillRect(hx + hw - 29, -hh / 2 + 5, 8, 1.4); }
+  // scorch marks from the hits taken
+  g.fillStyle = 'rgba(20,10,8,.55)'; g.strokeStyle = 'rgba(255,170,90,.35)'; g.lineWidth = 0.8;
+  for (const q of e.scorch) { g.save(); g.translate(q.x, q.y); g.rotate(q.a); g.beginPath(); g.ellipse(0, 0, q.r * 1.3, q.r * 0.85, 0, 0, TAU); g.fill(); g.stroke(); g.restore(); }
+  // hit flash
+  const fl = e.flash > 0 ? Math.min(1, e.flash * 10) * 0.8 : 0;
+  if (fl) { g.globalAlpha = alpha * fl; g.fillStyle = '#fff'; rrect(g, -L / 2, -W / 2, L, W, 5); g.fill(); g.globalAlpha = alpha; }
+  // turret and the three barrels
+  g.rotate(e.turret - e.angle);
+  const rec = e.recoil * 5, gk = clamp(e.glow, 0, 1);
+  for (const [a, len, bw] of [[-0.2, s.barrel - 6, 7], [0.2, s.barrel - 6, 7], [0, s.barrel + 2, 11]]) {
+    g.save(); g.rotate(a);
+    g.fillStyle = '#1f1d19'; g.fillRect(tr * 0.4 - rec - 1, -bw / 2 - 1, len - tr * 0.4 + 2, bw + 2);
+    g.fillStyle = c.dk; g.fillRect(tr * 0.4 - rec, -bw / 2, len - tr * 0.4, bw);
+    g.fillStyle = 'rgba(255,255,255,.14)'; g.fillRect(tr * 0.4 - rec, -bw / 2 + 1, len - tr * 0.4, 1.2);
+    g.fillStyle = c.acc; g.fillRect(len - rec - 8, -bw / 2 - 1, 2, bw + 2); g.fillRect(len - rec - 4, -bw / 2 - 1, 2, bw + 2);
+    g.restore();
+  }
+  if (gk > 0) for (const a of KOM_FAN3) { // glow telegraph at the muzzles
+    const x = Math.cos(a) * (s.barrel - rec + 2), y = Math.sin(a) * (s.barrel - rec + 2);
+    g.fillStyle = `rgba(40,12,6,${(0.65 * gk).toFixed(2)})`; g.beginPath(); g.arc(x, y, 5 + 3 * gk, 0, TAU); g.fill();
+    if (fxScale === 1) { g.globalCompositeOperation = 'lighter'; const gs = 20 + 38 * gk; g.globalAlpha = alpha * (0.35 + 0.65 * gk); g.drawImage(SPR.fire, x - gs / 2, y - gs / 2, gs, gs); g.globalCompositeOperation = 'source-over'; }
+    g.globalAlpha = alpha * (0.5 + 0.5 * gk); g.fillStyle = gk < 1 ? '#f0782a' : '#fff4d0'; g.beginPath(); g.arc(x, y, 3.5 + 2.5 * gk, 0, TAU); g.fill(); g.globalAlpha = alpha;
+  }
+  g.fillStyle = c.dk; rrect(g, -tr * 1.1 - 2, -tr * 0.95 - 2, tr * 2.05 + 4, tr * 1.9 + 4, tr * 0.6); g.fill();
+  g.fillStyle = c.body; rrect(g, -tr * 1.1, -tr * 0.95, tr * 2.05, tr * 1.9, tr * 0.55); g.fill();
+  g.globalAlpha = alpha * 0.5; g.fillStyle = c.hi; rrect(g, -tr * 0.9, -tr * 0.78, tr * 1.5, tr * 0.55, tr * 0.27); g.fill(); g.globalAlpha = alpha;
+  g.strokeStyle = c.acc; g.lineWidth = 2; g.beginPath(); g.arc(-tr * 0.25, 0, tr * 0.5, 0, TAU); g.stroke();
+  g.fillStyle = c.dk; g.beginPath(); g.arc(-tr * 0.25, 0, tr * 0.28, 0, TAU); g.fill();
+  if (fl) { g.globalAlpha = alpha * fl; g.fillStyle = '#fff'; rrect(g, -tr * 1.1, -tr * 0.95, tr * 2.05, tr * 1.9, tr * 0.55); g.fill(); }
+  g.restore();
+}
+// warnings on the ground (under the tanks)
+function drawTele() {
+  if (G.boss && G.boss.def && G.boss.def.drawGround) G.boss.def.drawGround(G.boss, ctx); // per-boss ground layer (sand strips, wind arrows)
+  if (!G.tele.length) return;
+  const e = G.boss; ctx.save();
+  for (const tl of G.tele) {
+    const k = clamp(tl.t / tl.dur, 0, 1);
+    if (tl.kind === 'line') {
+      const locked = tl.t >= tl.dur - tl.lock, len = tl.len, w = tl.w;
+      ctx.save(); ctx.translate(tl.x, tl.y); ctx.rotate(tl.a);
+      ctx.fillStyle = locked ? 'rgba(140,16,12,.5)' : `rgba(224,60,40,${(0.16 + 0.2 * k).toFixed(3)})`; ctx.fillRect(0, -w / 2, len, w);
+      ctx.strokeStyle = locked ? 'rgba(90,6,6,.95)' : 'rgba(255,90,60,.85)'; ctx.lineWidth = locked ? 3 : 2; ctx.setLineDash(locked ? [] : [14, 10]); ctx.lineDashOffset = -G.time * 60;
+      ctx.strokeRect(0, -w / 2, len, w); ctx.setLineDash([]);
+      ctx.strokeStyle = locked ? 'rgba(255,230,200,.8)' : 'rgba(255,200,170,.55)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(len, 0); ctx.stroke();
+      ctx.restore();
+    } else if (tl.kind === 'circle') {
+      ctx.fillStyle = 'rgba(224,60,40,.14)'; ctx.beginPath(); ctx.arc(tl.x, tl.y, tl.r, 0, TAU); ctx.fill();
+      ctx.fillStyle = `rgba(224,60,40,${(0.18 + 0.3 * k).toFixed(3)})`; ctx.beginPath(); ctx.arc(tl.x, tl.y, tl.r * k, 0, TAU); ctx.fill();
+      ctx.strokeStyle = 'rgba(255,100,70,.95)'; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.arc(tl.x, tl.y, tl.r, 0, TAU); ctx.stroke();
+      ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(tl.x - tl.r * 0.45, tl.y); ctx.lineTo(tl.x + tl.r * 0.45, tl.y); ctx.moveTo(tl.x, tl.y - tl.r * 0.45); ctx.lineTo(tl.x, tl.y + tl.r * 0.45); ctx.stroke();
+    } else if (tl.kind === 'ring' && e) {
+      ctx.fillStyle = `rgba(224,60,40,${(0.1 + 0.2 * k).toFixed(3)})`; ctx.beginPath(); ctx.arc(e.x, e.y, tl.r * k, 0, TAU); ctx.fill();
+      ctx.strokeStyle = 'rgba(255,100,70,.9)'; ctx.lineWidth = 3; ctx.setLineDash([16, 10]); ctx.lineDashOffset = -G.time * 50; ctx.beginPath(); ctx.arc(e.x, e.y, tl.r, 0, TAU); ctx.stroke(); ctx.setLineDash([]);
+      ctx.strokeStyle = 'rgba(255,230,200,.7)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(e.x, e.y, tl.r * k, 0, TAU); ctx.stroke();
+    }
+  }
+  ctx.restore(); ctx.globalAlpha = 1;
+}
+// pieces that broke off the boss lie on the ground for a few seconds
+function drawPieces() {
+  for (const q of G.pieces) {
+    const f = q.t > q.life - 1 ? clamp(q.life - q.t, 0, 1) : 1, c = q.col;
+    ctx.save(); ctx.translate(q.x, q.y); ctx.rotate(q.a); ctx.globalAlpha = f;
+    if (q.k === 'flag') { ctx.fillStyle = c.acc; ctx.fillRect(-14, -7, 28, 14); ctx.fillStyle = c.dk; ctx.beginPath(); ctx.arc(0, 0, 3, 0, TAU); ctx.fill(); }
+    else if (q.k === 'antenna') { ctx.strokeStyle = '#1f1d19'; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(-8, 0); ctx.lineTo(8, 0); ctx.stroke(); }
+    else { const w = q.big ? 28 : 18, h = q.big ? 16 : 9; ctx.fillStyle = 'rgba(0,0,0,.3)'; ctx.fillRect(-w / 2 + 3, -h / 2 + 4, w, h); ctx.fillStyle = c.dk; ctx.fillRect(-w / 2, -h / 2, w, h); ctx.fillStyle = c.body; ctx.fillRect(-w / 2 + 1.5, -h / 2 + 1.5, w - 3, h - 3); ctx.fillStyle = c.acc; ctx.fillRect(-w / 2 + 2, -1, w - 4, 1.6); }
+    ctx.restore();
+  }
+  ctx.globalAlpha = 1;
+}
+/* ================= Sarı Fırtına drawing ================= */
+// Arrow-shaped hardal hull, one barrel, two arrow marks at the back, orange exhausts at the sides (lit from phase 2); sand whirlwind in the intro and death scene;
+// sand strips and wind arrows on the ground (drawGround, called from drawTele in 15a).
+function sariWhirl(g, cx, cy, k, tt, h, rTop) { // a sand funnel standing on (cx, cy); k 0..1 is its strength
+  if (k <= 0.01) return;
+  const N = 12; g.save(); g.lineCap = 'round';
+  for (let j = 0; j < N; j++) {
+    const f = j / (N - 1), yy = cy - f * h, rr = 12 + (rTop - 12) * f * f, wob = Math.sin(tt * 5 + j * 0.9) * rr * 0.12;
+    g.strokeStyle = `rgba(${j & 1 ? '239,202,96' : '207,159,48'},${(k * (0.5 - 0.3 * f)).toFixed(3)})`; g.lineWidth = 3 + 3 * (1 - f);
+    const a0 = tt * (6 + j * 0.3) + j * 1.7; g.beginPath(); g.ellipse(cx + wob, yy, rr, rr * 0.28, 0, a0, a0 + Math.PI * 1.35); g.stroke();
+  }
+  g.restore();
+}
+function drawSari(e, g, alpha) {
+  const s = e.spec, c = s.col, L = s.len, W = s.wid, tw = s.tread, tr = s.tR, tt = G.time, intro = G.phase === 'bossIntro';
+  let spin = 0; if (e.dying) { const d = Math.min(e.deathT, 2.4); spin = 16 * (d - d * d / 4.8); } // spins down as it dies
+  if (intro) alpha *= clamp(0.35 + G.phaseT / 1.35 * 0.65, 0, 1);
+  g.save(); g.translate(e.x, e.y); g.rotate(e.angle + spin); g.globalAlpha = alpha;
+  // treads
+  g.fillStyle = '#1f1d19'; rrect(g, -L / 2 + 3, -W / 2, L - 8, tw, 3); g.fill(); rrect(g, -L / 2 + 3, W / 2 - tw, L - 8, tw, 3); g.fill();
+  g.fillStyle = '#4b473e'; const st = 5;
+  let o = ((e.treadL % st) + st) % st; for (let x = -L / 2 + 5 + o; x < L / 2 - 8; x += st) g.fillRect(x, -W / 2 + 1.5, 2, tw - 3);
+  o = ((e.treadR % st) + st) % st; for (let x = -L / 2 + 5 + o; x < L / 2 - 8; x += st) g.fillRect(x, W / 2 - tw + 1.5, 2, tw - 3);
+  // exhausts at the sides (orange), flames behind them from phase 2
+  const lit = e.phase >= 1;
+  for (const sy of [-1, 1]) {
+    const ex = -L / 2 + 6, ey = sy * (W / 2 + 1);
+    if (lit) {
+      const fl = 0.7 + 0.3 * Math.sin(tt * 40 + sy);
+      g.globalCompositeOperation = 'lighter'; g.globalAlpha = alpha * 0.9 * fl; const gs = 38 * fl; g.drawImage(SPR.fire, ex - 12 - gs / 2, ey - gs / 2, gs, gs); g.globalCompositeOperation = 'source-over'; g.globalAlpha = alpha;
+    }
+    g.fillStyle = '#2b2823'; rrect(g, ex - 2, ey - 3.5, 15, 7, 2); g.fill();
+    g.fillStyle = lit ? '#ffb04a' : c.acc; rrect(g, ex, ey - 2.5, 11, 5, 2); g.fill();
+    g.fillStyle = '#14110f'; g.fillRect(ex - 3, ey - 2, 3, 4);
+  }
+  // arrow-shaped hull
+  const hh = W / 2 - tw + 3, pts = [[L / 2, 0], [L / 2 - 26, -hh], [-L / 2, -hh], [-L / 2 + 14, 0], [-L / 2, hh], [L / 2 - 26, hh]];
+  const path = (inset) => { g.beginPath(); pts.forEach(([x, y], i) => { const ix = x - Math.sign(x) * inset * 0.6, iy = y - Math.sign(y) * inset; i ? g.lineTo(ix, iy) : g.moveTo(ix, iy); }); g.closePath(); };
+  g.lineJoin = 'round'; path(0); g.fillStyle = c.dk; g.fill(); path(2.5); g.fillStyle = c.body; g.fill();
+  g.globalAlpha = alpha * 0.8; g.fillStyle = c.hi; g.beginPath(); g.moveTo(L / 2 - 6, 0); g.lineTo(L / 2 - 24, -hh + 5); g.lineTo(L / 2 - 24, hh - 5); g.closePath(); g.fill(); g.globalAlpha = alpha; // front glacis
+  g.strokeStyle = c.acc; g.lineWidth = 3.2; g.lineCap = 'round'; g.lineJoin = 'miter'; // two arrow marks at the back
+  for (const x0 of [-L / 2 + 22, -L / 2 + 31]) { g.beginPath(); g.moveTo(x0 - 6, -8); g.lineTo(x0, 0); g.lineTo(x0 - 6, 8); g.stroke(); }
+  g.strokeStyle = 'rgba(0,0,0,.6)'; g.lineWidth = 1.4; g.lineJoin = 'round'; path(0); g.stroke();
+  // scorch marks, hit flash
+  g.fillStyle = 'rgba(20,10,8,.55)'; g.strokeStyle = 'rgba(255,170,90,.35)'; g.lineWidth = 0.8;
+  for (const q of e.scorch) { g.save(); g.translate(q.x, q.y); g.rotate(q.a); g.beginPath(); g.ellipse(0, 0, q.r * 1.3, q.r * 0.85, 0, 0, TAU); g.fill(); g.stroke(); g.restore(); }
+  const fl = e.flash > 0 ? Math.min(1, e.flash * 10) * 0.8 : 0;
+  if (fl) { g.globalAlpha = alpha * fl; g.fillStyle = '#fff'; path(0); g.fill(); g.globalAlpha = alpha; }
+  // turret with the single barrel
+  g.rotate(e.turret - e.angle - spin);
+  const rec = e.recoil * 4, gk = clamp(e.glow, 0, 1), len = s.barrel, bw = s.bW;
+  g.fillStyle = '#1f1d19'; g.fillRect(tr * 0.4 - rec - 1, -bw / 2 - 1, len - tr * 0.4 + 2, bw + 2);
+  g.fillStyle = c.dk; g.fillRect(tr * 0.4 - rec, -bw / 2, len - tr * 0.4, bw);
+  g.fillStyle = 'rgba(255,255,255,.16)'; g.fillRect(tr * 0.4 - rec, -bw / 2 + 1, len - tr * 0.4, 1.2);
+  g.fillStyle = c.acc; g.fillRect(len - rec - 8, -bw / 2 - 1, 3, bw + 2);
+  if (gk > 0) {
+    const x = len - rec + 2;
+    g.fillStyle = `rgba(40,12,6,${(0.65 * gk).toFixed(2)})`; g.beginPath(); g.arc(x, 0, 5 + 3 * gk, 0, TAU); g.fill();
+    if (fxScale === 1) { g.globalCompositeOperation = 'lighter'; const gs = 20 + 38 * gk; g.globalAlpha = alpha * (0.35 + 0.65 * gk); g.drawImage(SPR.fire, x - gs / 2, -gs / 2, gs, gs); g.globalCompositeOperation = 'source-over'; }
+    g.globalAlpha = alpha * (0.5 + 0.5 * gk); g.fillStyle = gk < 1 ? '#f0782a' : '#fff4d0'; g.beginPath(); g.arc(x, 0, 3.5 + 2.5 * gk, 0, TAU); g.fill(); g.globalAlpha = alpha;
+  }
+  g.fillStyle = c.dk; g.beginPath(); g.arc(0, 0, tr + 1.5, 0, TAU); g.fill();
+  g.fillStyle = c.body; g.beginPath(); g.arc(0, 0, tr, 0, TAU); g.fill();
+  g.globalAlpha = alpha * 0.5; g.fillStyle = c.hi; g.beginPath(); g.ellipse(-2, -3, tr * 0.65, tr * 0.4, 0, 0, TAU); g.fill(); g.globalAlpha = alpha;
+  g.strokeStyle = c.acc; g.lineWidth = 2; g.beginPath(); g.arc(0, 0, tr * 0.5, 0, TAU); g.stroke();
+  if (fl) { g.globalAlpha = alpha * fl; g.fillStyle = '#fff'; g.beginPath(); g.arc(0, 0, tr, 0, TAU); g.fill(); }
+  g.restore();
+  // whirlwind: coming down in the intro, a faint swirl in the storm phase, dying down with the boss
+  if (g === ctx) {
+    if (intro) { const t = G.phaseT, k = t < 1.35 ? Math.min(1, t / 0.6) : Math.max(0, 1 - (t - 1.35) / 0.9); sariWhirl(g, e.x, e.y + 14, k, t, 60 + 240 * Math.min(1, t / 0.8), 70); }
+    else if (e.dying) sariWhirl(g, e.x, e.y + 14, Math.max(0, 1 - e.deathT / 2.3), G.time, 120, 64);
+    else if (e.phase >= 2) sariWhirl(g, e.x, e.y + 14, 0.5, G.time, 50, 38);
+  }
+}
+const SARI_ARROW = [[60, 0], [8, -40], [8, -17], [-60, -17], [-60, 17], [8, 17], [8, 40]]; // big wind arrow, pointing along +x
+function drawSariGround(e, g) {
+  const S = e.sari; if (!S) return;
+  for (const q of S.sand) { // sand strips
+    const dx = q.x2 - q.x1, dy = q.y2 - q.y1, l = Math.hypot(dx, dy); if (l < 2) continue;
+    const a = q.t < 0 ? 1 : clamp((SARI_SAND_LIFE - q.t) / 0.8, 0, 1);
+    g.save(); g.translate(q.x1, q.y1); g.rotate(Math.atan2(dy, dx)); g.globalAlpha = a;
+    g.fillStyle = 'rgba(120,78,20,.38)'; rrect(g, 0, -q.w / 2, l, q.w, 10); g.fill();
+    g.strokeStyle = 'rgba(70,42,8,.55)'; g.lineWidth = 2; g.setLineDash([10, 8]); rrect(g, 0, -q.w / 2, l, q.w, 10); g.stroke(); g.setLineDash([]);
+    g.strokeStyle = 'rgba(245,215,130,.5)'; g.lineWidth = 2;
+    for (const yy of [-q.w * 0.25, 0, q.w * 0.25]) { g.beginPath(); for (let x = 4; x < l - 4; x += 8) g.lineTo(x, yy + Math.sin(x * 0.18 + yy) * 3); g.stroke(); }
+    g.restore();
+  }
+  const W = S.wind; if (W.st === 'idle') return;
+  const m = G.map, warn = W.st === 'warn', k = warn ? W.t / SARI_WIND_WARN : 1 - clamp((W.t - SARI_WIND_BLOW + 0.8) / 0.8, 0, 1);
+  const al = warn ? 0.2 + 0.35 * k + 0.2 * Math.abs(Math.sin(G.time * 12)) : 0.2 * k, sp = 270, drift = warn ? 0 : (G.time * 220) % sp;
+  g.save(); g.fillStyle = `rgba(240,138,44,${al.toFixed(3)})`; g.strokeStyle = `rgba(90,40,6,${(al * 1.3).toFixed(3)})`; g.lineWidth = 3; g.lineJoin = 'round';
+  const ca = Math.cos(W.a), sa = Math.sin(W.a);
+  for (let u = -1; u < 5; u++) for (let v = 0; v < 4; v++) {
+    const bx = (v + 0.5) * sp * 0.95 + (u % 2 ? sp * 0.3 : 0), by = (u + 0.5) * sp * 0.95;
+    if (!(m.w >= 0)) continue;
+    const x = ((bx + ca * drift) % (m.w + 100) + m.w + 100) % (m.w + 100) - 50, y = ((by + sa * drift) % (m.h + 100) + m.h + 100) % (m.h + 100) - 50;
+    g.save(); g.translate(x, y); g.rotate(W.a); g.beginPath(); SARI_ARROW.forEach(([px, py], i) => i ? g.lineTo(px, py) : g.moveTo(px, py)); g.closePath(); g.fill(); g.stroke(); g.restore();
+  }
+  g.restore(); g.globalAlpha = 1;
 }
 function drawStrikes() {
   if (!G.strikes.length) return;
@@ -3041,7 +4234,7 @@ function drawParticles() {
   const dust = G.map.dust;
   for (const q of parts) {
     const k = q.life / q.max;
-    if (q.k === 'smoke') { const a = Math.sin(Math.PI * (1 - k)) * 0.9; if (a > 0.01) { ctx.globalAlpha = a; ctx.drawImage(SPR.smoke, q.x - q.size / 2, q.y - q.size / 2, q.size, q.size); } }
+    if (q.k === 'smoke') { const a = Math.sin(Math.PI * (1 - k)) * 0.9; if (a > 0.01) { ctx.globalAlpha = a; ctx.drawImage(q.col === 'k' ? SPR.smokeK : SPR.smoke, q.x - q.size / 2, q.y - q.size / 2, q.size, q.size); } }
     else if (q.k === 'dust') { ctx.globalAlpha = k * 0.8; ctx.drawImage(dust, q.x - q.size / 2, q.y - q.size / 2, q.size, q.size); }
     else if (q.k === 'debris') { ctx.globalAlpha = Math.min(1, k * 2.5); ctx.fillStyle = q.col; ctx.save(); ctx.translate(q.x, q.y); ctx.rotate(q.rot); ctx.fillRect(-q.size / 2, -q.size / 3, q.size, q.size * 0.66); ctx.restore(); }
     else if (q.k === 'ring') { ctx.globalAlpha = 1; ctx.strokeStyle = `rgba(${q.col},${(k * 0.9).toFixed(3)})`; ctx.lineWidth = 1 + 3 * k; ctx.beginPath(); ctx.arc(q.x, q.y, Math.max(0.5, q.size), 0, TAU); ctx.stroke(); }
@@ -3086,8 +4279,8 @@ function drawIndicators() {
     if (!isFinite(t) || t <= 0) continue;
     let ix = cx + dx * t, iy = cy + dy * t;
     for (const h of view.hudRects) if (ix > h.l && ix < h.r && iy > h.t && iy < h.b) { t = ray(dx, dy, h.b); ix = cx + dx * t; iy = cy + dy * t; }
-    const d = Math.hypot(e.x - p.x, e.y - p.y), big = e.type === 'boss' ? 1.5 : 1;
-    ctx.globalAlpha = clamp(1.25 - d / (T * 16), 0.4, 1);
+    const d = Math.hypot(e.x - p.x, e.y - p.y), atk = e.isBoss && (e.gen || e.trans > 0) && !e.dying, big = e.type === 'boss' ? (atk ? 2 : 1.5) : 1;
+    ctx.globalAlpha = atk ? 0.35 + 0.65 * Math.abs(Math.sin(G.time * 9)) : clamp(1.25 - d / (T * 16), 0.4, 1); // an attacking boss off-screen: the edge arrow flashes
     ctx.save(); ctx.translate(ix, iy); ctx.rotate(Math.atan2(dy, dx)); ctx.scale(big, big);
     ctx.fillStyle = '#e0533a'; ctx.beginPath(); ctx.moveTo(10, 0); ctx.lineTo(-6, -8); ctx.lineTo(-2.5, 0); ctx.lineTo(-6, 8); ctx.closePath(); ctx.fill();
     ctx.strokeStyle = 'rgba(0,0,0,.55)'; ctx.lineWidth = 1.2; ctx.stroke();
@@ -3199,8 +4392,75 @@ function frame(now) {
   requestAnimationFrame(frame);
 }
 
+// Boss stage autopilot: danger map from the active warnings (and shells in flight); out of danger it fights (part -> stunned boss -> boss), in danger it runs to the nearest safe tile
+function shellLane(x, y, pad) {
+  for (const b of G.bullets) {
+    if (b.dead || b.owner !== 1) continue;
+    const v2 = b.vx * b.vx + b.vy * b.vy; if (!v2) continue;
+    const t = clamp(((x - b.x) * b.vx + (y - b.y) * b.vy) / v2, 0, 0.7), cx = b.x + b.vx * t - x, cy = b.y + b.vy * t - y, rr = b.r + pad;
+    if (cx * cx + cy * cy < rr * rr) return true;
+  }
+  return false;
+}
+const BOT_REACT = 0.5; // the bot needs about half a second to notice a warning, and misses some shells, so it is not a perfect dodger
+let botBlind = false;
+const botDanger = (x, y, pad) => bossDanger(x, y, pad, BOT_REACT) || (!botBlind && shellLane(x, y, pad - 6));
+// breadth-first over open tiles from the player; returns the unit direction of the first step toward the nearest tile where test(c, r, x, y) holds
+function botBfs(test, depth) {
+  const p = G.player, m = G.map, n = m.n, c0 = clamp(Math.floor(p.x / T), 0, n - 1), r0 = clamp(Math.floor(p.y / T), 0, n - 1);
+  const prev = new Map([[r0 * n + c0, -1]]), q = [[c0, r0, 0]];
+  for (let h = 0; h < q.length; h++) {
+    const [c, r, d] = q[h];
+    if (d > 0 && test(c, r, c * T + T / 2, r * T + T / 2)) {
+      let k = r * n + c, last = k; while (prev.get(k) !== -1) { last = k; k = prev.get(k); }
+      const lc = last % n, lr = (last - lc) / n, dx = lc * T + T / 2 - p.x, dy = lr * T + T / 2 - p.y, l = Math.hypot(dx, dy) || 1;
+      return { x: dx / l, y: dy / l };
+    }
+    if (d >= depth) continue;
+    for (const [dx, dy] of DIRS) {
+      const x = c + dx, y = r + dy; if (blocksTank(m.get(x, y))) continue;
+      const k = y * n + x; if (prev.has(k)) continue;
+      prev.set(k, r * n + c); q.push([x, y, d + 1]);
+    }
+  }
+  return null;
+}
+function bossAutopilot(dt) {
+  const p = G.player, e = G.boss, m = G.map;
+  bot.t -= dt;
+  let tx = e.x, ty = e.y;
+  const part = e.stunT > 0 ? null : e.parts.find(q => q.alive);
+  if (part) { const q = partPos(e, part); if (los(p.x, p.y, q.x, q.y)) { tx = q.x; ty = q.y; } } // priority: part, stunned boss, boss
+  bot.aim = Math.atan2(ty - p.y, tx - p.x); bot.dist = Math.hypot(tx - p.x, ty - p.y);
+  bot.fire = !bot.hold && !e.invuln && los(p.x, p.y, e.x, e.y);
+  if (bot.t > 0) return;
+  bot.t = 0.12; botBlind = Math.random() < 0.4;
+  const here = botDanger(p.x, p.y, 26) || botDanger(p.x + p.vx * 0.35, p.y + p.vy * 0.35, 26);
+  if (here) { // nearest safe tile
+    const d = botBfs((c, r, x, y) => !botDanger(x, y, 30), 9);
+    if (d) { bot.mx = d.x; bot.my = d.y; return; }
+  }
+  if (p.hp < p.maxHp * 0.8 && G.pickups.length) { // a repair kit lying around
+    const k = G.pickups.find(q => q.kind === 'repair' && !botDanger(q.x, q.y, 20));
+    if (k) { const kc = Math.floor(k.x / T), kr = Math.floor(k.y / T), d = botBfs((c, r) => c === kc && r === kr, 14); if (d) { bot.mx = d.x; bot.my = d.y; return; } }
+  }
+  const want = Math.max(TANKS[G.tank].botRange || 290, 150);
+  const lineWarn = e.treadT <= 0 && G.tele.some(t => t.kind === 'line' && t.t < t.dur), brk = e.treadT > 0; // part damage: a charge line is up (shoot the tread from the side) / a tread is broken (get behind)
+  let best = null, bs = -1e9;
+  for (let i = 0; i < 8; i++) {
+    const a = i * Math.PI / 4, x = p.x + Math.cos(a) * 60, y = p.y + Math.sin(a) * 60;
+    if (blocksTank(m.at(x, y)) || blocksTank(m.at(p.x + Math.cos(a) * 30, p.y + Math.sin(a) * 30))) continue;
+    const dd = Math.hypot(x - e.x, y - e.y), ang = Math.atan2(e.y - p.y, e.x - p.x), tang = Math.abs(Math.sin(angDiff(a, ang)));
+    let sc = -Math.abs(dd - want) * 0.8 + tang * 25 + (los(x, y, e.x, e.y) ? 20 : 0) + Math.random() * 8 + (dd < e.r + 70 ? -300 : 0);
+    if (lineWarn || brk) { const bang = Math.abs(angDiff(e.angle, Math.atan2(y - e.y, x - e.x))); if (lineWarn && bang > 0.9 && bang < 2.2) sc += 60; if (brk && bang > 2.3) sc += 40; }
+    if (botDanger(x, y, 26)) sc -= 1000;
+    if (sc > bs) { bs = sc; best = a; }
+  }
+  if (best !== null) { bot.mx = Math.cos(best); bot.my = Math.sin(best); } else { bot.mx = bot.my = 0; }
+}
 function autopilot(dt) {
   const p = G.player; if (!p || !p.alive) return;
+  if (G.stage && G.boss && !G.boss.dead && !G.boss.dying && G.phase === 'fight') { bossAutopilot(dt); return; }
   let target = null, best = 1e18;
   for (const e of G.enemies) { const dd = dist2(e.x, e.y, p.x, p.y); if (dd < best) { best = dd; target = e; } }
   bot.t -= dt;
@@ -3288,6 +4548,26 @@ if (DEBUG) {
     botNuke(on) { bot.nuke = !!on; },
     hold(v) { bot.hold = !!v; },
     step(sec) { const n = Math.round(sec * 60); for (let i = 0; i < n && G.state === 'play'; i++) update(1 / 60); return this.info(); },
+    /* -- boss stage -- */
+    bossInfo() { const e = G.boss; return { stage: !!G.stage, phase: G.phase, wave: G.wave, boss: !!e, hp: e ? +e.hp.toFixed(2) : 0, maxHp: e ? e.maxHp : 0, bphase: e ? e.phase : -1, trans: e ? +e.trans.toFixed(2) : 0, invuln: e ? !!e.invuln : false, dying: e ? !!e.dying : false, atk: e ? e.atkId : '', stunT: e ? +e.stunT.toFixed(2) : 0, tower: e ? e.parts.map(q => [q.id, q.alive, q.hp]) : [], enemies: G.enemies.length, tele: G.tele.length, log: e ? e.log.slice() : [] }; },
+    hurtBoss(d, x, y, dir) { const e = G.boss; hurtEnemy(e, d, x === undefined ? e.x : x, y === undefined ? e.y : y, dir); return e.hp; },
+    partInfo(e) { e = e || G.boss; return e.tr ? { treadT: +e.treadT.toFixed(2), tr: e.tr.map(t => ({ hp: +t.hp.toFixed(1), max: t.max, br: t.br, t: +t.t.toFixed(2) })), bars: e.bars.map(b => ({ id: b.id, acc: +b.acc.toFixed(1), thr: b.thr, t: +b.t.toFixed(2) })), cancels: e.cancels } : e.pt ? { tread: +e.pt.tread.toFixed(2), barrel: +e.pt.barrel.toFixed(2), engine: +e.pt.engine.toFixed(2), imm: Object.assign({}, e.pt.imm), dur: Object.assign({}, e.pt.dur) } : null; },
+    partBreak, PART_T, BT, hurtEnemy, bossVolley,
+    bossSkip() { G.introSeen = true; G.phaseT = Math.max(G.phaseT, 0.3); bossIntroTap(); },
+    bossDanger, bossClearHazards, BOSS_DEFS, ARENAS, parseArena, themeFor, bossDefAt,
+    // one boss fight for the probe: wave w, workshop cards (object), tank id; the bot plays until the boss falls, the tank dies or maxSec passes
+    bossFight(w, cards, tank, maxSec) {
+      store.set(BOSS_SEEN_KEY, true); bot.on = true; bot.nuke = false; G.god = false; G.noEvo = true;
+      G.up = Object.assign({}, cards); G.tank = tank || 'std'; refreshPlayer(); G.player.hp = G.player.maxHp;
+      view.zoomK = TANKS[G.tank].zoom; G.wave = w - 1; nextWave(); G.introSeen = true; endBossIntro(true);
+      const p = G.player, e = G.boss, hp0 = p.hp; let n = 0, hurtSum = 0, last = p.hp; const max = Math.round(maxSec * 60);
+      while (n < max && G.state === 'play' && p.alive && !e.dead && !e.dying) {
+        autopilot(1 / 60); update(1 / 60); n++;
+        if (p.hp < last) hurtSum += last - p.hp; last = p.hp;
+      }
+      bot.on = false; G.noEvo = false;
+      return { win: !!(e.dead || e.dying), secs: +(n / 60).toFixed(1), dmg: Math.round(hurtSum), hpLeft: Math.round(p.hp), bphase: e.phase, bossHp: +(e.hp / e.maxHp).toFixed(2), maxHp: e.maxHp };
+    },
     drop(kind, dx, dy) { const p = G.player; dropPickup(p.x + (dx || 0), p.y + (dy || 0), kind); }
   };
 }

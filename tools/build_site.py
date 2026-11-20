@@ -14,7 +14,7 @@ import paths as P  # noqa: E402
 SITE = str(P.SITE)
 D = json.load(open(P.TOOLS / 'gamedata.json', encoding='utf-8'))
 VERSION = P.app_version()  # android/AndroidManifest.xml versionName
-OLD_APKS = ['TankArena-1.2.apk', 'TankArena-1.2.1.apk', 'TankArena-1.3.apk', 'TankArena-1.4.apk']  # earlier file names; their links on this site now lead to the newest APK
+OLD_APKS = ['TankArena-1.2.apk', 'TankArena-1.2.1.apk', 'TankArena-1.3.apk', 'TankArena-1.4.apk', 'TankArena-1.4.1.apk']  # earlier file names; their links on this site now lead to the newest APK
 APK = f'TankArena-{VERSION}.apk'
 BASE = os.environ.get('SITE_URL', '').rstrip('/')  # absolute origin for link previews, filled in once the address is known
 REPO = 'https://github.com/Yusufozkal/tank-arena'
@@ -87,7 +87,7 @@ FOES = [
     ('fast', 'Keşif tankı', '1 isabet. Çok hızlıdır, üzerine doğru gelir.'),
     ('heavy', 'Ağır tank', '5 isabet. İri mermisi çok can yakar.'),
     ('hunter', 'Avcı', '3 isabet. Mermilerden kaçar, siper alır, seni kaybettiği yere ateş açar.'),
-    ('boss', 'Komutan', 'Her 5. dalgada gelir, her gelişinde güçlenir. Ateş etmeden önce namluları parlar.'),
+    ('boss', 'Komutan', 'Her bölgenin ortasında kendi arenasında gelir. Üç evresi ve komuta kulesi var, her gelişinde yeni saldırılar açar.'),
 ]
 foes = '\n'.join(f'<li class="foe-{k}"><img src="/img/tank-{k}.png" width="128" height="128" alt="" loading="lazy"><b>{n}</b><span>{t}</span></li>' for k, n, t in FOES)
 
@@ -297,7 +297,7 @@ footer a{{text-underline-offset:3px}}
   <div class="wrap split">
     <div>
       <h2>Her dalgadan sonra atölye</h2>
-      <p class="lead">Dalga bitince üç kart gelir, birini seçersin. Seçtiğin parça tankına takılır ve oyun sonuna kadar kalır. Aynı kartı yeniden seçtikçe seviyesi artar. Komutanı yendiğin dalganın sonunda nadir bir kart mutlaka çıkar.</p>
+      <p class="lead">Dalga bitince üç kart gelir, birini seçersin. Seçtiğin parça tankına takılır ve oyun sonuna kadar kalır. Aynı kartı yeniden seçtikçe seviyesi artar. bir boss'u yendiğin dalganın sonunda nadir bir kart mutlaka çıkar.</p>
       <div class="ws-tanks">
         <figure><img src="/img/tank-player.png" width="128" height="128" alt="Yükseltmesiz oyuncu tankı"><figcaption>İlk dalga<span>Çıplak tank</span></figcaption></figure>
         <figure><img src="/img/tank-player-upgraded.png" width="128" height="128" alt="Zırh plakaları, egzoz ve anten takılmış oyuncu tankı"><figcaption>Yükseltilmiş<span>Parçalar görünür</span></figcaption></figure>
@@ -313,7 +313,7 @@ footer a{{text-underline-offset:3px}}
 <section id="tank-agaci">
   <div class="wrap">
     <h2>Tank ağacı</h2>
-    <p class="lead">Standart tankla başlarsın. 5. dalgadaki Komutan'ı yenince bir dal seçersin, 10. dalgadaki Komutan'dan sonra dal ikiye ayrılır. Toplam on tank, her birinin tek bir imza özelliği var ve hepsi kendiliğinden çalışır.</p>
+    <p class="lead">Standart tankla başlarsın. 5. dalgadaki Komutan'ı yenince bir dal seçersin, 10. dalgadaki Sarı Fırtına'dan sonra dal ikiye ayrılır. Toplam on tank, her birinin tek bir imza özelliği var ve hepsi kendiliğinden çalışır.</p>
 {tree}
     <h3 class="tk-h3">Birleşimler</h3>
     <p class="lead">İki kart birlikte takılınca yeni bir etki açılır. Atölye, kartın elindeki hangi parçayla birleşebileceğini gösterir.</p>
@@ -321,14 +321,14 @@ footer a{{text-underline-offset:3px}}
 {syns}
     </ul>
     <h3 class="tk-h3">Nükleer bomba</h3>
-    <p class="nuke"><b>Nükleer bomba:</b> düşman öldürdükçe sayaç dolar, dolunca düğme yanar. Kısa bir uyarıdan sonra ekrandaki bütün düşmanlar yok olur, Komutan canının dörtte birini kaybeder.</p>
+    <p class="nuke"><b>Nükleer bomba:</b> düşman öldürdükçe sayaç dolar, dolunca düğme yanar. Kısa bir uyarıdan sonra haritadaki bütün düşmanlar yok olur; bossları öldürmez ama canlarının büyük bir kısmını alır ve onları sersemletir.</p>
   </div>
 </section>
 
 <section class="ground" id="dusmanlar">
   <div class="wrap">
     <h2>Karşına çıkacaklar</h2>
-    <p class="lead">Her dalga biraz daha kalabalık ve keskin gelir. Avcı mermilerden kaçar, Komutan her beşinci dalgada sahaya iner.</p>
+    <p class="lead">Her dalga biraz daha kalabalık ve keskin gelir. Avcı mermilerden kaçar. Beşinci dalgada Komutan, onuncu dalgada Sarı Fırtına seni kendi arenasında bekler; bosslar saldırmadan önce uyarır.</p>
     <ul class="foes">
 {foes}
     </ul>
@@ -348,7 +348,7 @@ footer a{{text-underline-offset:3px}}
 <section id="tek-savas">
   <div class="wrap">
     <h2>Tek savaş</h2>
-    <p class="lead">Herkes aynı kurallarla oynar. Her beşinci dalgada Komutan gelir ve her gelişinde daha güçlüdür. Rekorların tek listede tutulur.</p>
+    <p class="lead">Herkes aynı kurallarla oynar. Her beşinci dalga bir boss etabıdır: sahada yalnızca boss ve sen varsınız. Rekorların tek listede tutulur.</p>
   </div>
 </section>
 
