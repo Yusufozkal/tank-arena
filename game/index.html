@@ -95,6 +95,7 @@ button:focus-visible{outline:2px solid var(--bone);outline-offset:2px}
   #hud .buff svg{width:14px;height:14px}
   #hud .buff .bn{display:none}
   #hud .buff i{width:18px}
+  #hud.boss .buffs{gap:3px}#hud.boss .buff{height:22px;gap:3px;padding:0 4px}#hud.boss .buff svg{width:13px;height:13px}#hud.boss .buff i{width:10px}
   #hud .score{height:32px;gap:6px;padding:0 8px}
   #hud .score b{font-size:16px}
   #hud .ibtn{position:relative;width:32px;height:32px}
@@ -115,7 +116,7 @@ button:focus-visible{outline:2px solid var(--bone);outline-offset:2px}
 #banner{position:fixed;left:16px;right:16px;top:27%;z-index:6;text-align:center;pointer-events:none;opacity:0;transform:translateY(10px) scale(.98);transition:opacity .25s ease,transform .5s cubic-bezier(.2,.9,.2,1)}
 #banner.show{opacity:1;transform:none}
 .bt{font-family:var(--display);font-weight:900;font-size:clamp(46px,13vw,96px);line-height:.9;letter-spacing:.02em;text-wrap:balance;text-shadow:0 3px 0 rgba(0,0,0,.35),0 0 28px rgba(0,0,0,.45)}
-.bs{margin-top:10px;white-space:pre-line;text-wrap:balance;font-size:clamp(18px,4.6vw,23px);font-weight:600;text-shadow:0 2px 10px rgba(0,0,0,.7)}
+.bs{margin:10px auto 0;width:fit-content;max-width:100%;padding:5px 12px;background:rgba(20,22,14,.7);border-radius:3px;white-space:pre-line;text-wrap:balance;font-size:clamp(18px,4.6vw,23px);font-weight:600;text-shadow:0 2px 10px rgba(0,0,0,.7)}
 #hint{position:fixed;left:50%;top:60%;z-index:6;width:max-content;max-width:min(420px,calc(100% - 32px));transform:translate(-50%,6px);padding:9px 14px;background:rgba(38,42,29,.92);border:1px solid var(--line);border-radius:3px;font-size:17px;font-weight:600;line-height:1.25;text-align:center;text-wrap:balance;opacity:0;pointer-events:none;transition:opacity .3s ease,transform .4s ease}
 #hint.show{opacity:1;transform:translate(-50%,0)}
 
@@ -4428,7 +4429,7 @@ function updateHUD() {
   if (ui.wave !== G.wave) { ui.wave = G.wave; el.waveT.textContent = 'DALGA ' + G.wave; }
   const boss = G.boss && !G.boss.dead ? G.boss : null;
   if (boss) {
-    if (ui.bossOn !== true) { ui.bossOn = true; ui.bossName = null; ui.boss = -1; ui.bossTrail = 1; ui.bossHitT = 0; el.bossBar.classList.remove('hidden'); el.waveChip.classList.add('hidden'); measureHud(); }
+    if (ui.bossOn !== true) { ui.bossOn = true; ui.bossName = null; ui.boss = -1; ui.bossTrail = 1; ui.bossHitT = 0; el.bossBar.classList.remove('hidden'); el.waveChip.classList.add('hidden'); el.hud.classList.add('boss'); measureHud(); }
     if (ui.bossName !== boss.name) {
       ui.bossName = boss.name; el.bossName.textContent = boss.name.split(' ').map(w => w.charAt(0) + w.slice(1).toLocaleLowerCase('tr')).join(' ');
       el.bossMarks.innerHTML = (boss.def && boss.def.phases || []).map(t => `<u style="left:${t}%"></u>`).join(''); // thin marks at the phase thresholds
@@ -4441,7 +4442,7 @@ function updateHUD() {
     } else { ui.bossTrail = k; el.bossLost.style.transform = `scaleX(${k})`; }
     ui.bossTick = now;
   } else {
-    if (ui.bossOn !== false) { ui.bossOn = false; el.bossBar.classList.add('hidden'); el.waveChip.classList.remove('hidden'); measureHud(); }
+    if (ui.bossOn !== false) { ui.bossOn = false; el.bossBar.classList.add('hidden'); el.waveChip.classList.remove('hidden'); el.hud.classList.remove('boss'); measureHud(); }
     const remain = G.queue.length + G.enemies.length + G.portals.length;
     const txt = G.phase === 'upgrade' ? 'Yükseltme seç' : G.phase === 'cleared' || G.phase === 'out' ? 'Dalga temizlendi' : G.phase === 'intro' ? 'Hazırlan' : remain + ' düşman kaldı';
     if (ui.sub !== txt) { ui.sub = txt; el.waveS.textContent = txt; }

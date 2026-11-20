@@ -100,7 +100,7 @@ function updateHUD() {
   if (ui.wave !== G.wave) { ui.wave = G.wave; el.waveT.textContent = 'DALGA ' + G.wave; }
   const boss = G.boss && !G.boss.dead ? G.boss : null;
   if (boss) {
-    if (ui.bossOn !== true) { ui.bossOn = true; ui.bossName = null; ui.boss = -1; ui.bossTrail = 1; ui.bossHitT = 0; el.bossBar.classList.remove('hidden'); el.waveChip.classList.add('hidden'); measureHud(); }
+    if (ui.bossOn !== true) { ui.bossOn = true; ui.bossName = null; ui.boss = -1; ui.bossTrail = 1; ui.bossHitT = 0; el.bossBar.classList.remove('hidden'); el.waveChip.classList.add('hidden'); el.hud.classList.add('boss'); measureHud(); }
     if (ui.bossName !== boss.name) {
       ui.bossName = boss.name; el.bossName.textContent = boss.name.split(' ').map(w => w.charAt(0) + w.slice(1).toLocaleLowerCase('tr')).join(' ');
       el.bossMarks.innerHTML = (boss.def && boss.def.phases || []).map(t => `<u style="left:${t}%"></u>`).join(''); // thin marks at the phase thresholds
@@ -113,7 +113,7 @@ function updateHUD() {
     } else { ui.bossTrail = k; el.bossLost.style.transform = `scaleX(${k})`; }
     ui.bossTick = now;
   } else {
-    if (ui.bossOn !== false) { ui.bossOn = false; el.bossBar.classList.add('hidden'); el.waveChip.classList.remove('hidden'); measureHud(); }
+    if (ui.bossOn !== false) { ui.bossOn = false; el.bossBar.classList.add('hidden'); el.waveChip.classList.remove('hidden'); el.hud.classList.remove('boss'); measureHud(); }
     const remain = G.queue.length + G.enemies.length + G.portals.length;
     const txt = G.phase === 'upgrade' ? 'Yükseltme seç' : G.phase === 'cleared' || G.phase === 'out' ? 'Dalga temizlendi' : G.phase === 'intro' ? 'Hazırlan' : remain + ' düşman kaldı';
     if (ui.sub !== txt) { ui.sub = txt; el.waveS.textContent = txt; }
