@@ -100,8 +100,13 @@ with sync_playwright() as p:
     ev(page, "(() => { const t = __tank, G = t.G; G.beaten.clear(); G.beaten.add('komutan'); G.wave = 20; t.nextWave(); })()")
     check('no_region_banner_without_removal', ev(page, "document.getElementById('bTitle').textContent") == 'DALGA 21')
     ev(page, "(() => { const t = __tank, G = t.G; G.beaten.clear(); G.beaten.add('demirkok'); G.wave = 20; t.nextWave(); })()")
-    if id20 == 'demirkok':
-      check('region_banner_demirkok', ev(page, "document.getElementById('bSub').textContent") == 'Ağır tanklar ve Tamirciler artık gelmiyor', ev(page, "document.getElementById('bSub').textContent"))
+    bt, bs = ev(page, "document.getElementById('bTitle').textContent"), ev(page, "document.getElementById('bSub').textContent")
+    check('wave20_is_demirkok', id20 == 'demirkok', id20)
+    check('region_banner_demirkok', bt == 'KAR BÖLGESİ' and bs == 'Ağır tanklar ve Tamirciler artık gelmiyor', [bt, bs])
+    # end to end: after wave 21 spawns no heavy or tamirci ever appears
+    ev(page, "(() => { const G = __tank.G; G.beaten.clear(); G.beaten.add('sari'); G.beaten.add('demirkok'); })()")
+    check('no_heavy_tamirci_w21_40', all(ev(page, ROSTER_SCAN, [w, 40, ty])['any'] == 0 for w in (21, 27, 33, 39) for ty in ('heavy', 'tamirci')))
+    ev(page, "(() => { __tank.G.beaten.clear(); })()")
 
     # ---- Tamirci arrival ----
     ev(page, "(() => { const G = __tank.G; G.beaten.clear(); })()")
@@ -160,6 +165,17 @@ with sync_playwright() as p:
       const m = window.tam(500, 500); G.player.x = 500 - 3 * 48; G.player.y = 500; m.canSee = true; m.distP = 144;
       const d0 = Math.hypot(m.x - G.player.x, m.y - G.player.y); t.step(1.5); o.gain = Math.hypot(m.x - G.player.x, m.y - G.player.y) - d0; o.dist = (o.gain + d0) / 48; return o; }""")
     check('flees_from_close_player', out['dist'] >= 3.8, out)
+
+    # lone Tamirci: after 2 s with no ally it stops fleeing and creeps towards the player (no chase needed)
+    ev(page, CALM)
+    out = ev(page, """() => { const t = __tank, G = t.G, o = {};
+      const m = window.tam(300, 300); G.player.x = 300 + 12 * 48; G.player.y = 300; m.canSee = true; m.distP = 12 * 48;
+      t.step(12); o.far = Math.hypot(m.x - G.player.x, m.y - G.player.y) / 48; o.loneT = m.loneT;
+      // close player: still runs first, then (after 2 s alone) comes back to ~5.5 tiles instead of hiding
+      const m2 = window.tam(600, 600); G.player.x = 600 - 3 * 48; G.player.y = 600; m2.canSee = true; m2.distP = 144; m.dead = true; G.enemies = G.enemies.filter(e => !e.dead);
+      t.step(1.2); o.run = Math.hypot(m2.x - G.player.x, m2.y - G.player.y) / 48; t.step(14); o.back = Math.hypot(m2.x - G.player.x, m2.y - G.player.y) / 48;
+      window.ally(m2.x - 200, m2.y, 10, 10); t.step(0.1); o.reset = m2.loneT; return o; }""")
+    check('lone_tamirci_approaches', out['far'] < 7 and out['run'] > 3.3 and out['back'] < 6.5 and out['reset'] == 0, out)
 
     # at most two alive
     ev(page, CALM)

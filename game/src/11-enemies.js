@@ -20,7 +20,7 @@ const REGION_NAME = { fast: 'Keşif tankları', heavy: 'Ağır tanklar', tamirci
 const typeBanned = type => { for (const id of G.beaten) { const l = REGION_BAN[id]; if (l && l.includes(type)) return true; } return false; };
 const regionGone = id => (REGION_BAN[id] || []).map(t => REGION_NAME[t]); // names removed by boss id
 // Share of Hızlı / Ağır / Avcı / Tamirci among normal-wave tanks. Each type is absent before its first wave (RULES.fastFrom / heavyFrom / hunterFrom / tamirciFrom), then grows slowly; a beaten boss's types stay at 0.
-// Thinner waves after a region change are made up with numbers and sharper fire, never with HP: +16% tanks, -7% reload time, -10% aim error per removed type
+// Thinner waves after a region change are made up with numbers and sharper fire, never with HP: +12% tanks, -7% reload time, -10% aim error per removed type
 const removedN = () => ['fast', 'heavy', 'hunter', 'tamirci'].filter(typeBanned).length;
 function typeShares(w) {
   const D = G.D, ok = t => !typeBanned(t);
@@ -33,7 +33,7 @@ function typeShares(w) {
 function buildRoster(w) {
   const D = G.D, list = [];
   if (w % 5 === 0) return { list: ['boss'], maxAlive: 1 }; // boss stage: only the boss on the field, no escorts (startBossStage spawns it)
-  const rk = 1 + 0.16 * removedN(), total = clamp(Math.round((3 + w + Math.floor(w / 2)) * D.count * rk), 3, Math.round((24 + Math.floor(Math.max(0, w - 20) / 2)) * rk));
+  const rk = 1 + 0.12 * removedN(), total = clamp(Math.round((3 + w + Math.floor(w / 2)) * D.count * rk), 3, Math.round((24 + Math.floor(Math.max(0, w - 20) / 2)) * rk));
   const { pf, ph, pu, pt } = typeShares(w);
   for (let i = 0; i < total; i++) { const r = Math.random(); list.push(r < ph ? 'heavy' : r < ph + pf ? 'fast' : r < ph + pf + pu ? 'hunter' : r < ph + pf + pu + pt ? 'tamirci' : 'basic'); }
   shuffle(list);
@@ -406,9 +406,14 @@ function updateTamirci(e, dt) {
   const trB = !!e.pt && e.pt.tread > 0, before = e.angle, ox = e.x, oy = e.y;
   const hurt = tamTarget(e), a = hurt || tamFollow(e);
   e.tam = hurt;
+  // lone: no other tank alive or still to come (only Tamirciler left). After 2 s it stops running and hiding and creeps up to the player's area, so the wave can end without a chase
+  const lone = !G.enemies.some(o => o !== e && !o.dead && o.type !== 'tamirci') && !G.queue.some(t => t !== 'tamirci') && !G.portals.some(q => q.type !== 'tamirci');
+  e.loneT = lone ? (e.loneT || 0) + dt : 0;
   const seen = p.alive && e.canSee && e.distP < TAM.flee * T && (m.at(e.x, e.y) !== BUSH || e.vis > 0 || e.distP < 2 * T);
   if (!trB) {
-    if (seen) { // run
+    if (e.loneT > 2) { // approach to about 5.5 tiles, never closer than the flee radius
+      if (p.alive && (e.distP === undefined || e.distP > 5.5 * T)) tamSteer(e, p.x, p.y, dt, 0.55);
+    } else if (seen) { // run
       if (e.fleeT === undefined || e.fleeT <= 0) { e.fleeA = tamFlee(e); e.fleeT = 0.25; }
       e.fleeT -= dt;
       if (e.fleeA !== null && e.fleeA !== undefined) tamSteer(e, e.x + Math.cos(e.fleeA) * 80, e.y + Math.sin(e.fleeA) * 80, dt, 1.05);
@@ -443,7 +448,7 @@ function updateTamirci(e, dt) {
     }
     if (Math.random() < dt * 9) addPart('spark', beam.x + rand(-10, 10), beam.y + rand(-8, 8), rand(-15, 15), rand(-70, -30), rand(0.3, 0.55), 1, 0, 3, '#9dff90');
   } else e.beamOn = null;
-  e.hidden = m.at(e.x, e.y) === BUSH && e.vis <= 0;
+  e.hidden = m.at(e.x, e.y) === BUSH && e.vis <= 0 && !(e.loneT > 2);
   const ta = beam ? Math.atan2(beam.y - e.y, beam.x - e.x) : e.angle;
   e.turret = turnTo(e.turret, ta, s.tTurn * dt);
   if (dt > 0) { e.avx = (e.x - ox) / dt; e.avy = (e.y - oy) / dt; }
