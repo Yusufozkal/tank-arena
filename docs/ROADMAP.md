@@ -1,6 +1,6 @@
 # Yol haritası
 
-Durum (20 Kasım 2026): **1.5.4 yayında** (Serbest Mod + Kapatıcı; 1.5.3: düşman görüşü, mermi menzili, boss cepleri, birleşim kartı). Sıra: 1.5.5 Kar bölgesi (Kırağı + Ağır Topçu); 1.5.6 Şehir (Son Hisar); sonra 1.6 (çevrimiçi). Yeni kartlar bu sürümlere dağıtılır. Kullanıcı: 1.5.3 bitince token yeterse 1.5.4'e geç.
+Durum (20 Kasım 2026): **1.5.4 yayında** (Serbest Mod + Kapatıcı; 1.5.3: düşman görüşü, mermi menzili, boss cepleri, birleşim kartı). Açık: kullanıcı Android'de ses düğmesinin sağ üst köşede ekran dışına taştığını söyledi (1.5.3'te; 1.5.4'te tekrar bakacak, ekran görüntüsü gelirse düzelt). İmza anahtarı yeni oturuma kullanıcıdan ek olarak gelir; repoya değil `/home/claude/apk/keystore/` altına konur. Sıra: 1.5.5 Kar bölgesi (Kırağı + Ağır Topçu); 1.5.6 Şehir (Son Hisar); sonra 1.6 (çevrimiçi). Yeni kartlar bu sürümlere dağıtılır. Kullanıcı: 1.5.3 bitince token yeterse 1.5.4'e geç.
 
 ## Kullanıcının koyduğu ilkeler
 
