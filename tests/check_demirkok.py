@@ -95,7 +95,7 @@ with sync_playwright() as p:
         wasWalk = w; }
       const best = arrive ? MV.map(([c, r]) => Math.hypot(arrive.x - (c * 48 + 24), arrive.y - (r * 48 + 24))) : [999];
       return { tWalk, drift: +drift.toFixed(1), heavyWalk, onWall, ezme, arrive: arrive && { t: arrive.t, at: e.dk.at, dist: Math.round(Math.min(...best)) }, n }; }""")
-    check('planted_8_10s_no_chase', pl['tWalk'] is not None and 7.5 <= pl['tWalk'] <= 16 and pl['drift'] < 10, pl)
+    check('planted_11_13s_no_chase', pl['tWalk'] is not None and 10.5 <= pl['tWalk'] <= 19 and pl['drift'] < 10, pl)
     check('rolls_to_other_mevzi_open_ground', pl['arrive'] is not None and pl['arrive']['at'] in (1, 2) and pl['arrive']['dist'] < 12 and pl['onWall'] == 0, pl)
     check('no_heavy_gun_while_rolling_no_charge', pl['heavyWalk'] == 0 and pl['ezme'] == 0, pl)
     rl = ev(page, """() => { const t = __tank, G = t.G, e = G.boss, m = G.map, p = G.player, MV = [[10, 2], [4, 10], [16, 10]], out = []; p.x = 10 * 48 + 24; p.y = 19 * 48 + 24;
@@ -108,7 +108,7 @@ with sync_playwright() as p:
         out.push({ from, to: e.dk.at, secs: +(n / 60).toFixed(1), dist: Math.round(best), wall, sp: Math.round(sp), heavy: e.log.filter(x => x.atk === 'agir').length - hv0 }); }
       let bricks1 = 0; for (let i = 0; i < m.n * m.n; i++) if (m.t[i] === 1) bricks1++;
       return { out, bricks0, bricks1 }; }""")
-    ok_roll = all(r['to'] in (0, 1, 2) and r['to'] != r['from'] and r['dist'] < 12 and r['secs'] < 40 and r['wall'] == 0 and 25 < r['sp'] < 62 and r['heavy'] == 0 for r in rl['out'])
+    ok_roll = all(r['to'] in (0, 1, 2) and r['to'] != r['from'] and r['dist'] < 12 and r['secs'] < 40 and r['wall'] == 0 and 25 < r['sp'] < 75 and r['heavy'] == 0 for r in rl['out'])
     check('rolls_all_mevzi_pairs_reach_slowly', ok_roll and rl['bricks1'] >= rl['bricks0'] - 4 and len({(r['from'], r['to']) for r in rl['out']}) >= 3, rl)
 
     # ---- independent turret aims: one straight at the player, one leading their movement, each with its own red eye (0.45 s) ----

@@ -27,12 +27,12 @@ ARENAS.kale = { name: 'Orman Kalesi', gate: [[9, 5], [10, 5], [11, 5]], rows: [ 
   'GG.................GG',
   'GGG...............GGG'] };
 
-const DEMIR_SPEC = { speed: 50, turn: 1.3, tTurn: 1.9, len: 110, wid: 96, r: 46, tread: 15, tR: 21, barrel: 74, bW: 9, cool: 1, bSpeed: 370, dmg: 6, bR: 6, mass: 12, score: 2500,
+const DEMIR_SPEC = { speed: 60, turn: 1.3, tTurn: 1.9, len: 110, wid: 96, r: 46, tread: 15, tR: 21, barrel: 74, bW: 9, cool: 1, bSpeed: 370, dmg: 6, bR: 6, mass: 12, score: 2500,
   col: { body: '#60656c', dk: '#3b3f44', hi: '#8c929a', acc: '#c9402d' } };
 const DEMIR_RING = 4.5 * T, DEMIR_SWEEP_W = 1.1, DEMIR_BAR = 0.11; // twin barrels sit at +-DEMIR_BAR rad from the turret
 const DEMIR_FAN = [-DEMIR_BAR, DEMIR_BAR];
 const DEMIR_MEVZI = [[10, 2], [4, 10], [16, 10]]; // the three fixed positions (tile column, row): north (the gate it came through), west, east; phase 3 plants at the centre (10, 10)
-const DEMIR_PLANT = [8, 10]; // seconds planted before it rolls to another mevzi
+const DEMIR_PLANT = [11, 13]; // seconds planted before it rolls to another mevzi
 const DEMIR_LIFE2 = 6, DEMIR_LIFE3 = 9, DEMIR_ROOT_CAP = 16; // root wall life in phase 2 / phase 3 (s); most root tiles standing at once
 const demirTile = (c, r) => ({ x: c * T + T / 2, y: r * T + T / 2 });
 const demirLoop2 = () => G.wave > 40; // the second loop: the turrets rebuild once, two crack lines in phase 2
