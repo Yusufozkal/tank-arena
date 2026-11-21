@@ -73,4 +73,24 @@ with sync_playwright() as p:
         print(f"{vp}: nuke button charging {c['btn']['w']:.0f}px at ({c['btn']['l']:.0f},{c['btn']['t']:.0f}), ready {bt['w']:.0f}px at ({bt['l']:.0f},{bt['t']:.0f})-({bt['r']:.0f},{bt['b']:.0f}) in {rd['vw']}x{rd['vh']} | no overlap with pause/sound/mini/top HUD, stick bases, stick labels | stick touches just outside ok (12px ready, 14px charging) | tap -> warnT {warn['warnT']}")
         ctx.close()
     b.close()
+
+# ---- 1.5.5.2 rounded display corners: with --rcTL/--rcTR = 48px the HUD corner points stay inside a rounded rectangle of the viewport ----
+RC = 48
+def in_round(x, y, w, h, r):
+    cx = r if x < r else (w - r if x > w - r else None); cy = r if y < r else (h - r if y > h - r else None)
+    return cx is None or cy is None or (x - cx) ** 2 + (y - cy) ** 2 <= r * r + 0.01
+with sync_playwright() as p:
+    b = p.chromium.launch()
+    for vp, (w, h) in {'p390': (390, 844), 'l844': (844, 390)}.items():
+        ctx = new_ctx(b, vp + '-rc', viewport={'width': w, 'height': h}, device_scale_factor=2, is_mobile=True, has_touch=True)
+        pg = ctx.new_page(); seed(pg); pg.tap('#btnStart'); pg.wait_for_timeout(500)
+        pg.evaluate(f"['--rcTL','--rcTR','--rcBL','--rcBR'].forEach(n => document.documentElement.style.setProperty(n, '{RC}px'))"); pg.wait_for_timeout(100)
+        rects = pg.evaluate("(() => ['btnSound', 'btnPause', 'armor'].map(id => { const q = document.getElementById(id).getBoundingClientRect(); return [id, q.left, q.top, q.right, q.bottom]; }))()")
+        for id, l, t, r, bt in rects:
+            for x, y in ((l, t), (r, t), (l, bt), (r, bt)):
+                assert in_round(x, y, w, h, RC), f'{vp}: {id} corner ({x:.1f},{y:.1f}) is outside the rounded screen (radius {RC})'
+        hud = pg.evaluate("(() => { const q = document.getElementById('hud').getBoundingClientRect(), t = document.querySelector('.hud-top').getBoundingClientRect(); return t.bottom / innerHeight * 100; })()")
+        print(f'{vp}: rounded corners {RC}px -> sound/pause/armour corners inside the arc | HUD bottom at {hud:.1f}% of the screen')
+        ctx.close()
+    b.close()
 print('ERRORS:', [e for e in errors if '404' not in e] or 'none')
