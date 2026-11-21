@@ -377,3 +377,20 @@ Nükleerin boss savaşında ilk hazır olduğu an (orta set, savaş süresine or
 
 Tutmayan: 40'a ulaşma %37,5 (hedef ~%15; 1.5'ten beri botta hedefin üstünde). Kartlar şimdilik zayıflatılmadı; kullanıcının oyun izlenimi bekleniyor. Fark (+3,3 dalga) 40 oyunluk örnekte gürültüye yakın (±2,5) ama yönü Eğimli zırh ve Refleks'ten beklenen.
 
+## 1.5.5.1 sonuçları (bosslar zorlaştı)
+
+Setler yeni kartları içerir (orta: Antitank, Eğimli zırh, Refleks; tam: yeni kartlar erken). Önce = yeni kart kuralları, boss ayarı nötr (8 oyun); sonra = son sayılar (16 oyun; 540 sn zaman aşımı kazanma sayılmaz, çoğu Üçlü tankla, ölüm yok).
+
+| Boss | Orta önce | Orta sonra | Tam önce | Tam sonra |
+|---|---|---|---|---|
+| Sarı 10 | 8/8, 171 sn | 12/16, 221 sn | 8/8, 178 sn | 12/16, 200 sn |
+| Komutan 15 | 7/8, 243 sn | 13/16, 270 sn | 8/8, 227 sn | 13/16, 222 sn |
+| Demirkök 20 | 6/8, 274 sn | 10/16, 321 sn | 6/8, 218 sn | 10/16, 226 sn |
+| Komutan 25 | 8/8, 235 sn | 12/16, 231 sn | 7/8, 226 sn | 10/16, 217 sn |
+| Kırağı 30 | 8/8, 268 sn | 11/16, 260 sn | 7/8, 275 sn | 11/16, 260 sn |
+| Komutan 35 | – | 9/12, 160 sn | – | 10/12, 222 sn |
+
+- Komutan 5, kartsız: 16/16, 114 sn. Kapatıcı: tam 5/20 (%25), orta 2/16 (önce 12/12 ve 11/12).
+- Tutmayan: tam set %63–83 kazanıyor (hedef %85–95); 10–30. dalgalarda tam set orta setten pek güçlü değil. Üçlü tank Demirkök ve Kırağı'yı 9 dakikada bitiremiyor.
+- `survive random 40` (tohum 500): ortalama 20,4, ortanca 19,5, 40'a ulaşan 1/40, 21–30'da ölüm 13 (1.5.5'te 29,9 / 28 / 15/40 / 16). %25 kuralı tutuyor ama sınırda: 15. dalga (Komutan) 9/40 (%22,5), 10. dalga 4, 20. dalga 3. Ortalama yeniden 1.3 hedefinde (15–20).
+

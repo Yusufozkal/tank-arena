@@ -1,6 +1,6 @@
 # Yol haritası
 
-Durum (21 Kasım 2026): **1.5.5 yayında** (Kar bölgesi: Kırağı ve Ağır Topçu; Demirkök kale oldu; kartlar Antitank mermisi, Eğimli zırh, Refleks; boss etabında nükleer savaş ortasında). Açık: kullanıcı Android'de ses düğmesinin sağ üst köşede ekran dışına taştığını söyledi (1.5.3'te; yeni sürümde tekrar bakacak, ekran görüntüsü gelirse düzelt). İmza anahtarı yeni oturuma kullanıcıdan ek olarak gelir; repoya değil repo dışına konur (`docs/OPERATIONS.md`, İmza anahtarı). Sıra: 1.5.6 Şehir (Son Hisar) + Dikenli zırh kartı; sonra 1.6 (çevrimiçi). Kullanıcı onaylamadan yeni işe başlama.
+Durum (21 Kasım 2026): **1.5.5.1 yayında** (bosslar zorlaştı; 1.5.5: Kar bölgesi: Kırağı ve Ağır Topçu; Demirkök kale oldu; kartlar Antitank mermisi, Eğimli zırh, Refleks; boss etabında nükleer savaş ortasında). Açık: kullanıcı Android'de ses düğmesinin sağ üst köşede ekran dışına taştığını söyledi (1.5.3'te; yeni sürümde tekrar bakacak, ekran görüntüsü gelirse düzelt). İmza anahtarı yeni oturuma kullanıcıdan ek olarak gelir; repoya değil repo dışına konur (`docs/OPERATIONS.md`, İmza anahtarı). Sıra: 1.5.6 Şehir (Son Hisar) + Dikenli zırh kartı; sonra 1.6 (çevrimiçi). Kullanıcı onaylamadan yeni işe başlama.
 
 ## Kullanıcının koyduğu ilkeler
 
@@ -113,6 +113,14 @@ Kullanıcı 1.5.1'i oynadıktan sonra istedi; kararları:
 - Sitenin tanıtım bölümü eski sürümlerden kalma; güncellenecek.
 
 Yapılan: harita 35, en çok 6 düşman ve 3 Avcı, parça başına 2 hasar eşiği, son görülen yer + arama + ateş sesi + 9 sn sessizlikte ipucu, Avcı yalnızca 5,5 kare içinden atılan mermiden kaçar, 7 kareden uzaktan vurulunca siper alır; boss canı %8–11 düştü, çarpma ve mermiler sertleşti, oyuncu mermisi boss mermisini düşürmüyor, takılma düzeldi; düşman mermisi kırmızı-turuncu yuvarlak, oyuncununki uzun kapsül; birleşim kartta ve açılınca etkisini yazar; site tanıtımı, boss görselleri ve ekran görüntüleri yenilendi; Rehber metinleri güncellendi. Ana oturumun eklediği: boss savaşında canı düşük oyuncuya Tamir kiti (kullanıcıya soruldu). Ölçümler `docs/BALANCE.md`.
+
+## 1.5.5.1 – Bosslar zorlaştı (yayında, 21 Kasım 2026)
+
+Kullanıcı 1.5.5'i oynadı: "bosslar kolaylaştı baya"; hepsi, Kapatıcı dahil; nedenler yeni kartlar ve zayıf saldırılar (az isabet, az hasar).
+
+- Yeni kartlar bosslarda sınırlı: Eğimli zırh işlemez, Refleks iki kat bekler ve ağır mermiden kaçmaz, Antitank boss parçasına ek hasar vermez.
+- Boss saldırıları daha sık, hızlı, isabetli ve sert; uyarılar aynı. 5. dalga Komutan'ına yalnız hafif artış. Sayılar `docs/BOSSES.md`, ölçümler `docs/BALANCE.md`.
+- Açık: tam güçlü bot da orta set kadar kaybediyor (%63–83); 15. dalga Komutan rastgele kartlı oyunların %22,5'ini bitiriyor. Kullanıcı oynayınca zor gelirse önce Komutan 15+ hasarı düşer.
 
 ## 1.5.5 – Kar bölgesi, Demirkök kale, üç kart (yayında, 21 Kasım 2026)
 

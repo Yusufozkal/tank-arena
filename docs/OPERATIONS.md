@@ -58,6 +58,7 @@ Notlar: kalıcı engelleme (persistent actions) Hobby'de yok, engel pencere bite
 | 1.5.1 | 9 | Demirkök (20. dalga, Orman Kalesi), Tamirci, bölge kuralı (yenilen boss'un türü bir daha gelmez) |
 | 1.5.4 | 12 | Serbest Mod (tank, güç, boss ya da dalga, harita; kayıt tutmaz), Kapatıcı (yalnızca Serbest Mod) |
 | 1.5.5 | 13 | Kar bölgesi: Kırağı (30. dalga, Donmuş Göl), Ağır Topçu (23. dalgadan); Demirkök kale oldu; kartlar Antitank mermisi, Eğimli zırh, Refleks (nadir); boss etabında nükleer savaş ortasında, tek dolum |
+| 1.5.5.1 | 14 | Bosslar zorlaştı (`BOSS_TUNE`: daha sık, hızlı, isabetli ve sert saldırılar; Sarı, Kırağı, Kapatıcı canı arttı); Eğimli zırh bosslarda işlemez, Refleks bosslarda iki kat bekler, Antitank boss parçasına ek hasar vermez |
 | 1.5.3 | 11 | Düşmanlar görmediklerini bilmez (görüş konisi, devriye, kısa duyma), oyuncu mermi menzili kısaldı, boss arena cepleri kapandı, Komutan canı, birleşim bilgisi yalnızca ilgili kartta |
 | 1.5.2 | 10 | Oyuncu geri bildirimi: 35'lik harita, en çok 6 düşman, eşikli parça hasarı, düşmanlar arar, Avcı uzaktan kaçamaz, boss çubuğu ve boss tehdidi, takılma, mermi renkleri, birleşim açıklamaları, site tanıtımı |
 
@@ -122,7 +123,7 @@ android/build.sh                                   # APK; ANDROID_HOME ve imza a
 python3 tests/check_offline_apk.py                 # build.sh'den sonra: ağsız APK sürümü ve Android köprüsü
 ```
 
-Bilinen kararsız kontroller (FAIL demeden önce en fazla iki kez yeniden koş): `check_tier2_d1` `sarapnel_pellets`, `check_region` `flees_from_close_player`, `check_boss_reach` canlı bölümü.
+Bilinen kararsız kontroller (FAIL demeden önce en fazla iki kez yeniden koş): `check_tier2_d1` `sarapnel_pellets`, `check_region` `flees_from_close_player`, `check_boss_reach` canlı bölümü. 1.5.5.1 yayın hazırlığında birer kez, tekrarda geçti: `check_topcu` `repositions_after_firing_keeps_distance`, `check_boss_stuck` (Sarı, en kötü 3,1 sn), `check_kiragi` ikinci tur suret kontrolleri.
 
 Ekran görüntüleri, test raporları ve ölçüm sonuçları `.tmp/` altına yazılır (git'e girmez).
 

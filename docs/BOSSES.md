@@ -307,6 +307,22 @@ Kullanıcının fikri: "mermileri birkaç vuruşta etkisiz hâle getirilebilir a
 - Konum: oyuncudan ~5 kare tutar, 3,3 kareden yakında geri çekilir; ateşten sonra 3,6–5,6 kare uzakta yan mevziye geçer. Her zaman oyuncunun gerçek ekranındaki ateş penceresinin içinde kalır (dar telefonda da ateş edebilsin).
 - Geliş: 23. dalgadan, yalnız Kar'da; ilki tek ve "Yeni" ipucuyla; payı min(0,12; 0,03 + 0,01·(dalga − 23)); sahada en fazla 2; boss etabında yok. Kırağı yenilince bir daha gelmez (`REGION_BAN.kiragi`: Avcı + Topçu).
 
+## 1.5.5.1'de değişenler (kullanıcı: "bosslar kolaylaştı baya", hepsi, Kapatıcı dahil; nedenler yeni kartlar ve zayıf saldırılar)
+
+- Bosslara karşı kartlar: Eğimli zırh boss savaşında hiç sektirmez; Refleks boss savaşında iki kat bekler (6/4 sn) ve `heavy` boss mermisinden kaçmaz; Antitank boss parçasına ek hasar vermez (yan/arka bonusun yarısı kalır).
+- `BOSS_TUNE` (`11a`): boss başına saldırı arası çarpanı, boss mermisi hızı, doğrudan isabet hasarı, ek öne nişan (`e.lead`). Uyarı süreleri ve `TELE_MIN` değişmedi.
+
+| Boss | Saldırı arası | Mermi hızı | Hasar | Öne nişan |
+|---|---|---|---|---|
+| Komutan 5 (öğretici) | ×0,85 | ×1,1 | ×1,25 | +0,15 |
+| Komutan 15+ | ×0,7 | ×1,25 | ×1,75 | +0,3 |
+| Sarı Fırtına | ×0,75 | ×1,25 | ×1,35 | +0,3 |
+| Demirkök | ×0,6 | ×1,25 | ×2,8 (taban hasarı çok düşüktü) | +0,4 |
+| Kırağı | ×0,65 | ×1,25 | ×1,55 | – |
+| Kapatıcı | ×0,4 | ×1,4 | ×1,7 | – |
+
+- Can: Sarı Fırtına 620 + 31/dalga (önce 460 + 23), Kırağı 2300 + 55/dalga (önce 1800 + 45), Kapatıcı 2400 (önce 1600). Demirkök'te taret atışı +1 (5/6), ağır top mermisi 0,7 hız.
+
 ## 1.5.5'te değişenler
 
 - Demirkök kale oldu (bölüm 5). Kırağı ve Ağır Topçu eklendi (bölüm 6 ve 9).
