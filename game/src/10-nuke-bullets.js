@@ -12,8 +12,8 @@ const NUKE_BOSS_FLOOR = 0.1; // a boss keeps at least this share of its max HP a
 // blast damage to a boss at wave w: 150 up to wave 15, +6 per wave after, never above 30% of the boss's max HP
 const nukeBossDmg = (w, maxHp) => Math.min(NUKE_BOSS_CAP * maxHp, NUKE_BOSS_BASE + NUKE_BOSS_PER_WAVE * Math.max(0, w - 15));
 const NUKE_BOSS_STUN = 3;   // seconds a boss is stunned
-const NUKE_BOSS_FILL = 0.34; // share of a boss's max HP that, dealt as damage, fills the meter once (boss stage; 1.5.5: was 0.6, the bomb came too late). Up to NUKE_BOSS_MAX charges per fight
-const NUKE_BOSS_MAX = 2;
+const NUKE_BOSS_FILL = 0.34; // share of a boss's max HP that, dealt as damage, fills the meter once (boss stage; 1.5.5: was 0.6, the bomb came too late). One charge per fight (NUKE_BOSS_MAX)
+const NUKE_BOSS_MAX = 1;
 const NUKE_FLASH = 0.6;     // seconds the white flash fades
 // expected total weight of wave w's roster; mirrors buildRoster without touching its random numbers
 function nukeWaveWeight(w) {
@@ -44,7 +44,7 @@ const nukeIsBoss = e => e.isBoss === true || e.type === 'boss';
 // a living boss that takes no damage now (intro, phase transition, death scene): no blast may start
 const nukeBossSafe = () => G.enemies.some(e => !e.dead && nukeIsBoss(e) && (e.invuln || e.invulnerable));
 // boss-stage charging: the boss agent calls this from the boss damage path with the damage applied to the boss body.
-// 34% of max HP dealt fills the meter once; at most two charges per fight (per wave); damage dealt while the meter is already full does not count towards the next one. The blast's own damage never counts.
+// 34% of max HP dealt fills the meter once; at most one charge per fight (per wave); damage dealt while the meter is already full does not count towards the next one. The blast's own damage never counts.
 function nukeOnBossDamage(e, amount) {
   const n = G.nuke;
   if (n.firing || !(amount > 0) || !e || !(e.maxHp > 0) || G.phase === 'dying' || !G.player || !G.player.alive) return;

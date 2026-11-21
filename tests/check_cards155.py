@@ -145,18 +145,17 @@ with sync_playwright() as p:
     check('reflex_not_used_when_slope_deflects', od['dfl']['lost'] == 0 and od['dfl']['cd'] == 0 and not od['dfl']['rf'], od['dfl'])
     check('reflex_used_when_slope_roll_fails', od['miss']['lost'] == 0 and od['miss']['cd'] > 2, od['miss'])
 
-    # ---- Nükleer bomba, boss stage: fills at 34% of the boss HP, at most twice per fight; normal waves unchanged ----
+    # ---- Nükleer bomba, boss stage: fills at 34% of the boss HP, at most once per fight; normal waves unchanged ----
     nk = ev(page, """() => { const t = __tank, G = t.G; window.arena({}); t.bossStart(10); t.bossSkip(); t.step(0.5); const e = G.boss; e.invuln = false; const mx = e.maxHp; G.nuke.meter = 0; G.nuke.bossAcc = 0; G.nuke.bossWave = G.wave; const out = {};
       t.nukeOnBossDamage(e, mx * 0.17); out.half = +G.nuke.meter.toFixed(3); t.nukeOnBossDamage(e, mx * 0.17); out.first = +G.nuke.meter.toFixed(3);
-      t.nukeOnBossDamage(e, mx * 0.5); out.full = +G.nuke.meter.toFixed(3); G.nuke.meter = 0; t.nukeOnBossDamage(e, mx * 0.34); out.second = +G.nuke.meter.toFixed(3);
-      G.nuke.meter = 0; t.nukeOnBossDamage(e, mx * 0.5); out.third = +G.nuke.meter.toFixed(3); out.fill = t.NUKE_BOSS_FILL; return out; }""")
-    check('nuke_boss_fill_34_percent_twice', nk['half'] == 0.5 and nk['first'] == 1 and nk['full'] == 1 and nk['second'] == 1 and nk['third'] == 0 and nk['fill'] == 0.34, nk)
+      t.nukeOnBossDamage(e, mx * 0.5); out.full = +G.nuke.meter.toFixed(3); G.nuke.meter = 0; t.nukeOnBossDamage(e, mx * 0.34); out.second = +G.nuke.meter.toFixed(3); out.fill = t.NUKE_BOSS_FILL; return out; }""")
+    check('nuke_boss_fill_34_percent_once', nk['half'] == 0.5 and nk['first'] == 1 and nk['full'] == 1 and nk['second'] == 0 and nk['fill'] == 0.34, nk)
     nw = ev(page, """() => { const t = __tank, G = t.G; window.arena({}); G.wave = 8; G.phase = 'fight'; G.nuke.meter = 0; G.nuke.firing = false; const e = t.spawn('basic', G.player.x + 200, G.player.y); t.nukeOnKill(e); return { d: G.nuke.meter, want: t.NUKE_WEIGHT.basic / (t.NUKE_WAVES * t.nukeWaveWeight(8)), waves: t.NUKE_WAVES }; }""")
     check('nuke_normal_waves_unchanged', nw['waves'] == 3.5 and abs(nw['d'] - nw['want']) < 1e-9 and nw['d'] > 0.005, nw)
     # the real thing: the bot fights a wave-10 boss with medium cards, the bomb is ready about the middle of the fight and at most twice
     fights = ev(page, """() => { const out = []; for (let i = 0; i < 4; i++) { Math.random = window.REAL; out.push(__tank.bossFight(10, { armor: 2, caliber: 2, engine: 1, loader: 2, barrel: 1, repair: 1 }, 'std', 400, null, true)); } return out; }""")
     shares = [f['nukeReady'][0] / f['secs'] for f in fights if f['win'] and f['nukeReady']]
-    check('nuke_boss_ready_in_the_middle', len(shares) >= 3 and 0.3 <= sum(shares) / len(shares) <= 0.62 and all(len(f['nukeReady']) <= 2 for f in fights), [[round(s, 2) for s in shares], [f['nukeReady'] for f in fights]])
+    check('nuke_boss_ready_in_the_middle', len(shares) >= 3 and 0.3 <= sum(shares) / len(shares) <= 0.62 and all(len(f['nukeReady']) <= 1 for f in fights), [[round(s, 2) for s in shares], [f['nukeReady'] for f in fights]])
     b.close()
 
 errs = real_errors()

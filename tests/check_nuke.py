@@ -84,7 +84,7 @@ with sync_playwright() as p:
         assert a['tele'] == 0 and a['shells'] == 0, a                                       # telegraphs and boss shells cleared
         assert f['ok'] and not f['dead'] and abs(f['hp'] - f['floor']) < 0.05, f                       # never below 10 %
         assert c['blocked'] == 0 and c['invulnKept'] and c['fired'], c                      # bot waits out the invulnerable phase
-        assert abs(d['half'] - 0.3 / 0.34) < 0.01 and d['full'] == 1 and d['ready'] and d['afterExtra'] == 1, d  # 1.5.5: the boss stage fills at 34% of the boss HP (was 60%), up to two charges per fight (check_cards155)
+        assert abs(d['half'] - 0.3 / 0.34) < 0.01 and d['full'] == 1 and d['ready'] and d['afterExtra'] == 1, d  # 1.5.5: the boss stage fills at 34% of the boss HP (was 60%), one charge per fight (check_cards155)
         vprint(f'boss w{w}: dmg {a["dmg"]:.1f} want {a["want"]:.1f} of max {a["mx"]}, stun {a["stunAfter"]:.2f}')
     # 4c. invulnerable boss (intro, phase change, death): no blast may start, manual or bot; the charge is kept; after it ends the nuke works
     assert page.evaluate(START, 5) >= 0
