@@ -67,13 +67,14 @@ const TELE_MIN = { glow: 0.45, heavy: 0.8, line: 1.0, circle: 1.2, ring: 1.2 }; 
 // light: the wave-5 tutorial Komutan; every other boss has its own row (tuned with boss_probe). Telegraph times (TELE_MIN) are untouched.
 const BOSS_TUNE = {
   light: { gap: 0.85, speed: 1.1, dmg: 1.25, lead: 0.15 },
-  komutan: { gap: 0.7, speed: 1.25, dmg: 1.75, lead: 0.3 },
-  sari: { gap: 0.75, speed: 1.25, dmg: 1.35, lead: 0.3 },
-  demirkok: { gap: 0.6, speed: 1.25, dmg: 2.8, lead: 0.4 }, // its shells were tiny (6 base): the biggest dmg factor
-  kiragi: { gap: 0.65, speed: 1.25, dmg: 1.55, lead: 0.3 }, // speed only matters for its plain shells; the lasers hit by gap and dmg
-  kapatici: { gap: 0.4, speed: 1.4, dmg: 1.7, lead: 0 } // Serbest Mod: meant to be very hard (full cards win about 1 in 4-5)
+  early: { gap: 0.85, speed: 1.1, dmg: 1.2, lead: 0.15 }, // the wave-15 Komutan (the first real one: survive runs may not end here more than ~15%)
+  komutan: { gap: 0.72, speed: 1.2, dmg: 1.6, lead: 0.25 },
+  sari: { gap: 0.78, speed: 1.2, dmg: 1.2, lead: 0.25 },
+  demirkok: { gap: 0.65, speed: 1.2, dmg: 2.5, lead: 0.35 }, // its shells were tiny (6 base): the biggest dmg factor
+  kiragi: { gap: 0.68, speed: 1.2, dmg: 1.3, lead: 0.3 }, // speed only matters for its plain shells; the lasers hit by gap and dmg
+  kapatici: { gap: 0.6, speed: 1.4, dmg: 1.3, lead: 0 } // Serbest Mod: meant to be very hard (full cards win about 1 in 4-5)
 };
-const bossTuneFor = (def, w) => (def.id === 'komutan' && w <= 5) ? BOSS_TUNE.light : (BOSS_TUNE[def.id] || BOSS_TUNE.komutan);
+const bossTuneFor = (def, w) => def.id === 'komutan' ? (w <= 5 ? BOSS_TUNE.light : w <= 15 ? BOSS_TUNE.early : BOSS_TUNE.komutan) : (BOSS_TUNE[def.id] || BOSS_TUNE.komutan);
 const bossDmg = base => Math.max(1, Math.round(base * G.mods.dmg * (G.boss && G.boss.tune ? G.boss.tune.dmg : 1)));
 
 function spawnBoss(def, x, y, angle) {

@@ -80,7 +80,7 @@ with sync_playwright() as p:
     k = s1['seen'] or {}
     check('kesin_telegraph_0_6s', k.get('atk') == 'kesin' and k.get('kind') == 'line' and 0.58 <= k.get('dur', 0) <= 0.75 and k.get('min') == 0.6, s1)
     sh = (s1['b0'] or [{}])[0]
-    check('kesin_fast_shell_68pct', sh.get('v', 0) >= 850 and abs(sh.get('dmg', 0) - 0.4 * 1.7 * s1['maxHp']) <= 0.06 * s1['maxHp'] + 1, {'shell': sh, 'maxHp': s1['maxHp'], 'mods': s1['mods']})
+    check('kesin_fast_shell_52pct', sh.get('v', 0) >= 850 and abs(sh.get('dmg', 0) - 0.4 * 1.3 * s1['maxHp']) <= 0.06 * s1['maxHp'] + 1, {'shell': sh, 'maxHp': s1['maxHp'], 'mods': s1['mods']})
     # Sekme Atışı (a player the boss cannot hit straight: behind the centre block)
     ev(page, PLACE, [10, 4, 10, 15]); ev(page, "__tank.G.boss.lk = { x: 10 * 48 + 24, y: 15 * 48 + 24, t: __tank.G.time }; __tank.G.boss.kp.vis = false")
     can = ev(page, "(() => { const e = __tank.G.boss; return e.def.attacks.find(a => a.id === 'sekme').ok(e) && !!e.kp.sol; })()")

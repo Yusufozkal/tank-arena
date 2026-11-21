@@ -147,7 +147,7 @@ const UPS = {
     desc: L => `Mermiler seker: önden %${30 + 10 * L}, yandan %${15 + 5 * L}, arkadan %0. Ağır mermi, lazer ve patlamada, bosslarda işlemez` },
   reflex: { name: 'Refleks', max: 2, rare: true, brief: 'Gelen mermiden yana kayar',
     svg: '<path d="M3 12h9M8 8l-4 4 4 4M15 5l6 7-6 7M17 12h4"/>',
-    desc: L => `Mermi gelirken tank yana kayar, bekleme ${L === 1 ? 3 : 2} sn (bosslarda iki kat). Lazer, patlama ve boss ağır mermisinde işlemez. Hazırken tankta ışık yanar` },
+    desc: L => `Mermi gelirken tank yana kayar, bekleme ${L === 1 ? 6 : 4} sn (bosslarda iki kat). Lazer, patlama ve boss ağır mermisinde işlemez. Hazırken tankta ışık yanar` },
   // extra cards: never levelled, only offered when they matter or the pool runs dry
   fix: { name: 'Acil onarım', max: 99, extra: true,
     svg: '<circle cx="12" cy="12" r="9"/><path d="M12 7.5v9M7.5 12h9"/>',

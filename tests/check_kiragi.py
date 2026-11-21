@@ -115,17 +115,17 @@ with sync_playwright() as p:
     dc = ev(page, "(() => { const e = __tank.G.boss, T = __tank.G.tele; return { n: e.kr.dec.length, lines: T.filter(x => x.kind === 'line').length, fake: T.filter(x => x.fake).length, fakeSafe: T.filter(x => x.fake).every(x => x.nodanger), glow: e.kr.dec.every(d => true) }; })()")
     check('two_copies_three_laser_lines', dc['n'] == 2 and dc['lines'] == 3 and dc['fake'] == 2 and dc['fakeSafe'], dc)
     ev(page, DONE, 4)
-    hl = ev(page, "(() => { const e = __tank.G.boss, p = __tank.G.player; return { hurt: p.maxHp - p.hp, one: Math.max(1, Math.round(14 * __tank.G.mods.dmg * __tank.G.boss.tune.dmg)), logs: e.log.filter(x => x.atk === 'suret').length, left: e.kr.dec.length }; })()")
+    hl = ev(page, "(() => { const e = __tank.G.boss, p = __tank.G.player; return { hurt: p.maxHp - p.hp, one: Math.max(1, Math.round(16 * __tank.G.mods.dmg * __tank.G.boss.tune.dmg)), logs: e.log.filter(x => x.atk === 'suret').length, left: e.kr.dec.length }; })()")
     check('copy_lines_do_no_damage_only_real_hits', hl['hurt'] == hl['one'] and hl['logs'] == 1 and hl['left'] == 2, hl)
     # one hit breaks a copy (a real shell through updateBullets), the player standing next to it is slowed 2 s
     sl = ev(page, """() => { const t = __tank, G = t.G, e = G.boss, p = G.player, kr = e.kr; G.god = true; e.cool = 99; const d = kr.dec[0]; d.x = 10 * 48 + 24; d.y = 5 * 48 + 24; d.goal = null;
-      p.x = d.x + 70; p.y = d.y; p.vx = p.vy = 0; kr.pSlow = 0;
+      p.x = d.x + 70; p.y = d.y; p.vx = p.vy = 0; kr.pSlow = 0; G.god = false; const hp0 = p.hp;
       G.bullets.push({ x: d.x + 40, y: d.y, vx: -660, vy: 0, r: 4, owner: 0, dmg: 1, life: 2, big: false, dead: false, pierce: false, bounce: 0, splash: null, look: 'player', hits: null, bricks: null, sx: d.x + 40, sy: d.y, dist: 0, bounced: false, vol: 0, volN: 0, pn: 0 });
       for (let i = 0; i < 6; i++) t.stepBullets(1 / 60);
-      return { left: kr.dec.length, pSlow: +kr.pSlow.toFixed(2), k: t.playerSlowK(), bullets: G.bullets.filter(b => b.owner === 0).length }; }""")
-    check('copy_breaks_in_one_hit_and_slows_near_player', sl['left'] == 1 and sl['pSlow'] > 1.9 and abs(sl['k'] - 0.6) < 1e-6 and sl['bullets'] == 0, sl)
-    ev(page, "__tank.step(2.2)")
-    check('slow_lasts_2s', ev(page, "__tank.playerSlowK()") == 1)
+      G.god = true; return { left: kr.dec.length, pSlow: +kr.pSlow.toFixed(2), k: t.playerSlowK(), shard: +(hp0 - p.hp).toFixed(2), want: Math.max(1, Math.round(5 * G.mods.dmg * e.tune.dmg)), bullets: G.bullets.filter(b => b.owner === 0).length }; }""")
+    check('copy_breaks_in_one_hit_and_slows_near_player', sl['left'] == 1 and sl['pSlow'] > 2.4 and abs(sl['k'] - 0.5) < 1e-6 and sl['bullets'] == 0 and sl['shard'] > 0 and abs(sl['shard'] - sl['want']) < 0.01, sl)  # 1.5.5.2: 2.5 s slow x0.5 and shards (5 x tune) within 2.4 tiles
+    ev(page, "__tank.step(2.7)")
+    check('slow_lasts_2_5s', ev(page, "__tank.playerSlowK()") == 1)
     far = ev(page, """() => { const t = __tank, G = t.G, e = G.boss, p = G.player, kr = e.kr, d = kr.dec[0]; p.x = d.x + 400; p.y = d.y; e.x = d.x + 60; e.y = d.y; kr.slowT = 0; kr.pSlow = 0;
       t.G.bullets.length = 0; const hit = t.krDecoyHit({ x: d.x, y: d.y, r: 4 }); return { hit, left: kr.dec.length, bossSlow: +kr.slowT.toFixed(2), pSlow: kr.pSlow }; }""")
     check('copy_slows_boss_near_not_far_player', far['hit'] and far['left'] == 0 and far['bossSlow'] > 1.9 and far['pSlow'] == 0, far)
@@ -157,7 +157,7 @@ with sync_playwright() as p:
     d_free, d_frost = run_row(False), run_row(True)
     page.keyboard.up('ArrowRight')
     ratio = d_frost / d_free if d_free else 0
-    check('frost_slows_player_30pct', abs(ratio - 0.7) < 0.04 and abs(ev(page, "__tank.playerSlowK()") - 0.7) < 1e-6, [d_free, d_frost, ratio])
+    check('frost_slows_player_38pct', abs(ratio - 0.62) < 0.04 and abs(ev(page, "__tank.playerSlowK()") - 0.62) < 1e-6, [d_free, d_frost, ratio])
     fs = ev(page, """() => { const e = __tank.G.boss, kr = e.kr; kr.frost.fill(0); const i = (Math.floor(e.y / 48)) * 21 + Math.floor(e.x / 48); __tank.step(0.05); const free = e.speedMul; kr.frost[i] = 5; __tank.step(0.05); return { free, frost: e.speedMul }; }""")
     check('kiragi_faster_on_frost', abs(fs['free'] - 1.0) < 1e-6 and abs(fs['frost'] - 1.4) < 1e-6, fs)
     ev(page, f"({PLACE})([10, 3, 10, 17])"); ev(page, "(() => { __tank.G.boss.rooted = true; })()"); ev(page, RUN, 'don')
@@ -167,7 +167,7 @@ with sync_playwright() as p:
     fr1 = ev(page, "(() => { const e = __tank.G.boss, l = e.log.filter(x => x.atk === 'don').pop(); const f = Array.from(e.kr.frost).filter(v => v > 0); return { dur: l && l.dur, n: f.length, max: Math.max(0, ...f), front: !!e.kr.front }; })()")
     ev(page, "__tank.step(6.5)")
     fr2 = ev(page, "Array.from(__tank.G.boss.kr.frost).filter(v => v > 0).length")
-    check('front_line_1_5s_ahead_then_frost_6s', fr0['tl'] and fr0['none'] == 0 and fr0['nodanger'] and not fr0['danger'] and fr1['dur'] >= 1.5 and fr1['n'] > 20 and fr1['max'] <= 6.0001 and fr2 == 0, [fr0, fr1, fr2])
+    check('front_line_1_5s_ahead_then_frost_7s', fr0['tl'] and fr0['none'] == 0 and fr0['nodanger'] and not fr0['danger'] and fr1['dur'] >= 1.5 and fr1['n'] > 20 and fr1['max'] <= 7.0001 and fr2 == 0, [fr0, fr1, fr2])
 
     # ---- death ----
     ev(page, START); ev(page, f"({PLACE})([10, 6, 10, 15])"); ev(page, "(() => { const e = __tank.G.boss; e.rooted = true; e.phase = 2; e.phased = false; e.hp = 5; e.invuln = false; __tank.hurtBoss(20, e.x + 40, e.y, 0); })()")

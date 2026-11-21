@@ -104,17 +104,17 @@ with sync_playwright() as p:
       const hp1 = p.hp; t.bossBlast(p.x, p.y, 60, 20); const bl = hp1 - p.hp; Math.random = window.REAL; return { ram: a, blast: bl }; }""")
     check('slope_never_rams_blasts_lasers', nb['ram'] > 0 and nb['blast'] > 0, nb)
 
-    # ---- Refleks: slides sideways out of the way, cooldown 3 s / 2 s, no walls, no lasers/blasts, after the slope roll ----
+    # ---- Refleks: slides sideways out of the way, cooldown 6 s / 4 s, no walls, no lasers/blasts, after the slope roll ----
     RF = """([L, side, sp]) => { const t = __tank, G = t.G; const p = window.arena({ reflex: L }, 10, 10); const x0 = p.x, y0 = p.y; const b = window.ebullet(side, sp || 300); G.bullets.push(b); let cd0 = null, hp0 = p.hp; for (let i = 0; i < 60 && !b.dead; i++) { t.step(1 / 60); if (cd0 === null && p.rf) cd0 = +p.rfCd.toFixed(2); } const lost = +(hp0 - p.hp).toFixed(2);
       return { cd0, lost, dx: +(p.x - x0).toFixed(1), dy: +(p.y - y0).toFixed(1), cd: +p.rfCd.toFixed(2), rf: !!p.rf }; }"""
     r1 = ev(page, RF, [1, 'E']); r2 = ev(page, RF, [2, 'E']); r3 = ev(page, RF, [1, 'N'])
     RFB = """([L, heavy]) => { const t = __tank, G = t.G; const p = window.arena({ reflex: L }, 10, 10); const b = window.ebullet('E', 300, { boss: true, heavy: !!heavy }); G.bullets.push(b); let cd0 = null, hp0 = p.hp; for (let i = 0; i < 60 && !b.dead; i++) { t.step(1 / 60); if (cd0 === null && p.rf) cd0 = +p.rfCd.toFixed(2); } return { cd0, lost: +(hp0 - p.hp).toFixed(2) }; }"""
     rb1, rb2, rbh = ev(page, RFB, [1, False]), ev(page, RFB, [2, False]), ev(page, RFB, [1, True])
-    check('reflex_cooldown_doubled_on_boss_shells', rb1['cd0'] is not None and 5.9 <= rb1['cd0'] <= 6.0 and 3.9 <= rb2['cd0'] <= 4.0 and rb1['lost'] == 0, [rb1, rb2])
+    check('reflex_cooldown_doubled_on_boss_shells', rb1['cd0'] is not None and 11.9 <= rb1['cd0'] <= 12.0 and 7.9 <= rb2['cd0'] <= 8.0 and rb1['lost'] == 0, [rb1, rb2])
     check('reflex_never_dodges_heavy_boss_shell', rbh['cd0'] is None and rbh['lost'] > 0, rbh)
     check('reflex_card_rare_max2', ev(page, "(() => [__tank.UPS.reflex.rare, __tank.UPS.reflex.max])()") == [True, 2])
     check('reflex_slides_perpendicular_and_avoids_hit', r1['lost'] == 0 and abs(r1['dx']) < 2 and 28 <= abs(r1['dy']) <= 50 and r3['lost'] == 0 and abs(r3['dy']) < 2 and 28 <= abs(r3['dx']) <= 50, [r1, r3])
-    check('reflex_cooldown_3s_level1_2s_level2', 2.95 <= r1['cd0'] <= 3.0 and 1.95 <= r2['cd0'] <= 2.0, [r1['cd0'], r2['cd0']])
+    check('reflex_cooldown_6s_level1_4s_level2', 5.95 <= r1['cd0'] <= 6.0 and 3.95 <= r2['cd0'] <= 4.0, [r1['cd0'], r2['cd0']])
     # without the card the same bullet hits
     r0 = ev(page, RF, [0, 'E']); check('no_card_no_slide', r0['lost'] > 0 and r0['dx'] == 0 and r0['dy'] == 0, r0)
     # the slide takes about 0.12 s
@@ -122,7 +122,7 @@ with sync_playwright() as p:
       for (let i = 0; i < 60 && t1 === null; i++) { t.step(1 / 60); if (t0 === null && p.rf) t0 = i; if (t0 !== null && !p.rf) t1 = i; } return { frames: t1 - t0, d: +Math.abs(p.y - y0).toFixed(1) }; }""")
     check('reflex_slide_takes_about_0_12s', 5 <= tm['frames'] <= 10, tm)
     # cooldown: a second bullet during it hits, one after it slides again
-    cdn = ev(page, """() => { const t = __tank, G = t.G; const p = window.arena({ reflex: 1 }, 10, 10); const a = window.fly(window.ebullet('E'), 0.6); const b2 = window.fly(window.ebullet('W'), 0.6); t.step(3.2); const y0 = p.y, x0 = p.x; const c = window.fly(window.ebullet('E'), 0.6);
+    cdn = ev(page, """() => { const t = __tank, G = t.G; const p = window.arena({ reflex: 1 }, 10, 10); const a = window.fly(window.ebullet('E'), 0.6); const b2 = window.fly(window.ebullet('W'), 0.6); t.step(6.2); const y0 = p.y, x0 = p.x; const c = window.fly(window.ebullet('E'), 0.6);
       return { first: a, during: b2, after: c, moved: Math.hypot(p.x - x0, p.y - y0) > 20 }; }""")
     check('reflex_cooldown_blocks_second_slide', cdn['first'] == 0 and cdn['during'] > 0 and cdn['after'] == 0 and cdn['moved'], cdn)
     # topcu shell: the slide takes the player out of it; it explodes where it lands
@@ -140,7 +140,7 @@ with sync_playwright() as p:
       p = window.arena({ reflex: 1 }, 1, 10); b = window.ebullet('S'); const lost3 = window.fly(b, 0.8); out.edge = { lost: lost3, free: window.freeOf(p.x, p.y), x: p.x | 0 };
       return out; }""")
     check('reflex_never_into_wall_uses_free_side', wl['north']['lost'] == 0 and wl['north']['free'] and wl['north']['tileY'] >= 10, wl['north'])
-    check('reflex_no_room_passes_through', wl['corridor']['lost'] == 0 and wl['corridor']['moved'] < 1 and 1.5 <= wl['corridor']['cd'] <= 3.0, wl['corridor'])
+    check('reflex_no_room_passes_through', wl['corridor']['lost'] == 0 and wl['corridor']['moved'] < 1 and 3.0 <= wl['corridor']['cd'] <= 6.0, wl['corridor'])
     check('reflex_stays_on_the_map', wl['edge']['lost'] == 0 and wl['edge']['free'] and wl['edge']['x'] >= 48, wl['edge'])
     # blasts, rings, rams, lasers: no slide
     nr = ev(page, """() => { const t = __tank, G = t.G; const p = window.arena({ reflex: 2 }); const x0 = p.x, y0 = p.y; const hp0 = p.hp; t.damagePlayer({ x: p.x, y: p.y, dmg: 10, owner: 1, vx: 0, vy: 0 }); t.bossBlast(p.x, p.y, 60, 20); t.step(0.3);
@@ -150,7 +150,7 @@ with sync_playwright() as p:
     od = ev(page, """() => { const t = __tank, G = t.G; const p = window.arena({ reflex: 1, slope: 3 }, 10, 10); Math.random = () => 0; const lost = window.fly(window.ebullet('E'), 0.8); Math.random = window.REAL; const dfl = { lost, cd: p.rfCd, rf: !!p.rf };
       const q = window.arena({ reflex: 1, slope: 3 }, 10, 10); Math.random = () => 0.99; const lost2 = window.fly(window.ebullet('E'), 0.8); Math.random = window.REAL; return { dfl, miss: { lost: lost2, cd: q.rfCd } }; }""")
     check('reflex_not_used_when_slope_deflects', od['dfl']['lost'] == 0 and od['dfl']['cd'] == 0 and not od['dfl']['rf'], od['dfl'])
-    check('reflex_used_when_slope_roll_fails', od['miss']['lost'] == 0 and od['miss']['cd'] > 2, od['miss'])
+    check('reflex_used_when_slope_roll_fails', od['miss']['lost'] == 0 and od['miss']['cd'] > 4, od['miss'])
 
     # ---- Nükleer bomba, boss stage: fills at 34% of the boss HP, at most once per fight; normal waves unchanged ----
     nk = ev(page, """() => { const t = __tank, G = t.G; window.arena({}); t.bossStart(10); t.bossSkip(); t.step(0.5); const e = G.boss; e.invuln = false; const mx = e.maxHp; G.nuke.meter = 0; G.nuke.bossAcc = 0; G.nuke.bossWave = G.wave; const out = {};
