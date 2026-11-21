@@ -394,3 +394,16 @@ Setler yeni kartları içerir (orta: Antitank, Eğimli zırh, Refleks; tam: yeni
 - Tutmayan: tam set %63–83 kazanıyor (hedef %85–95); 10–30. dalgalarda tam set orta setten pek güçlü değil. Üçlü tank Demirkök ve Kırağı'yı 9 dakikada bitiremiyor.
 - `survive random 40` (tohum 500): ortalama 20,4, ortanca 19,5, 40'a ulaşan 1/40, 21–30'da ölüm 13 (1.5.5'te 29,9 / 28 / 15/40 / 16). %25 kuralı tutuyor ama sınırda: 15. dalga (Komutan) 9/40 (%22,5), 10. dalga 4, 20. dalga 3. Ortalama yeniden 1.3 hedefinde (15–20).
 
+## 1.5.5.2 sonuçları (Refleks seyrek, boss dengesi)
+
+`BOSS_TUNE` (1.5.5.1 → 1.5.5.2): Komutan 25+ gap .7→.72, hız 1.25→1.2, hasar 1.75→1.6, öne nişan .3→.25; yeni `early` (6–15. dalga Komutan) gap .85, hız 1.1, hasar 1.2, öne .15; Sarı gap .75→.78, hız 1.25→1.2, hasar 1.35→1.2, öne .3→.25; Demirkök gap .6→.65, hız 1.25→1.2, hasar 2.8→2.5, öne .4→.35; Kırağı gap .65→.68, hız 1.25→1.2, hasar 1.55→1.3; Kapatıcı gap .4→.6, hasar 1.7→1.3. Can: Demirkök 1000+27/dalga, Kırağı 2000+50/dalga.
+
+| | 1.5.5.1 | 1.5.5.2 |
+|---|---|---|
+| boss_probe orta (10–35. dalga) | %63–83 | %82 (~229 sn) |
+| boss_probe tam | %63–83 | %84 (~235 sn) |
+| survive ortalama / ortanca | 20,4 / 19,5 | 24,2 / 23,5 |
+| 40'a ulaşma | 1/40 | 7/40 |
+| 15. dalgada biten | 9/40 | 5/40 |
+
+Kapatıcı tam 3/16 (~%19). Kırağı orta ~%75, savaş ~245 sn. Üçlü bot bossta `bossRange` 230 kullanır (yalnız Demirkök ve Kırağı).

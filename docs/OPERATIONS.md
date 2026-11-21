@@ -56,6 +56,7 @@ Notlar: kalıcı engelleme (persistent actions) Hobby'de yok, engel pencere bite
 | 1.4.1 | 7 | Hızlı, Ağır ve Avcı kademeli gelir (4., 7., 12. dalga; ilk gelişte "Yeni düşman" yazısı), sahada aynı anda en fazla 8 düşman, harita 25×25, yeni denge |
 | 1.5 | 8 | Boss etabı (sahada yalnızca boss, kendi arenası, evreler, uyarılar, hasar görünümü), yeni Komutan, Sarı Fırtına, 10 dalgalık bölgeler, parça hasarı, bütün haritayı vuran nükleer bomba |
 | 1.5.1 | 9 | Demirkök (20. dalga, Orman Kalesi), Tamirci, bölge kuralı (yenilen boss'un türü bir daha gelmez) |
+| 1.5.5.2 | 15 | Refleks seyrek (6/4 sn), boss dengesi geri ayarlandı, Kırağı sertleşti, Android yuvarlak köşede üst gösterge içeri |
 | 1.5.4 | 12 | Serbest Mod (tank, güç, boss ya da dalga, harita; kayıt tutmaz), Kapatıcı (yalnızca Serbest Mod) |
 | 1.5.5 | 13 | Kar bölgesi: Kırağı (30. dalga, Donmuş Göl), Ağır Topçu (23. dalgadan); Demirkök kale oldu; kartlar Antitank mermisi, Eğimli zırh, Refleks (nadir); boss etabında nükleer savaş ortasında, tek dolum |
 | 1.5.5.1 | 14 | Bosslar zorlaştı (`BOSS_TUNE`: daha sık, hızlı, isabetli ve sert saldırılar; Sarı, Kırağı, Kapatıcı canı arttı); Eğimli zırh bosslarda işlemez, Refleks bosslarda iki kat bekler, Antitank boss parçasına ek hasar vermez |

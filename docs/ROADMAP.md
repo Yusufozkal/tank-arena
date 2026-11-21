@@ -1,6 +1,6 @@
 # Yol haritası
 
-Durum (21 Kasım 2026): **1.5.5.1 yayında** (bosslar zorlaştı; 1.5.5: Kar bölgesi: Kırağı ve Ağır Topçu; Demirkök kale oldu; kartlar Antitank mermisi, Eğimli zırh, Refleks; boss etabında nükleer savaş ortasında). Açık: kullanıcı Android'de ses düğmesinin sağ üst köşede ekran dışına taştığını söyledi (1.5.3'te; yeni sürümde tekrar bakacak, ekran görüntüsü gelirse düzelt). İmza anahtarı yeni oturuma kullanıcıdan ek olarak gelir; repoya değil repo dışına konur (`docs/OPERATIONS.md`, İmza anahtarı). Sıra: 1.5.6 Şehir (Son Hisar) + Dikenli zırh kartı; sonra 1.6 (çevrimiçi). Kullanıcı onaylamadan yeni işe başlama.
+Durum (21 Kasım 2026): **1.5.5.2 yayında** (Refleks seyrek, boss dengesi geri ayarlandı, Kırağı sertleşti, Android'de köşe düğmeleri yuvarlak ekranda içeri alındı). İmza anahtarı yeni oturuma kullanıcıdan ek olarak gelir; repoya değil repo dışına konur (`docs/OPERATIONS.md`, İmza anahtarı). Sıra: 1.5.6 Şehir (Son Hisar) + Dikenli zırh kartı; sonra 1.6 (çevrimiçi). Kullanıcı onaylamadan yeni işe başlama.
 
 ## Kullanıcının koyduğu ilkeler
 
@@ -113,6 +113,14 @@ Kullanıcı 1.5.1'i oynadıktan sonra istedi; kararları:
 - Sitenin tanıtım bölümü eski sürümlerden kalma; güncellenecek.
 
 Yapılan: harita 35, en çok 6 düşman ve 3 Avcı, parça başına 2 hasar eşiği, son görülen yer + arama + ateş sesi + 9 sn sessizlikte ipucu, Avcı yalnızca 5,5 kare içinden atılan mermiden kaçar, 7 kareden uzaktan vurulunca siper alır; boss canı %8–11 düştü, çarpma ve mermiler sertleşti, oyuncu mermisi boss mermisini düşürmüyor, takılma düzeldi; düşman mermisi kırmızı-turuncu yuvarlak, oyuncununki uzun kapsül; birleşim kartta ve açılınca etkisini yazar; site tanıtımı, boss görselleri ve ekran görüntüleri yenilendi; Rehber metinleri güncellendi. Ana oturumun eklediği: boss savaşında canı düşük oyuncuya Tamir kiti (kullanıcıya soruldu). Ölçümler `docs/BALANCE.md`.
+
+## 1.5.5.2 – Refleks seyrek, boss dengesi, köşe düğmeleri (yayında, 21 Kasım 2026)
+
+Kullanıcı 1.5.5.1 için: "pek istediğim gibi olmadı"; "mermiden kaçınma hareketi oyunu bozdu"; "son eklenen boss (Kırağı) biraz zayıf geldi". Karar: Refleks'in kaçış hareketi kalsın, seyrekleşsin.
+
+- Refleks bekleme 3/2 → 6/4 sn (bossta ×2). 1.5.5.1'in boss sertleştirmesi kısmen geri alındı; 6–15. dalga Komutan'ı için ayrı `early` ayarı. Demirkök ve Kırağı canı biraz düştü; Kırağı'nın görünmezlik, kopya, ışın ve don mekanikleri sertleşti.
+- Android: ses ve duraklat düğmeleri ile zırh çubuğu yuvarlak ekran köşesinde kesiliyordu; uygulama köşe yarıçapını okuyup üst göstergeyi içeri alır (Android 12+; tarayıcıda değişiklik yok).
+- Açık: botta tam set orta setten belirgin üstün değil (%84 / %82); 40'a ulaşma %17,5. Kullanıcının oyun izlenimi bekleniyor.
 
 ## 1.5.5.1 – Bosslar zorlaştı (yayında, 21 Kasım 2026)
 
