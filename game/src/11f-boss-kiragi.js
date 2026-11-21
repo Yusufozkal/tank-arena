@@ -32,8 +32,10 @@ ARENAS.gol = { name: 'Donmuş Göl', rows: [
 const KIR_SPEC = { speed: 125, turn: 3.2, tTurn: 3.4, len: 90, wid: 44, r: 30, tread: 10, tR: 15, barrel: 66, bW: 6.5, cool: 1, bSpeed: 400, dmg: 9, bR: 5, mass: 5, score: 3000,
   col: { body: '#6c4fa3', dk: '#432f6b', hi: '#9d84d1', acc: '#7ef0d0' } };
 const KIR_MINT = '126,240,208';
-const KIR = { open: 3, lockT: 2, shotVis: 1.5, shotSlow: 0.55, frostLife: 6, frostSlow: 0.7, frostFast: 1.4, decSlow: 0.6, slowT: 2, slowR: 2.4 * T, trail: 2, trail2: 0.5, decLife: 10, beamW: 12, dmg: 14, dmg2: 11,
-  hideMax: 4, frontDepth: 9 * T, frontSpeed: 480, frontLine: 1.5 };
+// 1.5.5.2 (signature mechanics): dmg 14/11 -> 16/13, beamW 12 -> 14; invRush: while invisible the next attack comes sooner (attack pause runs 1.4x); decDmg: an ice copy shot within slowR bursts into shards (damage + a longer slow);
+// frost: lasts 7 s (was 6), player x0.62 (was 0.7), front every 8 s (was 10), band 10 tiles deep (was 9); iceSlow: the frozen lake itself is slippery for the player (x0.8) once phase 3 starts.
+const KIR = { open: 3, lockT: 2, shotVis: 1.5, shotSlow: 0.55, frostLife: 7, frostSlow: 0.62, frostFast: 1.4, decSlow: 0.5, slowT: 2.5, slowR: 2.4 * T, trail: 2, trail2: 0.5, decLife: 10, beamW: 14, dmg: 16, dmg2: 13, invRush: 0.4, decDmg: 5, iceSlow: 0.8,
+  hideMax: 4, frontDepth: 10 * T, frontSpeed: 480, frontLine: 1.5 };
 
 /* ---- shared helpers ---- */
 const krTile = (m, x, y) => clamp(Math.floor(y / T), 0, m.n - 1) * m.n + clamp(Math.floor(x / T), 0, m.n - 1);
@@ -93,7 +95,7 @@ function krDecoyBreak(e, d, slow, quiet) { // an ice copy breaks (shot, expired 
   if (!slow) return;
   addText(d.x, d.y - 28, 'Suret kırıldı', '#bff0ff', 14);
   const p = G.player;
-  if (p.alive && Math.hypot(p.x - d.x, p.y - d.y) < KIR.slowR) { kr.pSlow = KIR.slowT; addText(p.x, p.y - 30, 'Yavaşladın', '#bff0ff', 13); }
+  if (p.alive && Math.hypot(p.x - d.x, p.y - d.y) < KIR.slowR) { kr.pSlow = KIR.slowT; addText(p.x, p.y - 30, 'Yavaşladın', '#bff0ff', 13); damagePlayer({ x: p.x, y: p.y, dmg: bossDmg(KIR.decDmg), owner: 1, vx: 0, vy: 0 }); } // shards: shooting a copy from close by costs hp
   if (Math.hypot(e.x - d.x, e.y - d.y) < KIR.slowR + e.r) { kr.slowT = KIR.slowT; addText(e.x, e.y - e.r - 14, 'Yavaşladı', '#bff0ff', 14); }
 }
 function krDecoyHit(b) { // 10 updateBullets: a player shell inside an ice copy breaks it (one hit)
@@ -152,6 +154,7 @@ function krFrontStep(e, dt) {
 function krPlayerSlow(e) { // frost under the player: 30% slower; a broken ice copy next to him: 40% slower for 2 s (the stronger one counts)
   const kr = e.kr, p = G.player; let k = 1;
   if (kr.frost && kr.frost[krTile(G.map, p.x, p.y)] > 0) k = KIR.frostSlow;
+  else if (kr.lakeOpen && kr.lakeSet && kr.lakeSet.has(krTile(G.map, p.x, p.y))) k = KIR.iceSlow; // the frozen lake is slippery
   if (kr.pSlow > 0) k = Math.min(k, KIR.decSlow);
   return k;
 }
@@ -179,6 +182,7 @@ function krTick(e, dt) {
     if (inBush) inv = true;
     else if (kr.lock <= 0) { inv = true; kr.open += dt; if (kr.open >= KIR.open) { kr.open = KIR.open; kr.lock = KIR.lockT; inv = false; } }
   }
+  if (inv && e.cool > 0 && G.phase === 'fight' && !e.gen) e.cool -= dt * KIR.invRush; // invisible: it presses (the next attack comes sooner)
   kr.inv = inv; kr.a = clamp(kr.a + (inv ? -1 : 1) * dt * 5, 0, 1);
   const onFrost = kr.frost[krTile(m, e.x, e.y)] > 0;
   e.speedMul = (kr.shot > 0 ? KIR.shotSlow : 1) * (onFrost ? KIR.frostFast : 1) * (kr.slowT > 0 ? KIR.decSlow : 1) * kr.boost;
@@ -322,20 +326,20 @@ BOSS_DEFS.kiragi = {
   id: 'kiragi', name: 'KIRAĞI', arena: 'gol', introSub: 'Donmuş Göl', hold: 9, lead: 0, phases: [66, 33], plates: ['plate', 'fender'], r: KIR_SPEC.r,
   deathText: 'KIRAĞI ERİDİ', loot: 'KIRAĞI GANİMETİ',
   barrels: [{ id: 'm', name: 'Namlu', ang: 0, k: 0.07 }],
-  hp: w => Math.round(2300 + (w - 30) * 55), // 1.5.6: 1800 + 45/wave -> 2300 + 55/wave (harder lasers end the fight sooner; the target is 4-6 min)
+  hp: w => Math.round(2000 + (w - 30) * 50), // 1.5.6: 1800 + 45/wave -> 2300 + 55/wave (harder lasers end the fight sooner; the target is 4-6 min)
   attacks: [
     { id: 'keskin', w: 4, ok: e => e.canSee && e.distP < 15 * T, run: krSharp },
     { id: 'saklan', w: 2.4, ok: e => e.distP > 4 * T, run: krHide, mov: true, cd: 8 },
     { id: 'kacin', w: 2, ok: e => e.distP < 7 * T, run: krEvade, mov: true, cd: 5 },
     { id: 'cift', w: 3, ok: e => e.phase >= 1 && e.canSee && e.distP < 15 * T, run: krDouble },
     { id: 'suret', w: 3, ok: e => e.phase >= 1 && e.canSee, run: krDecoys, cd: 12 },
-    { id: 'don', w: 6, ok: e => e.phase >= 2, run: krFrost, cd: 10 }
+    { id: 'don', w: 6, ok: e => e.phase >= 2, run: krFrost, cd: 8 }
   ],
   setup(e, w) {
     e.spec = Object.assign({}, SPECS.boss, KIR_SPEC); e.r = KIR_SPEC.r; e.pace = 1; e.noTreads = true;
     const lake = []; for (let r = 0; r < G.map.n; r++) for (let c = 0; c < G.map.n; c++) if (G.map.t[r * G.map.n + c] === WATER) lake.push({ c, r });
     e.kr = { a: 1, inv: false, open: 0, lock: 0, shot: 0, force: 0, trail: [], dtrail: [], dec: [], decSeq: 0, frost: new Float32Array(G.map.n * G.map.n), front: null, beams: [], slowT: 0, pSlow: 0, goal: null, boost: 1, side: 1, sideT: 0,
-      lake, lakeOpen: false, lakeT: 0, loop2: w > 40, fakeAim: false, gen: false, lx: e.x, ly: e.y, hid: 0 };
+      lake, lakeSet: new Set(lake.map(q => q.r * G.map.n + q.c)), lakeOpen: false, lakeT: 0, loop2: w > 40, fakeAim: false, gen: false, lx: e.x, ly: e.y, hid: 0 };
   },
   onPhase(e, i) {
     if (i === 1) addText(e.x, e.y - e.r - 54, 'SURETLER', '#7ef0d0', 18);

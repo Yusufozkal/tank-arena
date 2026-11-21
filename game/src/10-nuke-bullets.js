@@ -159,7 +159,7 @@ function ricochet(b, px, py) {
 /* ===== 1.5.5 cards on the receiving end: Eğimli zırh (slope) and Refleks (reflex) ===== */
 // Eligible: bullets and shells of enemies (b.owner 1). Never touched: lasers, flames, rings/explosions and rams (those call damagePlayer without a bullet), Ağır Topçu shells and boss heavy shells for the slope.
 const SLOPE = { front: 0.4, side: 0.2, fStep: 0.1, sStep: 0.05, fa: 0.785, ra: 2.356 };
-const REFLEX = { dist: 0.6, time: 0.12, cd: [3, 2], look: 0.16, bossCdK: 2 }; // 1.5.6: in a boss fight the slope never works and Refleks cools down twice as long and ignores heavy boss shells
+const REFLEX = { dist: 0.6, time: 0.12, cd: [6, 4], look: 0.16, bossCdK: 2 }; // 1.5.6: in a boss fight the slope never works and Refleks cools down twice as long and ignores heavy boss shells
 const inBossFight = () => !!(G.boss && !G.boss.dead);
 function slopeChance(b) { // chance that enemy bullet b glances off the player's hull, by the direction it comes from (against the HULL facing)
   const L = upL('slope'), p = G.player; if (!L || !p || b.owner !== 1 || b.shell || b.heavy || b.boss || inBossFight()) return 0; // bosses: no deflection at all

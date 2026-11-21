@@ -367,7 +367,7 @@ BOSS_DEFS.demirkok = {
   id: 'demirkok', lead: 0.35, name: 'DEMİRKÖK', arena: 'kale', introSub: 'Orman Kalesi', hold: 4.5, phases: [66, 33], plates: ['plate', 'fender'], r: DEMIR_SPEC.r,
   deathText: 'DEMİRKÖK DEVRİLDİ', loot: 'DEMİRKÖK GANİMETİ',
   barrels: [{ id: 'l', name: 'Sol namlu', ang: -DEMIR_BAR, k: 0.07 }, { id: 'r', name: 'Sağ namlu', ang: DEMIR_BAR, k: 0.07 }],
-  hp: w => Math.round(1200 + (w - 20) * 32),
+  hp: w => Math.round(1000 + (w - 20) * 27),
   attacks: [
     { id: 'taret', w: 3, ok: e => e.parts.some(q => q.alive), run: demirTurrets },
     { id: 'agir', w: 2.4, ok: e => true, run: demirHeavy },
