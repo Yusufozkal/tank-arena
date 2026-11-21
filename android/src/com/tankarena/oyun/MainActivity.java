@@ -45,6 +45,7 @@ public class MainActivity extends Activity {
 
     private FrameLayout root;
     private WebView web;
+    private String cornerJs = "";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -88,9 +89,34 @@ public class MainActivity extends Activity {
                     }
                 }
                 v.setPadding(l, t, r, b);
+                pushRoundedCorners(insets, l, t, r, b);
                 return insets;
             }
         });
+    }
+
+    /** Android 12+: tells the page how round the display corners are (CSS px, minus what the padding already clears). */
+    private void pushRoundedCorners(WindowInsets insets, int l, int t, int r, int b) {
+        if (Build.VERSION.SDK_INT < 31 || insets == null) return;
+        float d = getResources().getDisplayMetrics().density;
+        if (d <= 0) return;
+        int[] kinds = { android.view.RoundedCorner.POSITION_TOP_LEFT, android.view.RoundedCorner.POSITION_TOP_RIGHT,
+                        android.view.RoundedCorner.POSITION_BOTTOM_LEFT, android.view.RoundedCorner.POSITION_BOTTOM_RIGHT };
+        String[] names = { "--rcTL", "--rcTR", "--rcBL", "--rcBR" };
+        int[] pad = { Math.max(l, t), Math.max(r, t), Math.max(l, b), Math.max(r, b) };
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < 4; i++) {
+            android.view.RoundedCorner c = insets.getRoundedCorner(kinds[i]);
+            int rad = c == null ? 0 : Math.max(0, c.getRadius() - pad[i]);
+            sb.append("document.documentElement.style.setProperty('").append(names[i]).append("','")
+              .append(Math.round(rad / d)).append("px');");
+        }
+        cornerJs = sb.toString();
+        applyCorners();
+    }
+
+    private void applyCorners() {
+        if (web != null && cornerJs.length() > 0) web.evaluateJavascript(cornerJs, null);
     }
 
     @SuppressWarnings("deprecation")
@@ -225,6 +251,11 @@ public class MainActivity extends Activity {
                 // no app can open this link; stay in the game
             }
             return true;
+        }
+
+        @Override
+        public void onPageFinished(WebView view, String url) {
+            applyCorners();
         }
 
         @Override
