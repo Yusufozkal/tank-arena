@@ -1,6 +1,6 @@
 # Yol haritası
 
-Durum (20 Kasım 2026): **1.5.4 yayında** (Serbest Mod + Kapatıcı; 1.5.3: düşman görüşü, mermi menzili, boss cepleri, birleşim kartı). Açık: kullanıcı Android'de ses düğmesinin sağ üst köşede ekran dışına taştığını söyledi (1.5.3'te; 1.5.4'te tekrar bakacak, ekran görüntüsü gelirse düzelt). İmza anahtarı yeni oturuma kullanıcıdan ek olarak gelir; repoya değil `/home/claude/apk/keystore/` altına konur. Sıra: 1.5.5 Kar bölgesi (Kırağı + Ağır Topçu); 1.5.6 Şehir (Son Hisar); sonra 1.6 (çevrimiçi). Yeni kartlar bu sürümlere dağıtılır. Kullanıcı: 1.5.3 bitince token yeterse 1.5.4'e geç.
+Durum (21 Kasım 2026): **1.5.5 yayında** (Kar bölgesi: Kırağı ve Ağır Topçu; Demirkök kale oldu; kartlar Antitank mermisi, Eğimli zırh, Refleks; boss etabında nükleer savaş ortasında). Açık: kullanıcı Android'de ses düğmesinin sağ üst köşede ekran dışına taştığını söyledi (1.5.3'te; yeni sürümde tekrar bakacak, ekran görüntüsü gelirse düzelt). İmza anahtarı yeni oturuma kullanıcıdan ek olarak gelir; repoya değil repo dışına konur (`docs/OPERATIONS.md`, İmza anahtarı). Sıra: 1.5.6 Şehir (Son Hisar) + Dikenli zırh kartı; sonra 1.6 (çevrimiçi). Kullanıcı onaylamadan yeni işe başlama.
 
 ## Kullanıcının koyduğu ilkeler
 
@@ -114,11 +114,25 @@ Kullanıcı 1.5.1'i oynadıktan sonra istedi; kararları:
 
 Yapılan: harita 35, en çok 6 düşman ve 3 Avcı, parça başına 2 hasar eşiği, son görülen yer + arama + ateş sesi + 9 sn sessizlikte ipucu, Avcı yalnızca 5,5 kare içinden atılan mermiden kaçar, 7 kareden uzaktan vurulunca siper alır; boss canı %8–11 düştü, çarpma ve mermiler sertleşti, oyuncu mermisi boss mermisini düşürmüyor, takılma düzeldi; düşman mermisi kırmızı-turuncu yuvarlak, oyuncununki uzun kapsül; birleşim kartta ve açılınca etkisini yazar; site tanıtımı, boss görselleri ve ekran görüntüleri yenilendi; Rehber metinleri güncellendi. Ana oturumun eklediği: boss savaşında canı düşük oyuncuya Tamir kiti (kullanıcıya soruldu). Ölçümler `docs/BALANCE.md`.
 
-## Sonraki içerik sürümü (planlandı)
+## 1.5.5 – Kar bölgesi, Demirkök kale, üç kart (yayında, 21 Kasım 2026)
 
-- Serbest Mod (sandbox): tank, kartlar, güç, boss ve harita seçilir; rekora sayılmaz.
-- Diep.io'daki Arena Closer benzeri ek boss: çok zeki ve çok güçlü; şimdilik yalnızca Serbest Mod'da. Önerilen ad Kapatıcı (onay bekliyor): mat siyah, uzun tek namlu, kırmızı göz; hile yapmaz (yalnız gördüğünü ve duyduğunu bilir), tepki Avcı'nın yarısı, öne nişan, yakın mermiden kaçar ama saldırırken kaçamaz, kaçış yolunu keser, savaşta oyuncunun alışkanlığını öğrenir; saldırılar Kesin Atış, Sekme Atışı, Kesme Hamlesi, Havan, Kapanış (90 sn'den sonra her 30 sn'de kenar çeliği bir kare içeri yürür); her saldırıdan sonra ~1 sn tam hasar alır; tek zorluk seviyesi.
-- Ağır Topçu: Kar bölgesinin (21–30) yeni düşmanı (kullanıcı onayladı). Mermisi birkaç vuruşla düşürülebilir, ikinci atışı uzun sürer.
+Kullanıcının kararları (21 Kasım 2026):
+
+- Kırağı (30. dalga, Donmuş Göl) şartnameye göre; Ağır Topçu Kar'ın yeni düşmanı (`docs/BOSSES.md` bölüm 6 ve 9).
+- "Komutan ile Demirkök birbirine benziyor" → Demirkök kale oldu (ezme ve havan yok; mevziler, ayrı nişan alan taretler, kök fışkırması); kullanıcı "1.5.5'e ekle" dedi.
+- "Nükleer bosslarda çok geç doluyor" → boss etabında savaş ortasına doğru, savaş başına tek dolum.
+- Kartlar (kullanıcının fikirleri, onaylı):
+  - **Antitank mermisi** (Zayıf nokta fikrinden; kullanıcı "antitank mermisi olabilir, mermi çeşitleri kartlara dağıtılabilir" dedi): parçaya 2 kat hasar, seviye başına yandan/arkadan +%15; bosslarda yarısı ve parçaya 1,5 kat. En fazla 3.
+  - **Eğimli zırh** ("bazı mermileri sektirsin, bazılarını sektiremesin, her yönden başka"): gövde yönüne göre önden %40/50/60, yandan %20/25/30, arkadan hiç; büyük mermi, lazer, alev, patlama, çarpma sekmez; boss mermisinde yarısı. En fazla 3.
+  - **Refleks** ("son anda mermiden kaçma, her mermiden olmamak kaydıyla"; kullanıcı: "nadir kart olarak 3 saniye ile başlasın"): nadir kart, en fazla 2; bekleme 3 sn / 2 sn; yer yoksa mermi zararsız geçer; hazırken tankta beyaz nokta.
+  - Lazer kartı yok: lazer Raylı Top'un özelliği (kullanıcı onayladı).
+- Mermi kartları birlikte çalışır (Sekme, Patlayıcı, Antitank); ayrı mermi seçimi ekranı yok (seçenek az).
+
+## Sonraki içerik sürümü: 1.5.6 Şehir (planlandı)
+
+- Son Hisar (40. dalga, son boss; dört evre, yenilince İkinci Tur), şartname `docs/BOSSES.md` bölüm 7.
+- **Dikenli zırh** kartı (kullanıcının fikri, onaylı): çarpan tank hasar alır, oyuncu çarpmadan daha az hasar alır. Eğimli zırhla aynı sürüme konmadı.
+- İstenirse bir mermi kartı daha (kullanıcı "mermi çeşitleri kartlara dağıtılabilir" dedi; lazer hariç).
 - Daha fazla kart/özellik: oyun çabuk tekrara biniyor.
 
 ## Bölgeler ve görkemli bosslar (taslak, 20 Kasım 2026)

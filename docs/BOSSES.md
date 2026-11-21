@@ -179,10 +179,15 @@ GG.................GG
 GGG...............GGG
 ```
 
-- Evre 1: taret ateşi (kırmızı göz 0,45 sn); ağır top (0,8 sn parlama, iki büyük mermi, tuğlayı tek isabette kırar); ezip geçme (tuğladan geçer, çelikten geçemez).
-- Evre 2: deprem (4,5 karelik halka 1,2 sn; içerideki hasar alır ve itilir; çelik arkası güvenli); havan (5 kırmızı daire 1,2 sn).
-- Evre 3 "Kök salma": ortaya yürüyüp sabitlenir; demir kökler (kırmızı çizgi 1 sn, sonra 4–6 karelik geçici çelik duvar 8 sn); döner ateş (360° tarama, önünde 1 sn tarama çizgisi); arkası (egzoz) 1,5 kat hasar alır.
-- Ölüm: "DEMİRKÖK DEVRİLDİ". İkinci tur: taretler 30 sn sonra bir kez yeniden kurulur, çift deprem.
+1.5.5'ten beri **kale** (kullanıcı: "Komutan ile Demirkök birbirine benziyor"). Komutan hücum eden ve topçu çağıran boss olarak kalır; Demirkök kovalamaz, ezip geçmez, havan atmaz.
+
+- Mevziler: K (10,2), B (4,10), D (16,10); her birinde 11–13 sn kök salıp bekler, sonra hız 60 ile açık karolardan yavaşça başka mevziye geçer (tuğla ezmez; oyuncuya 4,5 kareden yakın mevziyi seçmez). Yürürken ağır top susar. Savaşın yaklaşık üçte ikisi mevzide geçer (evre 3'te hep sabit).
+- Evre 1 "Kale": yan taretler ayrı nişan alır, her birinin kendi kırmızı gözü (0,45 sn, son 0,12 sn kilit): biri oyuncuya, öbürü gideceği yere; ikincisi 0,3 sn sonra başlar, tek taret kalınca sırayla. Ağır top (0,8 sn parlama, iki büyük mermi, tuğlayı tek isabette kırar).
+- Evre 2 "Kök ağı": kök fışkırması: Demirkök'ten oyuncuya, oyuncunun 0,8 kare ötesine kadar giden çatlak çizgisi (1 sn, son 0,3 sn kilit), sonra çizgide bir kez 12 hasar ve itme; çizginin ilk 5 karesinde 6 sn duran kök duvarı (tankı ve mermiyi durdurur); bekleme 5,5 sn, aynı anda en fazla 16 kök karesi. Deprem kalır, yalnız mevzideyken.
+- Evre 3 "Kök salma": ortaya yürür, gövdeyi oyuncuya çevirip sabitlenir; her saldırıda iki çatlak, duvar 6 karelik ve 9 sn, bekleme 2,6 sn; döner ateş (360° tarama, önünde 1 sn tarama çizgisi); arkası (egzoz) 1,5 kat hasar alır.
+- Adalet: kök oyuncunun gövdesine değen karoya çıkmaz; egzozun hemen arkasındaki karolara çıkmaz; yerleştirmeden önce taşma doldurma: oyuncu ulaşabildiği alanın en az yarısına ve Demirkök'ün arkasına hâlâ ulaşabilmeli, yoksa duvarın sonundan karo düşülür.
+- Can 1200 + 32/dalga (bomba savaşta kullanılınca orta setle ~4,9 dk).
+- Ölüm: "DEMİRKÖK DEVRİLDİ". İkinci tur: her taret kırıldıktan 30 sn sonra bir kez yeniden kurulur, evre 2'de iki çatlak.
 
 ## 6. Kırağı (Kar, 30. dalga)
 
@@ -217,6 +222,7 @@ SS.................SS
 - Evre 2 "Suretler": iki buz kopyası (lazer tutar, ateş etmez, iz bırakmaz, hafif parlar, tek isabette kırılır, kırılınca yakını 2 sn yavaşlatır); çift atış.
 - Evre 3 "Ayaz": göl donar ve geçilebilir olur; don dalgası (her 10 sn, cephe çizgisi 1,5 sn önce; zemin 6 sn kırağı: oyuncu %30 yavaş, Kırağı hızlı).
 - Ölüm: "KIRAĞI ERİDİ". İkinci tur: üç suret, kopyaların izi 0,5 sn.
+- 1.5.5'te uygulandı, şartnameden sapma yok. Belirlenenler: can 1800 + 45/dalga; açıkta 3 sn görünmezlikten sonra 2 sn görünür; ateşten sonra hız ×0,55; suret kırılınca 2,4 kare içini 2 sn yavaşlatır; kırağıda Kırağı ×1,4; evre eşikleri öbür bosslar gibi [66,33]. Bot görünmez boss için değişiklik istemedi; zararsız uyarı çizgileri `nodanger` ile bot tehlike haritasına girmez.
 
 ## 7. Son Hisar (Şehir, 40. dalga)
 
@@ -290,6 +296,22 @@ Kullanıcının isteği: diep.io'daki Arena Closer benzeri, ana oyunda olmayan, 
 - Onarım: hedefe yeşil onarım ışını (görünür çizgi); saniyede 0,5 can verir (en fazla hedefin tam canı); bozuk parçayı (palet, namlu, motor) hemen onarır. Bir hedefi aynı anda tek Tamirci onarır. Işın açıkken ve kapandıktan sonra 1 sn Tamirci çalıda da görünür.
 - Geliş: ilk kez 13. dalgada tek tane ve "Yeni düşman: Tamirci" ipucu; sonra payı 0,03 + 0,015·(dalga − 13), en fazla 0,15; sahada aynı anda en fazla 2.
 - Bot: Tamirci görünüyorsa önce onu vurur.
+
+### Ağır Topçu (Kar'ın yeni türü, 1.5.5)
+
+Kullanıcının fikri: "mermileri birkaç vuruşta etkisiz hâle getirilebilir ama ikinci mermiyi atması uzun sürer".
+
+- Görünüş: kısa, geniş, koyu kahverengi gövde, kalın tek namlu, turuncu vurgular. Can 5, hız 40.
+- Ateş: 0,8 sn namlu parlaması (son 0,25 sn nişan kilitli), düz giden büyük ve yavaş mermi (yarıçap 11, 150 px/sn, 28 hasar × dalga hasar çarpanı, 6 sn ömür); çarpınca 58 px patlar (doğrudan isabet değilse çevreye %60), tuğla kırar, çelik kırmaz. Yeniden doldurma 6 sn (±%8).
+- Düşürme: hasarı ne olursa olsun 3 oyuncu mermisiyle havada patlar; her isabette çatlar; patlayınca +25 puan, "Mermi düştü +25". Delici mermi bir kez sayılır, Sekme normal sayılır, Obüs mermisi üstünden geçer, alev dokunmaz, nükleer patlatmadan siler.
+- Konum: oyuncudan ~5 kare tutar, 3,3 kareden yakında geri çekilir; ateşten sonra 3,6–5,6 kare uzakta yan mevziye geçer. Her zaman oyuncunun gerçek ekranındaki ateş penceresinin içinde kalır (dar telefonda da ateş edebilsin).
+- Geliş: 23. dalgadan, yalnız Kar'da; ilki tek ve "Yeni" ipucuyla; payı min(0,12; 0,03 + 0,01·(dalga − 23)); sahada en fazla 2; boss etabında yok. Kırağı yenilince bir daha gelmez (`REGION_BAN.kiragi`: Avcı + Topçu).
+
+## 1.5.5'te değişenler
+
+- Demirkök kale oldu (bölüm 5). Kırağı ve Ağır Topçu eklendi (bölüm 6 ve 9).
+- Boss etabında nükleer bomba boss canının %34'ü kadar hasarla dolar, savaş başına tek dolum; orta setle savaşın %40–45'inde hazır (önceden %69–86).
+- Eğimli zırh normal boss mermisinde yarı şansla çalışır; `heavy` boss mermileri (ağır top) ve Topçu mermisi hiç sekmez. Antitank mermisi bosslarda hasar bonusunun yarısını, parçaya 1,5 kat hasarı verir.
 
 ## 1.5.3'te değişenler
 

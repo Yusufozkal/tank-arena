@@ -347,3 +347,33 @@ Komutan canı (Kışla açıldığı için savaş kısalmıştı): 15. dalga 550
 | orta | 15 | 0/18 | – |
 
 Tam güçle kazanma 6–8 dakika sürüyor (Kapanış 180 sn'de biter). Oyuncu uzun bulursa can (1600) düşürülür.
+
+## 1.5.5 sonuçları (Kırağı, Ağır Topçu, Demirkök kale, üç kart, boss etabında nükleer)
+
+Bot ölçümü; bot mermiden insandan iyi kaçar, sayılar yön gösterir.
+
+### Bosslar (`boss_probe`, 8'er oyun)
+
+| Boss | Set | Sonuç | Ortalama süre |
+|---|---|---|---|
+| Kırağı (30), can 1100 | orta | – | 166–174 sn (kısa; can 1800'e çıktı) |
+| Kırağı (30), can 1800, bomba yok | kartsız / orta / tam | 0/8 / 8/8 / 8/8 | – / 276 sn / 277 sn |
+| Kırağı (30), bomba kullanılır | orta | 8/8 | 235 sn (bomba savaşın %40'ında hazır) |
+| Demirkök (20) eski | kartsız / orta / tam | 2/8 / 8/8 / 8/8 | 370 / 247 / 239 sn |
+| Demirkök (20) kale, bomba yok | kartsız / orta / tam | 3/8 / 8/8 / 8/8 | 378 / 300 / 259 sn |
+| Demirkök (20) kale, can 1200, bomba kullanılır | orta | 8/8 | 292 sn (bomba %43'te) |
+
+Nükleerin boss savaşında ilk hazır olduğu an (orta set, savaş süresine oranı): önce (dolum boss canının %60'ı) 10. dalga %86, 20. dalga %76, 30. dalga %69; sonra (%34, tek dolum) %40–54.
+
+### Dalgalar (`survive random 40`, bütün tanklar, nükleer açık, tohum 500)
+
+| | Topçu yok | Topçu var | + üç kart |
+|---|---|---|---|
+| Ortalama bitiş dalgası | 26,9 | 26,6 | 29,9 |
+| Ortanca | 23 | 23,5 | 28 |
+| 40'a ulaşan | 11/40 | 12/40 | 15/40 |
+| 21–30'da ölüm | 13 | 15 | 16 |
+| En kötü tek dalga | %10 (23.) | %10 (19.) | %7,5 |
+
+Tutmayan: 40'a ulaşma %37,5 (hedef ~%15; 1.5'ten beri botta hedefin üstünde). Kartlar şimdilik zayıflatılmadı; kullanıcının oyun izlenimi bekleniyor. Fark (+3,3 dalga) 40 oyunluk örnekte gürültüye yakın (±2,5) ama yönü Eğimli zırh ve Refleks'ten beklenen.
+

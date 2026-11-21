@@ -16,8 +16,8 @@ Kullanıcıyla Türkçe konuş. Oyunun arayüz metinleri Türkçe; kod ve yoruml
 - Model: tasarım, kod ve denge Sonnet; dar işler, yayın hazırlığı ve son kontrol Haiku.
 - Roller (okuduğu yer → testler):
   - Denge: `02`, `11-enemies`, `04` (`RULES`), `docs/BALANCE.md` → `balance_probe` + `balance_report`, `check_gameplay`, `check_ai`
-  - Düşman ve boss: `11-enemies`, `11a`–`11d`, `09`, `02`, çizim `15a`–`15c`, `docs/BOSSES.md` → `check_boss`, `check_sari`, `check_demirkok`, `check_parts`, `check_region`, `check_ai`, `check_boss_stuck`, `check_boss_reach`, `boss_probe`, `check_gameplay`, `stress`
-  - Tank, kart, birleşim, bomba: `03`, `07`, `08`, `10` → `check_tanks`, `check_tier2_*`, `check_syn`, `check_nuke`
+  - Düşman ve boss: `11-enemies`, `11a`–`11f`, `09`, `02`, çizim `15a`–`15e`, `docs/BOSSES.md` → `check_boss`, `check_sari`, `check_demirkok`, `check_kiragi`, `check_topcu`, `check_parts`, `check_region`, `check_ai`, `check_boss_stuck`, `check_boss_reach`, `boss_probe`, `check_gameplay`, `stress`
+  - Tank, kart, birleşim, bomba: `03`, `07`, `08`, `10` → `check_tanks`, `check_tier2_*`, `check_syn`, `check_nuke`, `check_cards155`
   - Çizim ve efekt: `15`, `16`, `06`, `04` (sprite) → `check_gameplay`, `check_crosshair`
   - Telefon arayüzü ve menü: `style.css`, `shell.html`, `13`, `14`, `05` → `check_hud_mobile`, `check_hud_buttons`
   - Yayın: `tools/`, `android/`, `docs/OPERATIONS.md` → hepsi, `check_offline_apk`, `csp_local_test`
@@ -55,7 +55,7 @@ Ayrıntı `docs/MODULES.md`'de. Kısaca:
 - Veriler: `SPECS`, `PU`, `UPS`, `THEMES`, `firepower` (`02-constants`); `TANKS`, `SYN` (`03-data`); `RULES` (`04-platform`).
 - Akış: `startGame` → `nextWave` → `buildRoster(w)` + `waveMods(w)` (`11-enemies`) → `waveCleared` → `rollUpgrades` / `chooseUpgrade`, evrimde `chooseTank` (`13-flow`).
 - Döngü: `update(dt)` sabit 1/60 adım (`14-update-hud`), `render()` (`15-render-world`, `16-render-ui`).
-- Bosslar: `11a-boss-core` (boss etabı, arenalar, evreler, uyarılar, boss parça hasarı; `BOSS_DEFS`, `BOSS_ON`), boss başına modül (`11b` Komutan, `11c` Sarı Fırtına, `11d` Demirkök), çizim `15a`/`15b`/`15c`. Bölge kuralı ve Tamirci `11-enemies` (`REGION_BAN`, `updateTamirci`). Normal düşman parça hasarı `11-enemies` (`partBreak`).
+- Bosslar: `11a-boss-core` (boss etabı, arenalar, evreler, uyarılar, boss parça hasarı; `BOSS_DEFS`, `BOSS_ON`), boss başına modül (`11b` Komutan, `11c` Sarı Fırtına, `11d` Demirkök, `11e` Kapatıcı, `11f` Kırağı), çizim `15a`–`15e`. Bölge kuralı, Tamirci ve Ağır Topçu `11-enemies` (`REGION_BAN`, `updateTamirci`, `updateTopcu`). Normal düşman parça hasarı `11-enemies` (`partBreak`).
 - Bot `18-bot` (durum nesnesi `bot` `12-input-player`'da); `window.__tank` `19-debug`.
 
 ## Diğer

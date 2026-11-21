@@ -34,6 +34,7 @@ Notlar: kalıcı engelleme (persistent actions) Hobby'de yok, engel pencere bite
 - Paket adı `com.tankarena.oyun`, minSdk 24, targetSdk 35, v2+v3 imza.
 - Sertifika SHA-256: `7fcc78e948478b3714e69d93cc8522500e0fdf00740990c329bd41f6e6c05833`.
 - Anahtar (`tankarena.jks`, takma ad `tankarena`) ve şifresi **repoda yok**, kullanıcıda yedekli. `android/build.sh` onu `android/keystore/tankarena.jks` + `android/keystore/password.txt` yolunda ya da `TANK_KEYSTORE` / `TANK_KEYSTORE_PASS_FILE` ortam değişkenlerinde arar (`android/keystore/` git'e girmez).
+- Yeni oturumda anahtar ve şifre kullanıcıdan dosya olarak gelir. 21 Kasım 2026 oturumundan beri repo dışında tutuluyor (`/home/claude/keys/tankarena.jks`, `/home/claude/keys/password.txt`, izin 600); `build.sh` ortam değişkenleriyle çağrılır. SDK `ANDROID_HOME=/root/android-sdk` (cmdline-tools ile `build-tools;35.0.1` ve `platforms;android-35`).
 - Anahtar kaybolursa güncelleme çıkarılamaz; oyuncuların eski uygulamayı silip yenisini kurması gerekir. Yeni anahtar üretme.
 
 ## Android sarmalayıcı
@@ -56,6 +57,7 @@ Notlar: kalıcı engelleme (persistent actions) Hobby'de yok, engel pencere bite
 | 1.5 | 8 | Boss etabı (sahada yalnızca boss, kendi arenası, evreler, uyarılar, hasar görünümü), yeni Komutan, Sarı Fırtına, 10 dalgalık bölgeler, parça hasarı, bütün haritayı vuran nükleer bomba |
 | 1.5.1 | 9 | Demirkök (20. dalga, Orman Kalesi), Tamirci, bölge kuralı (yenilen boss'un türü bir daha gelmez) |
 | 1.5.4 | 12 | Serbest Mod (tank, güç, boss ya da dalga, harita; kayıt tutmaz), Kapatıcı (yalnızca Serbest Mod) |
+| 1.5.5 | 13 | Kar bölgesi: Kırağı (30. dalga, Donmuş Göl), Ağır Topçu (23. dalgadan); Demirkök kale oldu; kartlar Antitank mermisi, Eğimli zırh, Refleks (nadir); boss etabında nükleer savaş ortasında, tek dolum |
 | 1.5.3 | 11 | Düşmanlar görmediklerini bilmez (görüş konisi, devriye, kısa duyma), oyuncu mermi menzili kısaldı, boss arena cepleri kapandı, Komutan canı, birleşim bilgisi yalnızca ilgili kartta |
 | 1.5.2 | 10 | Oyuncu geri bildirimi: 35'lik harita, en çok 6 düşman, eşikli parça hasarı, düşmanlar arar, Avcı uzaktan kaçamaz, boss çubuğu ve boss tehdidi, takılma, mermi renkleri, birleşim açıklamaları, site tanıtımı |
 
@@ -106,6 +108,9 @@ python3 tests/check_boss.py                        # boss etabı, arena, evreler
 python3 tests/check_sari.py                        # Sarı Fırtına
 python3 tests/check_parts.py                       # parça hasarı: palet, namlu, motor; boss paletleri
 python3 tests/check_demirkok.py                    # Demirkök
+python3 tests/check_kiragi.py                      # Kırağı (1.5.5)
+python3 tests/check_topcu.py                       # Ağır Topçu (telefon görünümlerinde ateş dahil)
+python3 tests/check_cards155.py                    # Antitank, Eğimli zırh, Refleks, boss etabında nükleer
 python3 tests/check_region.py                      # bölge kuralı ve Tamirci
 python3 tests/check_ai.py                          # Avcı kaçışı ve siper, son görülen yer, arama
 python3 tests/check_boss_stuck.py                  # bosslar arenada takılmıyor
@@ -116,6 +121,9 @@ python3 tests/balance_probe.py survive random 40 20 && python3 tests/balance_rep
 android/build.sh                                   # APK; ANDROID_HOME ve imza anahtarı gerekir
 python3 tests/check_offline_apk.py                 # build.sh'den sonra: ağsız APK sürümü ve Android köprüsü
 ```
+
+Bilinen kararsız kontroller (FAIL demeden önce en fazla iki kez yeniden koş): `check_tier2_d1` `sarapnel_pellets`, `check_region` `flees_from_close_player`, `check_boss_reach` canlı bölümü.
+
 Ekran görüntüleri, test raporları ve ölçüm sonuçları `.tmp/` altına yazılır (git'e girmez).
 
 ## APK sürümü çıkarmak
