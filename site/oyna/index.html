@@ -50,7 +50,7 @@ button:focus-visible{outline:2px solid var(--bone);outline-offset:2px}
 
 /* HUD */
 #hud{position:fixed;top:0;right:0;bottom:0;left:0;pointer-events:none;z-index:4}
-.hud-top{position:absolute;top:calc(var(--st) + 10px);left:calc(var(--sl) + 10px);right:calc(var(--sr) + 10px);display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.hud-top{position:absolute;top:max(calc(var(--st) + 10px),calc(.3 * max(var(--rcTL,0px),var(--rcTR,0px))));left:max(calc(var(--sl) + 10px),calc(.3 * var(--rcTL,0px)));right:max(calc(var(--sr) + 10px),calc(.3 * var(--rcTR,0px)));display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
 .col{display:flex;flex-direction:column;gap:6px;min-width:0}
 .col.left{flex:0 1 270px}
 .col.right{flex:0 0 auto;align-items:flex-end}
@@ -92,7 +92,7 @@ button:focus-visible{outline:2px solid var(--bone);outline-offset:2px}
 @media (min-width:760px){#mini{width:128px;height:128px}}
 /* Phones: every HUD piece stays, packed tighter so more of the arena shows */
 @media (max-width:520px),(max-height:520px){
-  #hud .hud-top{top:calc(var(--st) + 6px);left:calc(var(--sl) + 6px);right:calc(var(--sr) + 6px);gap:6px}
+  #hud .hud-top{top:max(calc(var(--st) + 6px),calc(.3 * max(var(--rcTL,0px),var(--rcTR,0px))));left:max(calc(var(--sl) + 6px),calc(.3 * var(--rcTL,0px)));right:max(calc(var(--sr) + 6px),calc(.3 * var(--rcTR,0px)));gap:6px}
   #hud .col,#hud .row{gap:4px}
   #hud .lbl{font-size:12px}
   #hud .armor{height:32px;gap:6px;padding:0 8px}
@@ -468,7 +468,7 @@ button:focus-visible{outline:2px solid var(--bone);outline-offset:2px}
       </div>
     </div>
     <button type="button" class="btn primary" id="btnSettingsBack">TAMAM</button>
-    <p class="version">Tank Arena 1.5.5.1</p>
+    <p class="version">Tank Arena 1.5.5.2</p>
   </section>
 </div>
 
@@ -570,6 +570,6 @@ button:focus-visible{outline:2px solid var(--bone);outline-offset:2px}
   </section>
 </div>
 
-<script src="/oyna/game.0f6188f8f0.js"></script>
+<script src="/oyna/game.f6bef814ce.js"></script>
 </body>
 </html>

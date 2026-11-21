@@ -175,7 +175,7 @@ const UPS = {
     desc: L => `Mermiler seker: önden %${30 + 10 * L}, yandan %${15 + 5 * L}, arkadan %0. Ağır mermi, lazer ve patlamada, bosslarda işlemez` },
   reflex: { name: 'Refleks', max: 2, rare: true, brief: 'Gelen mermiden yana kayar',
     svg: '<path d="M3 12h9M8 8l-4 4 4 4M15 5l6 7-6 7M17 12h4"/>',
-    desc: L => `Mermi gelirken tank yana kayar, bekleme ${L === 1 ? 3 : 2} sn (bosslarda iki kat). Lazer, patlama ve boss ağır mermisinde işlemez. Hazırken tankta ışık yanar` },
+    desc: L => `Mermi gelirken tank yana kayar, bekleme ${L === 1 ? 6 : 4} sn (bosslarda iki kat). Lazer, patlama ve boss ağır mermisinde işlemez. Hazırken tankta ışık yanar` },
   // extra cards: never levelled, only offered when they matter or the pool runs dry
   fix: { name: 'Acil onarım', max: 99, extra: true,
     svg: '<circle cx="12" cy="12" r="9"/><path d="M12 7.5v9M7.5 12h9"/>',
@@ -220,7 +220,7 @@ const TANKS = {
 function stubTank(id, parent, o) { TANKS[id] = Object.assign(JSON.parse(JSON.stringify(TANKS[parent])), { kids: [], stub: true }, o); }
 TANKS.uclu = { name: 'Üçlü', tier: 2, parent: 'ikiz', kids: [], traitName: 'Delici orta mermi', blurb: 'Üç mermilik yelpaze; ortadaki mermi bir tankı delip arkasındakine gider.',
   hpMul: 1, speedMul: 1, turnMul: 1, dmg: 0.27, cool: 0.3, bSpeed: 660, bR: 3.6, bW: 4.6, life: 1.02, barrel: 26, shape: 'tri', zoom: 1, mode: 'shell',
-  muzzles: [{ off: 0, ang: -0.2, len: 23 }, { off: 0, ang: 0, len: 30, pierceN: 1 }, { off: 0, ang: 0.2, len: 23 }], botRange: 340, // D1: dps 1.2 x Standart (3 shells of 0.4 per 0.3 s)
+  muzzles: [{ off: 0, ang: -0.2, len: 23 }, { off: 0, ang: 0, len: 30, pierceN: 1 }, { off: 0, ang: 0.2, len: 23 }], botRange: 340, bossRange: 230, // D1: dps 1.2 x Standart (3 shells of 0.4 per 0.3 s)
   col: { body: '#1f7f93', dk: '#124a58', hi: '#6cc6d9', acc: '#ff8fd0' } };
 TANKS.cift = { name: 'Çift Yön', tier: 2, parent: 'ikiz', kids: [], traitName: 'İtici arka namlu', blurb: 'Arkaya da ateş eder (arka mermi %80 hasar); her atışta tank ileri hızlanır, geri tepme yok.',
   hpMul: 1, speedMul: 1, turnMul: 1, dmg: 0.67, cool: 0.3, bSpeed: 660, bR: 3.8, bW: 5, life: 1.02, barrel: 26, shape: 'duo', zoom: 1, mode: 'shell', kick: 0,
@@ -1659,7 +1659,7 @@ function ricochet(b, px, py) {
 /* ===== 1.5.5 cards on the receiving end: Eğimli zırh (slope) and Refleks (reflex) ===== */
 // Eligible: bullets and shells of enemies (b.owner 1). Never touched: lasers, flames, rings/explosions and rams (those call damagePlayer without a bullet), Ağır Topçu shells and boss heavy shells for the slope.
 const SLOPE = { front: 0.4, side: 0.2, fStep: 0.1, sStep: 0.05, fa: 0.785, ra: 2.356 };
-const REFLEX = { dist: 0.6, time: 0.12, cd: [3, 2], look: 0.16, bossCdK: 2 }; // 1.5.6: in a boss fight the slope never works and Refleks cools down twice as long and ignores heavy boss shells
+const REFLEX = { dist: 0.6, time: 0.12, cd: [6, 4], look: 0.16, bossCdK: 2 }; // 1.5.6: in a boss fight the slope never works and Refleks cools down twice as long and ignores heavy boss shells
 const inBossFight = () => !!(G.boss && !G.boss.dead);
 function slopeChance(b) { // chance that enemy bullet b glances off the player's hull, by the direction it comes from (against the HULL facing)
   const L = upL('slope'), p = G.player; if (!L || !p || b.owner !== 1 || b.shell || b.heavy || b.boss || inBossFight()) return 0; // bosses: no deflection at all
@@ -2496,13 +2496,14 @@ const TELE_MIN = { glow: 0.45, heavy: 0.8, line: 1.0, circle: 1.2, ring: 1.2 }; 
 // light: the wave-5 tutorial Komutan; every other boss has its own row (tuned with boss_probe). Telegraph times (TELE_MIN) are untouched.
 const BOSS_TUNE = {
   light: { gap: 0.85, speed: 1.1, dmg: 1.25, lead: 0.15 },
-  komutan: { gap: 0.7, speed: 1.25, dmg: 1.75, lead: 0.3 },
-  sari: { gap: 0.75, speed: 1.25, dmg: 1.35, lead: 0.3 },
-  demirkok: { gap: 0.6, speed: 1.25, dmg: 2.8, lead: 0.4 }, // its shells were tiny (6 base): the biggest dmg factor
-  kiragi: { gap: 0.65, speed: 1.25, dmg: 1.55, lead: 0.3 }, // speed only matters for its plain shells; the lasers hit by gap and dmg
-  kapatici: { gap: 0.4, speed: 1.4, dmg: 1.7, lead: 0 } // Serbest Mod: meant to be very hard (full cards win about 1 in 4-5)
+  early: { gap: 0.85, speed: 1.1, dmg: 1.2, lead: 0.15 }, // the wave-15 Komutan (the first real one: survive runs may not end here more than ~15%)
+  komutan: { gap: 0.72, speed: 1.2, dmg: 1.6, lead: 0.25 },
+  sari: { gap: 0.78, speed: 1.2, dmg: 1.2, lead: 0.25 },
+  demirkok: { gap: 0.65, speed: 1.2, dmg: 2.5, lead: 0.35 }, // its shells were tiny (6 base): the biggest dmg factor
+  kiragi: { gap: 0.68, speed: 1.2, dmg: 1.3, lead: 0.3 }, // speed only matters for its plain shells; the lasers hit by gap and dmg
+  kapatici: { gap: 0.6, speed: 1.4, dmg: 1.3, lead: 0 } // Serbest Mod: meant to be very hard (full cards win about 1 in 4-5)
 };
-const bossTuneFor = (def, w) => (def.id === 'komutan' && w <= 5) ? BOSS_TUNE.light : (BOSS_TUNE[def.id] || BOSS_TUNE.komutan);
+const bossTuneFor = (def, w) => def.id === 'komutan' ? (w <= 5 ? BOSS_TUNE.light : w <= 15 ? BOSS_TUNE.early : BOSS_TUNE.komutan) : (BOSS_TUNE[def.id] || BOSS_TUNE.komutan);
 const bossDmg = base => Math.max(1, Math.round(base * G.mods.dmg * (G.boss && G.boss.tune ? G.boss.tune.dmg : 1)));
 
 function spawnBoss(def, x, y, angle) {
@@ -3681,7 +3682,7 @@ BOSS_DEFS.demirkok = {
   id: 'demirkok', lead: 0.35, name: 'DEMİRKÖK', arena: 'kale', introSub: 'Orman Kalesi', hold: 4.5, phases: [66, 33], plates: ['plate', 'fender'], r: DEMIR_SPEC.r,
   deathText: 'DEMİRKÖK DEVRİLDİ', loot: 'DEMİRKÖK GANİMETİ',
   barrels: [{ id: 'l', name: 'Sol namlu', ang: -DEMIR_BAR, k: 0.07 }, { id: 'r', name: 'Sağ namlu', ang: DEMIR_BAR, k: 0.07 }],
-  hp: w => Math.round(1200 + (w - 20) * 32),
+  hp: w => Math.round(1000 + (w - 20) * 27),
   attacks: [
     { id: 'taret', w: 3, ok: e => e.parts.some(q => q.alive), run: demirTurrets },
     { id: 'agir', w: 2.4, ok: e => true, run: demirHeavy },
@@ -4134,8 +4135,10 @@ ARENAS.gol = { name: 'Donmuş Göl', rows: [
 const KIR_SPEC = { speed: 125, turn: 3.2, tTurn: 3.4, len: 90, wid: 44, r: 30, tread: 10, tR: 15, barrel: 66, bW: 6.5, cool: 1, bSpeed: 400, dmg: 9, bR: 5, mass: 5, score: 3000,
   col: { body: '#6c4fa3', dk: '#432f6b', hi: '#9d84d1', acc: '#7ef0d0' } };
 const KIR_MINT = '126,240,208';
-const KIR = { open: 3, lockT: 2, shotVis: 1.5, shotSlow: 0.55, frostLife: 6, frostSlow: 0.7, frostFast: 1.4, decSlow: 0.6, slowT: 2, slowR: 2.4 * T, trail: 2, trail2: 0.5, decLife: 10, beamW: 12, dmg: 14, dmg2: 11,
-  hideMax: 4, frontDepth: 9 * T, frontSpeed: 480, frontLine: 1.5 };
+// 1.5.5.2 (signature mechanics): dmg 14/11 -> 16/13, beamW 12 -> 14; invRush: while invisible the next attack comes sooner (attack pause runs 1.4x); decDmg: an ice copy shot within slowR bursts into shards (damage + a longer slow);
+// frost: lasts 7 s (was 6), player x0.62 (was 0.7), front every 8 s (was 10), band 10 tiles deep (was 9); iceSlow: the frozen lake itself is slippery for the player (x0.8) once phase 3 starts.
+const KIR = { open: 3, lockT: 2, shotVis: 1.5, shotSlow: 0.55, frostLife: 7, frostSlow: 0.62, frostFast: 1.4, decSlow: 0.5, slowT: 2.5, slowR: 2.4 * T, trail: 2, trail2: 0.5, decLife: 10, beamW: 14, dmg: 16, dmg2: 13, invRush: 0.4, decDmg: 5, iceSlow: 0.8,
+  hideMax: 4, frontDepth: 10 * T, frontSpeed: 480, frontLine: 1.5 };
 
 /* ---- shared helpers ---- */
 const krTile = (m, x, y) => clamp(Math.floor(y / T), 0, m.n - 1) * m.n + clamp(Math.floor(x / T), 0, m.n - 1);
@@ -4195,7 +4198,7 @@ function krDecoyBreak(e, d, slow, quiet) { // an ice copy breaks (shot, expired 
   if (!slow) return;
   addText(d.x, d.y - 28, 'Suret kırıldı', '#bff0ff', 14);
   const p = G.player;
-  if (p.alive && Math.hypot(p.x - d.x, p.y - d.y) < KIR.slowR) { kr.pSlow = KIR.slowT; addText(p.x, p.y - 30, 'Yavaşladın', '#bff0ff', 13); }
+  if (p.alive && Math.hypot(p.x - d.x, p.y - d.y) < KIR.slowR) { kr.pSlow = KIR.slowT; addText(p.x, p.y - 30, 'Yavaşladın', '#bff0ff', 13); damagePlayer({ x: p.x, y: p.y, dmg: bossDmg(KIR.decDmg), owner: 1, vx: 0, vy: 0 }); } // shards: shooting a copy from close by costs hp
   if (Math.hypot(e.x - d.x, e.y - d.y) < KIR.slowR + e.r) { kr.slowT = KIR.slowT; addText(e.x, e.y - e.r - 14, 'Yavaşladı', '#bff0ff', 14); }
 }
 function krDecoyHit(b) { // 10 updateBullets: a player shell inside an ice copy breaks it (one hit)
@@ -4254,6 +4257,7 @@ function krFrontStep(e, dt) {
 function krPlayerSlow(e) { // frost under the player: 30% slower; a broken ice copy next to him: 40% slower for 2 s (the stronger one counts)
   const kr = e.kr, p = G.player; let k = 1;
   if (kr.frost && kr.frost[krTile(G.map, p.x, p.y)] > 0) k = KIR.frostSlow;
+  else if (kr.lakeOpen && kr.lakeSet && kr.lakeSet.has(krTile(G.map, p.x, p.y))) k = KIR.iceSlow; // the frozen lake is slippery
   if (kr.pSlow > 0) k = Math.min(k, KIR.decSlow);
   return k;
 }
@@ -4281,6 +4285,7 @@ function krTick(e, dt) {
     if (inBush) inv = true;
     else if (kr.lock <= 0) { inv = true; kr.open += dt; if (kr.open >= KIR.open) { kr.open = KIR.open; kr.lock = KIR.lockT; inv = false; } }
   }
+  if (inv && e.cool > 0 && G.phase === 'fight' && !e.gen) e.cool -= dt * KIR.invRush; // invisible: it presses (the next attack comes sooner)
   kr.inv = inv; kr.a = clamp(kr.a + (inv ? -1 : 1) * dt * 5, 0, 1);
   const onFrost = kr.frost[krTile(m, e.x, e.y)] > 0;
   e.speedMul = (kr.shot > 0 ? KIR.shotSlow : 1) * (onFrost ? KIR.frostFast : 1) * (kr.slowT > 0 ? KIR.decSlow : 1) * kr.boost;
@@ -4424,20 +4429,20 @@ BOSS_DEFS.kiragi = {
   id: 'kiragi', name: 'KIRAĞI', arena: 'gol', introSub: 'Donmuş Göl', hold: 9, lead: 0, phases: [66, 33], plates: ['plate', 'fender'], r: KIR_SPEC.r,
   deathText: 'KIRAĞI ERİDİ', loot: 'KIRAĞI GANİMETİ',
   barrels: [{ id: 'm', name: 'Namlu', ang: 0, k: 0.07 }],
-  hp: w => Math.round(2300 + (w - 30) * 55), // 1.5.6: 1800 + 45/wave -> 2300 + 55/wave (harder lasers end the fight sooner; the target is 4-6 min)
+  hp: w => Math.round(2000 + (w - 30) * 50), // 1.5.6: 1800 + 45/wave -> 2300 + 55/wave (harder lasers end the fight sooner; the target is 4-6 min)
   attacks: [
     { id: 'keskin', w: 4, ok: e => e.canSee && e.distP < 15 * T, run: krSharp },
     { id: 'saklan', w: 2.4, ok: e => e.distP > 4 * T, run: krHide, mov: true, cd: 8 },
     { id: 'kacin', w: 2, ok: e => e.distP < 7 * T, run: krEvade, mov: true, cd: 5 },
     { id: 'cift', w: 3, ok: e => e.phase >= 1 && e.canSee && e.distP < 15 * T, run: krDouble },
     { id: 'suret', w: 3, ok: e => e.phase >= 1 && e.canSee, run: krDecoys, cd: 12 },
-    { id: 'don', w: 6, ok: e => e.phase >= 2, run: krFrost, cd: 10 }
+    { id: 'don', w: 6, ok: e => e.phase >= 2, run: krFrost, cd: 8 }
   ],
   setup(e, w) {
     e.spec = Object.assign({}, SPECS.boss, KIR_SPEC); e.r = KIR_SPEC.r; e.pace = 1; e.noTreads = true;
     const lake = []; for (let r = 0; r < G.map.n; r++) for (let c = 0; c < G.map.n; c++) if (G.map.t[r * G.map.n + c] === WATER) lake.push({ c, r });
     e.kr = { a: 1, inv: false, open: 0, lock: 0, shot: 0, force: 0, trail: [], dtrail: [], dec: [], decSeq: 0, frost: new Float32Array(G.map.n * G.map.n), front: null, beams: [], slowT: 0, pSlow: 0, goal: null, boost: 1, side: 1, sideT: 0,
-      lake, lakeOpen: false, lakeT: 0, loop2: w > 40, fakeAim: false, gen: false, lx: e.x, ly: e.y, hid: 0 };
+      lake, lakeSet: new Set(lake.map(q => q.r * G.map.n + q.c)), lakeOpen: false, lakeT: 0, loop2: w > 40, fakeAim: false, gen: false, lx: e.x, ly: e.y, hid: 0 };
   },
   onPhase(e, i) {
     if (i === 1) addText(e.x, e.y - e.r - 54, 'SURETLER', '#7ef0d0', 18);
@@ -6665,7 +6670,7 @@ function bossAutopilot(dt) {
     const k = G.pickups.find(q => q.kind === 'repair' && !botDanger(q.x, q.y, 20));
     if (k) { const kc = Math.floor(k.x / T), kr = Math.floor(k.y / T), d = botBfs((c, r) => c === kc && r === kr, 14); if (d) { bot.mx = d.x; bot.my = d.y; return; } }
   }
-  const want = Math.max(TANKS[G.tank].botRange || 290, 150);
+  const want = Math.max(((e.def.id === 'demirkok' || e.def.id === 'kiragi') && TANKS[G.tank].bossRange) || TANKS[G.tank].botRange || 290, 150); // bossRange: Üçlü's fan misses a distant boss, so the bot closes in on Demirkök and Kırağı (the fortress and the ambusher; on the Komutan the rams punish it)
   const lineWarn = e.treadT <= 0 && G.tele.some(t => t.kind === 'line' && t.t < t.dur && !t.nodanger), brk = e.treadT > 0; // part damage: a charge line is up (shoot the tread from the side) / a tread is broken (get behind)
   let best = null, bs = -1e9;
   for (let i = 0; i < 8; i++) {
