@@ -1,18 +1,22 @@
 /* ================= Demirkök drawing ================= */
+// Fortress look: while planted, iron anchors grip the ground around the hull; the side turrets turn on their own (pt.aim) with their red eye (pt.eye); ground layer: crack lines, eruptions and the root walls.
 // Wide square iron hull (110 x 96), twin main barrels, two side turrets with red eyes (blackened sockets when destroyed), a red stripe down the hull, a rear exhaust grille (the weak point
 // once rooted), grey-blue shield shimmer while a turret lives, iron roots under the hull when rooted. Ground layer (drawGround from 15a): root tiles, the sweep wedge and its red line.
 function drawDemirkok(e, g, alpha) {
   const s = e.spec, c = s.col, L = s.len, W = s.wid, tw = s.tread, tr = s.tR, dk = e.dk, tt = G.time, lost = e.lost;
   const dth = e.dying ? Math.min(1, e.deathT / 2.4) : 0, lift = dk.lift, sc = 1 + 0.07 * lift - 0.1 * dth;
   if (lift > 0.02) { g.save(); g.globalAlpha = alpha * 0.3 * lift; g.fillStyle = '#000'; g.beginPath(); g.ellipse(e.x + 6, e.y + 14, L * 0.62, W * 0.58, e.angle, 0, TAU); g.fill(); g.restore(); }
-  if (dk.root > 0.02) { // iron roots going down from the hull
+  if (dk.root > 0.02) { // anchors: iron roots gripping the ground around the hull (longer and glowing once rooted for good), a dark dent under the hull
+    const full = e.rooted ? 1 : 0.72, rk = dk.root;
     g.save(); g.translate(e.x, e.y); g.lineCap = 'round';
+    g.globalAlpha = alpha * 0.28 * rk; g.fillStyle = '#0c0a08'; g.beginPath(); g.ellipse(0, 0, L * 0.62, W * 0.6, e.angle, 0, TAU); g.fill();
     for (let k = 0; k < 11; k++) {
-      const a = k * TAU / 11 + 0.3 * Math.sin(k * 7.3), len = (e.r + 22 + 26 * Math.abs(Math.sin(k * 3.1))) * dk.root, bend = Math.sin(k * 5.7) * 0.5;
+      const a = k * TAU / 11 + 0.3 * Math.sin(k * 7.3), len = (e.r + 20 + 26 * Math.abs(Math.sin(k * 3.1))) * rk * full, bend = Math.sin(k * 5.7) * 0.5;
       const x1 = Math.cos(a) * len, y1 = Math.sin(a) * len, cx = Math.cos(a + bend) * len * 0.55, cy = Math.sin(a + bend) * len * 0.55;
-      g.globalAlpha = alpha * Math.min(1, dk.root * 1.4);
-      g.strokeStyle = '#25221d'; g.lineWidth = 9; g.beginPath(); g.moveTo(Math.cos(a) * e.r * 0.6, Math.sin(a) * e.r * 0.6); g.quadraticCurveTo(cx, cy, x1, y1); g.stroke();
-      g.strokeStyle = c.acc; g.globalAlpha *= 0.5 + 0.3 * Math.sin(tt * 4 + k); g.lineWidth = 2; g.stroke();
+      g.globalAlpha = alpha * Math.min(1, rk * 1.4);
+      g.strokeStyle = '#25221d'; g.lineWidth = 10; g.beginPath(); g.moveTo(Math.cos(a) * e.r * 0.6, Math.sin(a) * e.r * 0.6); g.quadraticCurveTo(cx, cy, x1, y1); g.stroke();
+      g.strokeStyle = c.acc; g.globalAlpha *= (e.rooted ? 0.5 : 0.3) + 0.3 * Math.sin(tt * 4 + k); g.lineWidth = 2.4; g.stroke();
+      g.globalAlpha = alpha * Math.min(1, rk * 1.4); g.fillStyle = '#1b1814'; g.beginPath(); g.arc(x1, y1, 5.5, 0, TAU); g.fill(); // the claw digging in
     }
     g.restore();
   }
@@ -48,14 +52,17 @@ function drawDemirkok(e, g, alpha) {
   g.strokeStyle = 'rgba(0,0,0,.65)'; g.lineWidth = 1.5; hullPath(); g.stroke();
   // side turrets: red eyes (bright while that turret is about to fire); a destroyed one leaves a blackened socket
   for (const pt of e.parts) {
-    const x = pt.ox, y = pt.oy, gk = dk.who === pt.id ? clamp(e.glow, 0, 1) : 0;
+    const x = pt.ox, y = pt.oy, gk = clamp(pt.eye || 0, 0, 1);
     if (pt.alive) {
       g.fillStyle = c.dk; rrect(g, x - 13, y - 13, 26, 26, 6); g.fill(); g.fillStyle = c.body; rrect(g, x - 11, y - 11, 22, 22, 5); g.fill();
       g.fillStyle = c.hi; g.globalAlpha = alpha * 0.5; rrect(g, x - 9, y - 10, 16, 6, 3); g.fill(); g.globalAlpha = alpha;
-      g.fillStyle = '#17110f'; g.fillRect(x + 6, y - 2.5, 14, 5); // short barrel
+      const rel = (pt.aim === undefined ? e.angle : pt.aim) - e.angle; // the turret turns on its own: barrel and eye follow pt.aim
+      g.save(); g.translate(x, y); g.rotate(rel);
+      g.fillStyle = '#17110f'; g.fillRect(5, -2.8, 15, 5.6); g.fillStyle = c.acc; g.fillRect(13, -3.2, 2.2, 6.4); // short barrel
       const eye = 0.45 + 0.2 * Math.sin(tt * 3 + x) + 0.9 * gk;
-      if (gk > 0 && fxScale === 1) { g.globalCompositeOperation = 'lighter'; g.globalAlpha = alpha * (0.3 + 0.7 * gk); const gs = 26 + 30 * gk; g.drawImage(SPR.fire, x + 3 - gs / 2, y - gs / 2, gs, gs); g.globalCompositeOperation = 'source-over'; g.globalAlpha = alpha; }
-      g.fillStyle = `rgba(${gk > 0.8 ? '255,230,200' : '255,70,50'},${clamp(eye, 0.3, 1).toFixed(2)})`; g.beginPath(); g.arc(x + 2, y, 3.6 + 1.6 * gk, 0, TAU); g.fill();
+      if (gk > 0 && fxScale === 1) { g.globalCompositeOperation = 'lighter'; g.globalAlpha = alpha * (0.3 + 0.7 * gk); const gs = 28 + 34 * gk; g.drawImage(SPR.fire, 14 - gs / 2, -gs / 2, gs, gs); g.globalCompositeOperation = 'source-over'; g.globalAlpha = alpha; }
+      g.fillStyle = `rgba(${gk > 0.8 ? '255,230,200' : '255,70,50'},${clamp(eye, 0.3, 1).toFixed(2)})`; g.beginPath(); g.arc(2, 0, 3.6 + 2 * gk, 0, TAU); g.fill();
+      g.restore();
       if (pt.flash > 0) { g.globalAlpha = alpha * 0.7; g.fillStyle = '#fff'; rrect(g, x - 13, y - 13, 26, 26, 6); g.fill(); g.globalAlpha = alpha; }
     } else {
       g.fillStyle = '#120e0c'; g.beginPath(); g.arc(x, y, 12, 0, TAU); g.fill();
@@ -104,12 +111,38 @@ function drawDemirkok(e, g, alpha) {
 function drawDemirkokGround(e, g) {
   const dk = e.dk; if (!dk) return;
   const tt = G.time;
-  for (const q of dk.roots) { // iron roots: a dark overlay with glowing red cracks, flickering in the last 1.2 s
-    const rise = Math.min(1, q.t / 0.25), fade = q.t > DEMIR_ROOT_LIFE - 1.2 ? 0.45 + 0.45 * Math.sin(tt * 24) : 1, x = q.c * T, y = q.r * T, m = 3 + (1 - rise) * 20;
+  for (const tl of G.tele) { // crack lines: a jagged glowing crack down the red line (drawn under the generic red band); it widens and brightens as the strike nears
+    if (!tl.crack || tl.e !== e) continue;
+    const k = clamp(tl.t / tl.dur, 0, 1), ca = Math.cos(tl.a), sa = Math.sin(tl.a), nrm = 5 + 6 * k, steps = Math.max(4, Math.round(tl.len / 22));
+    g.save(); g.translate(tl.x, tl.y); g.rotate(tl.a); g.lineJoin = 'round'; g.lineCap = 'round';
+    for (const pass of [0, 1]) {
+      g.beginPath(); g.moveTo(e.r * 0.6, 0);
+      for (let i = 1; i <= steps; i++) { const d = e.r * 0.6 + (tl.len - e.r * 0.6) * i / steps * Math.min(1, k * 3 + 0.35); g.lineTo(d, Math.sin(i * 2.9 + (i & 1 ? 1 : 0)) * nrm * (i & 1 ? 1 : -1) * (pass ? 0.55 : 1)); }
+      g.strokeStyle = pass ? 'rgba(255,170,90,' + (0.6 + 0.4 * k).toFixed(2) + ')' : 'rgba(18,10,8,.9)'; g.lineWidth = pass ? 2.2 : 6 + 3 * k; g.stroke();
+    }
+    g.restore();
+  }
+  for (const q of dk.er) { // the eruption: iron spikes shoot up along the line and sink back
+    const k = q.t / 0.6, rise = Math.sin(clamp(k, 0, 1) * Math.PI), ca = Math.cos(q.a), sa = Math.sin(q.a), n = Math.max(3, Math.round(q.len / 26));
+    g.save(); g.globalAlpha = 0.95 * (1 - k * 0.5);
+    for (let i = 0; i < n; i++) {
+      const d = e.r * 0.8 + (q.len - e.r * 0.8) * (i + 0.5) / n, x = q.x + ca * d, y = q.y + sa * d, h = (16 + 12 * Math.abs(Math.sin(i * 5.3))) * rise, wv = 9;
+      g.save(); g.translate(x, y); g.rotate(q.a + Math.PI / 2 + Math.sin(i * 3.7) * 0.25);
+      g.fillStyle = '#1b1814'; g.beginPath(); g.moveTo(-wv, 4); g.lineTo(0, -h); g.lineTo(wv, 4); g.closePath(); g.fill();
+      g.strokeStyle = '#c9402d'; g.lineWidth = 2; g.stroke(); g.restore();
+    }
+    g.restore();
+  }
+  for (const q of dk.roots) { // root wall: dark iron with thorns and a red rim, flickering in the last 1.2 s
+    const rise = Math.min(1, q.t / 0.25), fade = q.t > q.life - 1.2 ? 0.45 + 0.45 * Math.sin(tt * 24) : 1, x = q.c * T, y = q.r * T, m = 2 + (1 - rise) * 20, cx = x + T / 2, cy = y + T / 2;
     g.save(); g.globalAlpha = fade;
-    g.fillStyle = 'rgba(30,24,18,.8)'; rrect(g, x + m, y + m, T - 2 * m, T - 2 * m, 6); g.fill();
-    g.strokeStyle = 'rgba(201,64,45,' + (0.55 + 0.3 * Math.sin(tt * 5 + q.seed)).toFixed(2) + ')'; g.lineWidth = 2; g.lineCap = 'round'; g.beginPath();
-    for (let k = 0; k < 3; k++) { const a = q.seed * 0.37 + k * 2.1; g.moveTo(x + T / 2, y + T / 2); g.lineTo(x + T / 2 + Math.cos(a) * 15, y + T / 2 + Math.sin(a) * 15); g.lineTo(x + T / 2 + Math.cos(a + 0.4) * 22, y + T / 2 + Math.sin(a + 0.4) * 20); }
+    g.fillStyle = 'rgba(26,21,16,.9)'; rrect(g, x + m, y + m, T - 2 * m, T - 2 * m, 6); g.fill();
+    g.strokeStyle = 'rgba(232,88,58,' + (0.85 + 0.15 * Math.sin(tt * 5 + q.seed)).toFixed(2) + ')'; g.lineWidth = 3; rrect(g, x + m, y + m, T - 2 * m, T - 2 * m, 6); g.stroke();
+    g.fillStyle = '#3b3f44'; g.beginPath(); // thorns
+    for (let k = 0; k < 4; k++) { const a = q.seed * 0.37 + k * (TAU / 4), r1 = (T / 2 - m) * 0.9 * rise; g.moveTo(cx + Math.cos(a - 0.35) * 6, cy + Math.sin(a - 0.35) * 6); g.lineTo(cx + Math.cos(a) * r1, cy + Math.sin(a) * r1); g.lineTo(cx + Math.cos(a + 0.35) * 6, cy + Math.sin(a + 0.35) * 6); }
+    g.fill(); g.strokeStyle = 'rgba(255,150,100,.8)'; g.lineWidth = 1.4; g.stroke();
+    g.strokeStyle = 'rgba(201,64,45,.9)'; g.lineWidth = 2; g.lineCap = 'round'; g.beginPath();
+    for (let k = 0; k < 3; k++) { const a = q.seed * 0.37 + 0.8 + k * 2.1; g.moveTo(cx, cy); g.lineTo(cx + Math.cos(a) * 15, cy + Math.sin(a) * 15); g.lineTo(cx + Math.cos(a + 0.4) * 22, cy + Math.sin(a + 0.4) * 20); }
     g.stroke(); g.restore();
   }
   const sw = dk.sw; if (!sw) return;
