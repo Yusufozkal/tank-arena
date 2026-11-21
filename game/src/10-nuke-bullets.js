@@ -159,6 +159,7 @@ function updateBullets(dt) {
   for (const b of G.bullets) {
     if (b.dead) continue;
     b.life -= dt; if (b.life <= 0) { b.dead = true; continue; }
+    if (b.shT > 0) b.shT -= dt; // Ağır Topçu shell: hit flash
     if (TT.bulletStep(b, dt) || b.dead) continue; // hook (A): lob shells fly over everything and are moved by the trait
     b.dist += Math.hypot(b.vx, b.vy) * dt; // path length for packages A/B
     const steps = Math.max(1, Math.ceil(Math.hypot(b.vx, b.vy) * dt / 8));
@@ -173,7 +174,7 @@ function updateBullets(dt) {
           if (!b.bricks) b.bricks = [];
           if (!b.bricks.includes(i)) { b.bricks.push(i); hitTile(b, b.x, b.y); }
         } else if (v === STEEL && b.bounce > 0) { ricochet(b, px, py); continue; }
-        else { hitTile(b, b.x, b.y); if (b.splash) blastAt(b, b.x, b.y, null); b.dead = true; break; }
+        else { hitTile(b, b.x, b.y); if (b.splash) blastAt(b, b.x, b.y, null); if (b.shell) topcuBoom(b, b.x, b.y); b.dead = true; break; } // b.shell: Ağır Topçu (11) bursts on a wall
       }
       if (b.owner === 0) {
         let hit = null;
@@ -187,10 +188,10 @@ function updateBullets(dt) {
           if (b.pierce || b.pn > 0) { (b.hits || (b.hits = [])).push(hit.id); if (!b.pierce) b.pn--; } else b.dead = true; // pn: a limited number of tank penetrations (Uclu)
           damageEnemy(hit, b);
           if (b.splash) blastAt(b, b.x, b.y, hit);
-        }
+        } else if (G.boss && G.boss.kr && G.boss.kr.dec.length && krDecoyHit(b)) { if (!b.pierce) { b.dead = true; break; } } // Kırağı's ice copies (11f) take a shell and break
       } else if (p && p.alive) {
         const rr = p.r + b.r + (G.buffs.shield > 0 || p.shield1T > 0 ? 8 : 0);
-        if (dist2(b.x, b.y, p.x, p.y) < rr * rr) { b.dead = true; damagePlayer(b); }
+        if (dist2(b.x, b.y, p.x, p.y) < rr * rr) { b.dead = true; if (b.shell) b.hitP = true; damagePlayer(b); if (b.shell) topcuBoom(b, b.x, b.y); }
       }
     }
   }
@@ -199,6 +200,10 @@ function updateBullets(dt) {
     for (const c of G.bullets) {
       if (c.dead || c.owner !== 1 || c.boss) continue; // boss shells are not shot down by the player's shells
       const rr = a.r + c.r + 3;
+      if (c.shell) { // Ağır Topçu shell: 3 hits of any shell, whatever the damage (a piercing shell counts once per Topçu shell)
+        if (dist2(a.x, a.y, c.x, c.y) < rr * rr && !(a.shot && a.shot.includes(c))) { shellHit(c, a); if (a.pierce) (a.shot || (a.shot = [])).push(c); else { a.dead = true; break; } }
+        continue;
+      }
       if (dist2(a.x, a.y, c.x, c.y) < rr * rr) { c.dead = true; if (!a.pierce) a.dead = true; sparks((a.x + c.x) / 2, (a.y + c.y) / 2, 8, '#fff0c0', 200); Sound.metal(volAt(a.x, a.y)); if (a.dead) break; }
     }
   }

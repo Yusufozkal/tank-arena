@@ -112,7 +112,7 @@ function updatePlayer(p, dt) {
   if (thr > 0) {
     const target = Math.atan2(iy, ix);
     p.angle = turnTo(p.angle, target, s.turn * (turbo > 1 ? 1.25 : 1) * dt);
-    const al = Math.cos(angDiff(p.angle, target)), spd = al > 0 ? s.speed * turbo * thr * al * al * pushK(p) : 0; // pushK: Çift Yön volley boost
+    const al = Math.cos(angDiff(p.angle, target)), spd = al > 0 ? s.speed * turbo * thr * al * al * pushK(p) * playerSlowK() : 0; // pushK: Çift Yön volley boost
     tvx = Math.cos(p.angle) * spd; tvy = Math.sin(p.angle) * spd;
   }
   const k = 1 - Math.exp(-12 * dt);

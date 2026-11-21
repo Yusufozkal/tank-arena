@@ -17,31 +17,32 @@ function waveMods(w) {
 }
 // Region rule (docs/BOSSES.md section 9): a defeated boss takes its enemy types out of the rest of the run. G.beaten holds the ids of the bosses beaten in this run (13 waveCleared).
 // A boss wave still played by the stand-in Komutan records 'komutan', which removes nothing.
-const REGION_BAN = { sari: ['fast'], demirkok: ['heavy', 'tamirci'], kiragi: ['hunter'] };
-const REGION_NAME = { fast: 'Keşif tankları', heavy: 'Ağır tanklar', tamirci: 'Tamirciler', hunter: 'Avcılar' };
+const REGION_BAN = { sari: ['fast'], demirkok: ['heavy', 'tamirci'], kiragi: ['hunter', 'topcu'] };
+const REGION_NAME = { fast: 'Keşif tankları', heavy: 'Ağır tanklar', tamirci: 'Tamirciler', hunter: 'Avcılar', topcu: 'Ağır Topçular' };
 const typeBanned = type => { for (const id of G.beaten) { const l = REGION_BAN[id]; if (l && l.includes(type)) return true; } return false; };
 const regionGone = id => (REGION_BAN[id] || []).map(t => REGION_NAME[t]); // names removed by boss id
 // Share of Hızlı / Ağır / Avcı / Tamirci among normal-wave tanks. Each type is absent before its first wave (RULES.fastFrom / heavyFrom / hunterFrom / tamirciFrom), then grows slowly; a beaten boss's types stay at 0.
 // Thinner waves after a region change are made up with numbers and sharper fire, never with HP: +12% tanks, -7% reload time, -10% aim error per removed type
-const removedN = () => ['fast', 'heavy', 'hunter', 'tamirci'].filter(typeBanned).length;
+const removedN = () => ['fast', 'heavy', 'hunter', 'tamirci', 'topcu'].filter(typeBanned).length;
 function typeShares(w) {
   const D = G.D, ok = t => !typeBanned(t);
   return {
     pf: ok('fast') && w > D.fastFrom ? Math.min(0.28, 0.04 + 0.02 * (w - D.fastFrom)) - Math.max(0, w - 20) * 0.005 : 0,
     ph: ok('heavy') && w > D.heavyFrom ? Math.min(0.45, 0.04 + 0.02 * (w - D.heavyFrom)) : 0,
     pu: ok('hunter') && w > D.hunterFrom ? Math.min(0.5, 0.04 + 0.03 * (w - D.hunterFrom)) : 0,
-    pt: ok('tamirci') && w > D.tamirciFrom ? Math.min(0.15, 0.03 + 0.015 * (w - D.tamirciFrom)) : 0 };
+    pt: ok('tamirci') && w > D.tamirciFrom ? Math.min(0.15, 0.03 + 0.015 * (w - D.tamirciFrom)) : 0,
+    pa: ok('topcu') && w > D.topcuFrom && themeFor(w).key === 'snow' ? Math.min(0.12, 0.03 + 0.01 * (w - D.topcuFrom)) : 0 }; // Ağır Topçu: the Kar roster only (waves 24-29; 23 has exactly one)
 }
 function buildRoster(w) {
   const D = G.D, list = [];
   if (w % 5 === 0) return { list: ['boss'], maxAlive: 1 }; // boss stage: only the boss on the field, no escorts (startBossStage spawns it)
   const rk = 1 + 0.12 * removedN(), total = clamp(Math.round((3 + w + Math.floor(w / 2)) * D.count * rk), 3, Math.round((20 + Math.floor(Math.max(0, w - 20) / 3)) * rk));
-  const { pf, ph, pu, pt } = typeShares(w);
-  for (let i = 0; i < total; i++) { const r = Math.random(); list.push(r < ph ? 'heavy' : r < ph + pf ? 'fast' : r < ph + pf + pu ? 'hunter' : r < ph + pf + pu + pt ? 'tamirci' : 'basic'); }
+  const { pf, ph, pu, pt, pa } = typeShares(w);
+  for (let i = 0; i < total; i++) { const r = Math.random(); list.push(r < ph ? 'heavy' : r < ph + pf ? 'fast' : r < ph + pf + pu ? 'hunter' : r < ph + pf + pu + pt ? 'tamirci' : r < ph + pf + pu + pt + pa ? 'topcu' : 'basic'); }
   shuffle(list);
   // a type's first wave: exactly one of it (the roster above has none yet), placed a little way into the wave; never for a type the region rule removed
-  const first = w === D.fastFrom ? 'fast' : w === D.heavyFrom ? 'heavy' : w === D.hunterFrom ? 'hunter' : w === D.tamirciFrom ? 'tamirci' : null;
-  if (first && !typeBanned(first)) list[Math.min(list.length - 1, first === 'tamirci' ? 3 : 1 + Math.floor(Math.random() * 2))] = first;
+  const first = w === D.fastFrom ? 'fast' : w === D.heavyFrom ? 'heavy' : w === D.hunterFrom ? 'hunter' : w === D.tamirciFrom ? 'tamirci' : w === D.topcuFrom && themeFor(w).key === 'snow' ? 'topcu' : null;
+  if (first && !typeBanned(first)) list[Math.min(list.length - 1, first === 'tamirci' || first === 'topcu' ? 3 : 1 + Math.floor(Math.random() * 2))] = first;
   const alive = Math.min(6, 3 + Math.ceil(w / 2)) + (w > 12 ? Math.min(6, 1 + Math.floor((w - 13) / 5)) : 0) + D.alive;
   return { list, maxAlive: Math.min(D.maxAlive, alive) };
 }
@@ -151,7 +152,8 @@ const NEW_FOE = {
   fast: ['tankArena.seenFast', 'Yeni düşman: Hızlı. Küçük ve çevik, hızla yaklaşır ama az dayanır.'],
   heavy: ['tankArena.seenHeavy', 'Yeni düşman: Ağır. Yavaş ama çok sağlam, çift namlu ateş eder.'],
   hunter: ['tankArena.seenHunter', 'Yeni düşman: Avcı. Yakından gelen mermiden kaçar, uzaktan vurulunca siper alır; ateş etmeden önce yeşil hedef ışığı yakar.'],
-  tamirci: ['tankArena.seenTamirci', 'Yeni düşman: Tamirci. Silahı yok; yanındaki tankları onarır. Önce onu vur.'] };
+  tamirci: ['tankArena.seenTamirci', 'Yeni düşman: Tamirci. Silahı yok; yanındaki tankları onarır. Önce onu vur.'],
+  topcu: ['tankArena.seenTopcu', 'Yeni düşman: Ağır Topçu. Namlusu parlayınca dev bir mermi atar; mermiye 3 isabet ettirirsen havada patlar. İkinci mermisi geç gelir.'] };
 function spawnEnemy(type, x, y) {
   if (type === 'boss') { // debug / old paths: a boss in an ordinary wave (no phases, no stage)
     const a = Math.atan2(G.player.y - y, G.player.x - x), e = spawnBoss(bossDefAt(G.wave) || BOSS_DEFS.komutan, x, y, a);
@@ -160,7 +162,7 @@ function spawnEnemy(type, x, y) {
   const e = makeTank(type, x, y), p = G.player;
   const a = Math.atan2(G.map.n * T / 2 - y, G.map.n * T / 2 - x); // a new tank faces the map centre (it knows nothing of the player)
   e.angle = Math.round(a / (Math.PI / 2)) * (Math.PI / 2); e.turret = e.angle;
-  e.cool = rand(0.9, 1.7) * G.mods.cool; e.speedMul = G.mods.speed; e.coolMul = G.mods.cool; e.aimErr = rand(-G.mods.err, G.mods.err);
+  e.cool = type === 'topcu' ? rand(2.5, 4) : rand(0.9, 1.7) * G.mods.cool; e.speedMul = G.mods.speed; e.coolMul = G.mods.cool; e.aimErr = rand(-G.mods.err, G.mods.err);
   if (G.mods.hp > 1) e.hp = e.maxHp = Math.max(1, Math.round(e.spec.hp * G.mods.hp)); // later waves bring tougher tanks
   if (!(G.contactT <= G.time)) G.contactT = G.time; // no hint: a new tank patrols until it sees or hears something
   G.enemies.push(e);
@@ -176,6 +178,7 @@ function updateSpawns(dt) {
     if (sp) {
       let ty = G.queue.shift();
       if (ty === 'tamirci' && G.enemies.filter(o => o.type === 'tamirci').length + G.portals.filter(q => q.type === 'tamirci').length >= 2) ty = 'basic'; // at most two Tamirci on the field
+      if (ty === 'topcu' && G.enemies.filter(o => o.type === 'topcu').length + G.portals.filter(q => q.type === 'topcu').length >= RULES.maxTopcu) ty = 'basic'; // at most two Ağır Topçu on the field
       if (ty === 'hunter' && G.enemies.filter(o => o.type === 'hunter').length + G.portals.filter(q => q.type === 'hunter').length >= RULES.maxHunters) ty = 'basic'; // and a few Avcı at once
       G.portals.push({ x: sp.x, y: sp.y, t: 0, dur: 1.15, type: ty, done: false }); G.spawnTimer = rand(0.7, 1.5) * G.mods.pace; Sound.spawn(volAt(sp.x, sp.y));
     } else G.spawnTimer = 0.25;
@@ -196,6 +199,7 @@ function updateEnemy(e, dt) {
   const s = e.spec, p = G.player, m = G.map;
   if (s.smart) { updateHunter(e, dt); return; }
   if (s.medic) { updateTamirci(e, dt); return; }
+  if (s.artillery) { updateTopcu(e, dt); return; }
   e.cool -= dt; e.flash = Math.max(0, e.flash - dt); e.recoil = Math.max(0, e.recoil - dt * 6);
   e.hidden = m.at(e.x, e.y) === BUSH;
   e.senseT -= dt;
@@ -552,6 +556,121 @@ function updateTamirci(e, dt) {
   const ta = beam ? Math.atan2(beam.y - e.y, beam.x - e.x) : e.angle;
   e.turret = turnTo(e.turret, ta, s.tTurn * dt);
   if (dt > 0) { e.avx = (e.x - ox) / dt; e.avy = (e.y - oy) / dt; }
+  trackUpdate(e, (e.x - ox) * Math.cos(e.angle) + (e.y - oy) * Math.sin(e.angle), angDiff(before, e.angle));
+  damageSmoke(e, dt);
+}
+
+/* ================= Ağır Topçu (Kar, docs/BOSSES.md 1.5.5) ================= */
+// A short wide hull with one very thick barrel. It keeps ~7 tiles away, stops, the barrel glows 0.8 s (the last 0.25 s the aim is locked) and one huge slow shell leaves the muzzle; reload 6 s (not scaled by the wave:
+// the reload is the whole idea), then it repositions to a new spot around the player. The shell (b.shell) has 3 "hit points": every player shell that touches it takes one, whatever its damage; at 0 it pops harmlessly (+25).
+// A piercing shell passes through and counts once per shell; a ricochet counts like any shell; Obüs lob shells fly over it, flame does not touch it, the nuke wipes it. On impact (player, wall) it blasts 58 px: bricks inside are destroyed, steel never, the player takes 60%.
+NUKE_WEIGHT.topcu = 2;
+const TOPCU = { reload: 6, charge: 0.8, lock: 0.25, shellHp: 3, repos: 2.6, boom: 58, splash: 0.6, pop: 25, life: 6, lead: 0.6, near: 3.3 };
+function topcuSpot(e) { // a free tile 4-5.6 tiles from the player with a clear line to it, well away from where the tank stands (a flank, not a retreat into the same lane)
+  const m = G.map, p = G.player, cur = Math.atan2(e.y - p.y, e.x - p.x); let best = null, bs = -1e9;
+  for (let k = 0; k < 18; k++) {
+    const a = cur + (k % 2 ? 1 : -1) * rand(0.7, 2.2), r = rand(4, 5.6) * T, x = p.x + Math.cos(a) * r, y = p.y + Math.sin(a) * r, c = Math.floor(x / T), rr = Math.floor(y / T);
+    if (c < 1 || rr < 1 || c > m.n - 2 || rr > m.n - 2 || blocksTank(m.get(c, rr))) continue;
+    const cx = c * T + T / 2, cy = rr * T + T / 2; if (!los(cx, cy, p.x, p.y) || Math.hypot(cx - e.x, cy - e.y) < 3 * T) continue;
+    let sc = Math.random() * 2 - Math.hypot(cx - e.x, cy - e.y) / T * 0.15;
+    for (const o of G.enemies) if (o !== e && !o.dead && dist2(o.x, o.y, cx, cy) < (2.5 * T) * (2.5 * T)) sc -= 3;
+    if (sc > bs) { bs = sc; best = { c, r: rr, x: cx, y: cy }; }
+  }
+  return best;
+}
+function topcuFire(e) {
+  const s = e.spec, m = G.map, ca = Math.cos(e.turret), sa = Math.sin(e.turret); let bx = e.x, by = e.y, blocked = false;
+  for (let d = 6; d <= s.barrel + 4; d += 6) { bx = e.x + ca * d; by = e.y + sa * d; if (isWall(m.at(bx, by))) { blocked = true; break; } }
+  const b = { x: bx, y: by, vx: ca * s.bSpeed, vy: sa * s.bSpeed, r: s.bR, owner: 1, dmg: Math.max(1, Math.round(s.dmg * G.mods.dmg)), life: TOPCU.life, big: true, dead: false, pierce: false, bounce: 0, splash: null,
+    look: 'enemy', hits: null, bricks: null, sx: bx, sy: by, dist: 0, bounced: false, vol: 0, volN: 0, pn: 0, shell: true, sh: TOPCU.shellHp, shT: 0, hitP: false };
+  e.recoil = 1.6; e.lastShot = G.time;
+  for (let k = 0; k < 4; k++) {
+    const a = e.turret + rand(-0.35, 0.35), mx = e.x + ca * (s.barrel + 4), my = e.y + sa * (s.barrel + 4);
+    addPart('fire', mx, my, Math.cos(a) * 90, Math.sin(a) * 90, 0.14, 26, 44, 0);
+    addPart('smoke', mx, my, ca * 40 + rand(-14, 14), sa * 40 + rand(-14, 14), rand(0.7, 1.1), 18, 34, 3);
+  }
+  moveTank(e, -ca * 3, -sa * 3); shake(3 * prox(e.x, e.y)); Sound.shoot(false, true, volAt(e.x, e.y));
+  if (blocked) { hitTile(b, bx, by); topcuBoom(b, bx, by); return; } // the muzzle is against a wall: it bursts at once
+  G.bullets.push(b);
+}
+function topcuBoom(b, x, y) { // impact: a small blast; bricks inside are destroyed, steel is not touched, the player takes 60% unless the shell hit him directly
+  const m = G.map, p = G.player, R = TOPCU.boom; b.dead = true;
+  explode(x, y, 0.8); addDecals(m, [{ k: 'scorch', x, y, r: R * 0.8 }]);
+  const c0 = Math.floor(x / T), r0 = Math.floor(y / T);
+  for (let dr = -2; dr <= 2; dr++) for (let dc = -2; dc <= 2; dc++) {
+    const c = c0 + dc, r = r0 + dr; if (c < 0 || r < 0 || c >= m.n || r >= m.n || m.t[r * m.n + c] !== BRICK) continue;
+    const cx = c * T + T / 2, cy = r * T + T / 2; if (dist2(cx, cy, x, y) < (R + T * 0.4) * (R + T * 0.4)) destroyBrick(m, c, r, volAt(cx, cy));
+  }
+  if (p.alive && !b.hitP && dist2(x, y, p.x, p.y) < (R + p.r * 0.5) * (R + p.r * 0.5)) damagePlayer({ x: p.x, y: p.y, dmg: Math.max(1, Math.round(b.dmg * TOPCU.splash)), owner: 1, vx: 0, vy: 0 });
+}
+function shellHit(c, a) { // a player shell touched an Ağır Topçu shell: one "hit point" whatever the damage; the third pops it
+  c.sh--; c.shT = 0.18;
+  sparks(c.x, c.y, 7, '#ffd27a', 220); Sound.metal(volAt(c.x, c.y));
+  if (c.sh > 0) { addPart('ring', c.x, c.y, 0, 0, 0.22, c.r, c.r * 2.2, 0, '255,200,120'); return; }
+  c.dead = true; // pops: no blast, a small reward cue
+  addPart('flash', c.x, c.y, 0, 0, 0.18, 90, 0, 0); addPart('ring', c.x, c.y, 0, 0, 0.45, c.r, c.r * 5, 0, '255,226,170');
+  sparks(c.x, c.y, 14, '#fff0c0', 320); for (let k = 0; k < 6; k++) addPart('debris', c.x, c.y, rand(-150, 150), rand(-150, 150), rand(0.5, 0.9), rand(3, 5), 0, 3.4, k & 1 ? '#241a16' : '#ffa52e');
+  Sound.pop(volAt(c.x, c.y)); G.score += TOPCU.pop; addText(c.x, c.y - 18, 'Mermi düştü +' + TOPCU.pop, '#ffd27a', 15);
+}
+function updateTopcu(e, dt) {
+  const s = e.spec, p = G.player, m = G.map, tp = e.tp || (e.tp = { charge: 0, repos: 0, tf: null, spot: null });
+  e.cool -= dt; e.flash = Math.max(0, e.flash - dt); e.recoil = Math.max(0, e.recoil - dt * 4);
+  e.hidden = m.at(e.x, e.y) === BUSH;
+  e.senseT -= dt;
+  if (e.senseT <= 0) {
+    e.senseT = 0.1 + Math.random() * 0.08;
+    if (p.alive) { e.distP = Math.hypot(p.x - e.x, p.y - e.y); e.canSee = sees(e, p, 0); } else e.canSee = false;
+  }
+  updateAware(e, dt);
+  const trB = !!e.pt && e.pt.tread > 0, jam = !!e.pt && e.pt.barrel > 0, pk = e.pt && e.pt.engine > 0 ? 0.5 : 1, before = e.angle, ox = e.x, oy = e.y;
+  const tt = e.distP / s.bSpeed * G.mods.lead * TOPCU.lead;
+  const aim = p.alive ? Math.atan2(p.y + p.avy * tt - e.y, p.x + p.avx * tt - e.x) + e.aimErr : null;
+  if (tp.charge > 0) { // the barrel glows; the tank stands still. A jammed barrel or a lost target calls it off
+    if (jam || !p.alive || !e.canSee) { tp.charge = 0; e.cool = Math.max(e.cool, 1.2); }
+    else {
+      tp.charge += dt;
+      if (tp.charge < TOPCU.charge - TOPCU.lock) e.turret = turnTo(e.turret, aim, s.tTurn * dt);
+      if (tp.charge >= TOPCU.charge) {
+        tp.charge = 0; topcuFire(e); e.cool = TOPCU.reload * rand(0.92, 1.08); e.aimErr = rand(-G.mods.err, G.mods.err);
+        tp.repos = TOPCU.repos; tp.spot = topcuSpot(e); tp.tf = null;
+      }
+    }
+    e.avx = e.avy = 0;
+  } else {
+    let goal = null;
+    if (!trB) {
+      if (tp.repos > 0) { // after the shot: walk to a new place around the player
+        tp.repos -= dt;
+        if (tp.spot) {
+          if (!tp.tf) { const n = m.n; tp.tf = new Float32Array(n * n); dijkstra(m, tp.spot.r * n + tp.spot.c, tp.tf, null); e.wp = null; }
+          if (dist2(tp.spot.x, tp.spot.y, e.x, e.y) < 30 * 30) tp.repos = 0;
+          else { if (!e.wp || dist2(e.wp.x, e.wp.y, e.x, e.y) < 25) { e.wp = nextWaypoint(e, tp.tf); e.wpBest = 1e9; e.stuckT = 0; } goal = e.wp; }
+        } else tp.repos = 0;
+      } else if (e.canSee && e.distP < TOPCU.near * T) { // too close: back away
+        const a = tamFlee(e); if (a !== null) goal = { x: e.x + Math.cos(a) * 60, y: e.y + Math.sin(a) * 60, c: -1, r: -1, free: true };
+      } else if (!(e.canSee && e.distP < s.hold * T)) {
+        if (!e.wp || dist2(e.wp.x, e.wp.y, e.x, e.y) < 25) { const f = fieldFor(e, m.flow); e.wp = f ? nextWaypoint(e, f) : null; e.wpBest = 1e9; e.stuckT = 0; }
+        goal = e.wp;
+      }
+    }
+    if (goal && !goal.free) { const v = m.get(goal.c, goal.r); if (blocksTank(v)) { e.wp = randomNeighbor(e); goal = null; } }
+    if (goal) {
+      const desired = Math.atan2(goal.y - e.y, goal.x - e.x);
+      e.angle = turnTo(e.angle, desired, s.turn * dt);
+      const diff = Math.abs(angDiff(e.angle, desired)), spd = diff < 0.5 ? s.speed * e.speedMul * pk * (1 - diff * 0.9) : 0;
+      moveTank(e, Math.cos(e.angle) * spd * dt, Math.sin(e.angle) * spd * dt);
+      if (!goal.free) {
+        const dw = Math.hypot(goal.x - e.x, goal.y - e.y);
+        if (dw < e.wpBest - 0.5) { e.wpBest = dw; e.stuckT = 0; } else e.stuckT += dt;
+        if (e.stuckT > 1.2) { e.wp = randomNeighbor(e); e.wpBest = 1e9; e.stuckT = 0; }
+      }
+    }
+    if (dt > 0) { e.avx = (e.x - ox) / dt; e.avy = (e.y - oy) / dt; }
+    if (e.canSee && p.alive) { // aim; the charge starts when the reload is over, the barrel points at the player and the tank is on screen
+      e.turret = turnTo(e.turret, aim, s.tTurn * dt);
+      if (e.cool <= 0 && !jam && tp.repos <= 0 && onFireView(e.x, e.y, T * 0.3) && Math.abs(angDiff(e.turret, aim)) < 0.12) tp.charge = 0.001;
+    } else e.turret = turnTo(e.turret, e.lookT > 0 ? e.lookA : e.angle, s.tTurn * 0.6 * dt);
+  }
   trackUpdate(e, (e.x - ox) * Math.cos(e.angle) + (e.y - oy) * Math.sin(e.angle), angDiff(before, e.angle));
   damageSmoke(e, dt);
 }

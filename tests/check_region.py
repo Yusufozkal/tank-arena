@@ -65,11 +65,11 @@ with sync_playwright() as p:
     for w in (30, 40):
         ev(page, "(w) => { const G = __tank.G; G.beaten.clear(); G.wave = w; __tank.killAll(); __tank.waveCleared(); }", w) if False else page.evaluate("(w) => { const G = __tank.G; G.beaten.clear(); G.wave = w; __tank.killAll(); __tank.waveCleared(); }", w)
         got = ev(page, "[...__tank.G.beaten]")
-        ok = (got == ['komutan'] and not ev(page, "['fast', 'heavy', 'hunter', 'tamirci'].some(t => __tank.typeBanned(t))"))
+        ok = (got == ['komutan'] and not ev(page, "['fast', 'heavy', 'hunter', 'tamirci', 'topcu'].some(t => __tank.typeBanned(t))"))
         if got != ['komutan']:
             ok = True  # a real boss now stands there: only its own types are removed
-            ban = {'sari': ['fast'], 'demirkok': ['heavy', 'tamirci'], 'kiragi': ['hunter']}.get(got[0], [])
-            ok = all(ev(page, "(t) => __tank.typeBanned(t)", t) == (t in ban) for t in ('fast', 'heavy', 'hunter', 'tamirci'))
+            ban = {'sari': ['fast'], 'demirkok': ['heavy', 'tamirci'], 'kiragi': ['hunter', 'topcu']}.get(got[0], [])
+            ok = all(ev(page, "(t) => __tank.typeBanned(t)", t) == (t in ban) for t in ('fast', 'heavy', 'hunter', 'tamirci', 'topcu'))
         check(f'standin_wave{w}', ok, got)
     # wave 20 in this branch is still the Komutan; with Demirkok it removes Agir and Tamirci
     ev(page, "(() => { const G = __tank.G; G.beaten.clear(); G.wave = 20; __tank.killAll(); __tank.waveCleared(); })()")

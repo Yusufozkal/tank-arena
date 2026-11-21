@@ -112,6 +112,7 @@ function bossDanger(x, y, pad, react) { // react: seconds a warning must have be
   if (e.def.danger && e.def.danger(e, x, y, pad)) return true; // per-boss hazards that are not telegraphs (sand strips)
   for (const tl of G.tele) {
     if (react && tl.t < react) continue;
+    if (tl.nodanger) continue; // a harmless warning (Kırağı's frost front, ice-copy lines)
     if (tl.kind === 'circle') { const rr = tl.r + pad; if (dist2(x, y, tl.x, tl.y) < rr * rr) return true; }
     else if (tl.kind === 'line') {
       const ca = Math.cos(tl.a), sa = Math.sin(tl.a), dx = x - tl.x, dy = y - tl.y, al = dx * ca + dy * sa, pr = -dx * sa + dy * ca;

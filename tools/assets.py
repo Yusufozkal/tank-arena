@@ -61,10 +61,10 @@ with sync_playwright() as p:
     # tank sprites at 4x
     page = b.new_page(); page.route('https://fonts.googleapis.com/**', route_fonts); page.route('https://fonts.gstatic.com/**', route_fonts)
     page.goto('http://127.0.0.1:8769/index.html#debug'); page.wait_for_timeout(800)
-    for t in ['basic', 'fast', 'heavy', 'hunter', 'tamirci', 'player']:
+    for t in ['basic', 'fast', 'heavy', 'hunter', 'tamirci', 'topcu', 'player']:
         save(page.evaluate(f"__tank.sprite('{t}', 256)"), f'{SITE}/img/tank-{t}.png')
     page.click('#btnStart'); page.wait_for_timeout(300)
-    for name, w, key in (('komutan', 5, None), ('sari', 10, None), ('demirkok', 20, None), ('kapatici', 25, 'kapatici')):  # the bosses, drawn by the game itself (key: sandbox-only boss, not on any wave)
+    for name, w, key in (('komutan', 5, None), ('sari', 10, None), ('demirkok', 20, None), ('kapatici', 25, 'kapatici'), ('kiragi', 30, None)):  # the bosses, drawn by the game itself (key: sandbox-only boss, not on any wave)
         key_js = f"'{key}'" if key else 'null'
         save(page.evaluate(f"__tank.bossSprite({w}, 512, 170, {key_js})"), f'{SITE}/img/boss-{name}.png')
     for tid in page.evaluate('__tank.tanks()'):  # all player tanks (Tank ağacı section): tank-<id>.png

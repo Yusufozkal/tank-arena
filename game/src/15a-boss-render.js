@@ -1,6 +1,9 @@
 /* ================= boss drawing ================= */
 // drawTank hands bosses to drawBoss. Komutan: bordeaux hull, gold trim, three barrels, command tower with a banner (bigger than the old Komutan: 90 long).
 function drawBoss(e, alpha, g) {
+  const va = e.def && e.def.vis ? e.def.vis(e) : 1; // a boss that can be invisible (Kırağı) draws itself and its damage marks at that opacity
+  if (va < 0.02) return;
+  alpha *= va;
   if (e.def && e.def.draw) e.def.draw(e, g, alpha); else drawKomutan(e, g, alpha);
   if (e.tr) drawBossPartDamage(e, g, alpha);
 }
@@ -116,6 +119,13 @@ function drawTele() {
     if (tl.kind === 'line') {
       const locked = tl.t >= tl.dur - tl.lock, len = tl.len, w = tl.w;
       ctx.save(); ctx.translate(tl.x, tl.y); ctx.rotate(tl.a);
+      if (tl.rgb) { // a line in its own colour (Kırağı's mint laser, the ice-blue frost front): same shape language
+        ctx.fillStyle = locked ? `rgba(${tl.rgb},.5)` : `rgba(${tl.rgb},${(0.14 + 0.2 * k).toFixed(3)})`; ctx.fillRect(0, -w / 2, len, w);
+        ctx.strokeStyle = locked ? `rgba(${tl.rgb},1)` : `rgba(${tl.rgb},.85)`; ctx.lineWidth = locked ? 3 : 2; ctx.setLineDash(locked ? [] : [14, 10]); ctx.lineDashOffset = -G.time * 60;
+        ctx.strokeRect(0, -w / 2, len, w); ctx.setLineDash([]);
+        ctx.strokeStyle = locked ? 'rgba(255,255,255,.95)' : 'rgba(255,255,255,.6)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(len, 0); ctx.stroke();
+        ctx.restore(); continue;
+      }
       ctx.fillStyle = locked ? 'rgba(140,16,12,.5)' : `rgba(224,60,40,${(0.16 + 0.2 * k).toFixed(3)})`; ctx.fillRect(0, -w / 2, len, w);
       ctx.strokeStyle = locked ? 'rgba(90,6,6,.95)' : 'rgba(255,90,60,.85)'; ctx.lineWidth = locked ? 3 : 2; ctx.setLineDash(locked && !tl.dash ? [] : [14, 10]); // tl.dash: a bounce warning stays dashed ctx.lineDashOffset = -G.time * 60;
       ctx.strokeRect(0, -w / 2, len, w); ctx.setLineDash([]);

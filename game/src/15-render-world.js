@@ -22,12 +22,13 @@ function render() {
   const p = G.player, pAlive = !!(p && p.alive), cloak = G.buffs.stealth > 0;
   const pa = cloak ? 0.4 + 0.08 * Math.sin(G.time * 7) : 1; // Kamuflaj: the player's tank shimmers, half seen
   ctx.fillStyle = m.theme.shadow;
-  for (const e of G.enemies) if (onScreen(e.x, e.y, 60)) tankShadow(e);
+  for (const e of G.enemies) if (onScreen(e.x, e.y, 60) && !(e.isBoss && e.def.vis && e.def.vis(e) < 0.3)) tankShadow(e); // no shadow under an invisible boss
   if (pAlive && !cloak) tankShadow(p);
   for (const e of G.enemies) if (onScreen(e.x, e.y, 60)) drawTank(e, 1);
   if (G.buffs.freeze > 0) for (const e of G.enemies) if (!e.dead && !e.hidden && onScreen(e.x, e.y, 60)) drawFrost(e);
   if (pAlive) drawTank(p, pa);
   drawBushes(c0, c1, r0, r1);
+  if (G.boss && G.boss.def && G.boss.def.drawTop) G.boss.def.drawTop(G.boss, ctx); // per-boss layer above the bushes (Kırağı's shimmer, ice copies, the laser flash)
   if (upL('thermal')) for (const e of G.enemies) if (e.hidden && !e.dead && onScreen(e.x, e.y, 60)) drawThermal(e);
   for (const e of G.enemies) if (e.spec.medic && !e.dead && (e.vis || 0) > 0 && m.at(e.x, e.y) === BUSH && onScreen(e.x, e.y, 60)) drawTank(e, 1); // a beaming Tamirci shows through its bush
   for (const e of G.enemies) if (e.beamOn && !e.dead && !e.beamOn.dead && G.time < e.beamUntil && onScreen(e.x, e.y, 400)) drawRepairBeam(e);
@@ -104,6 +105,17 @@ function barrel(s, rec, c, g, heat, len0) {
     if (heat > 0.25) { g.fillStyle = 'rgba(30,12,6,.9)'; g.fillRect(x0 - 1, -bW / 2 - 1.2, len + 2, bW + 2.4); }
   }
   switch (s.shape) {
+    case 'howitzer': { // Ağır Topçu: one very thick barrel, a pale breech collar, an amber band and a fat slotted muzzle brake
+      g.fillStyle = '#17110e'; g.fillRect(x0, -bW / 2 - 1.2, len, bW + 2.4);
+      g.fillStyle = c.dk; g.fillRect(x0, -bW / 2, len, bW);
+      g.fillStyle = c.body; g.fillRect(x0 + 2, -bW / 2 + 1.4, len * 0.55, bW - 2.8);
+      g.fillStyle = 'rgba(255,255,255,.16)'; g.fillRect(x0 + 2, -bW / 2 + 2, len * 0.55, 1.4);
+      g.fillStyle = c.hi; g.fillRect(x0 - 1, -bW / 2 - 2, 5, bW + 4);
+      g.fillStyle = c.acc; g.fillRect(x0 + len * 0.58, -bW / 2 - 0.8, 2.6, bW + 1.6);
+      g.fillStyle = '#17110e'; rrect(g, x0 + len - 11, -bW / 2 - 3, 11, bW + 6, 2); g.fill();
+      g.fillStyle = c.acc; for (let k = 0; k < 3; k++) g.fillRect(x0 + len - 9 + k * 3, -bW / 2 - 2.4, 1.4, bW + 4.8);
+      break;
+    }
     case 'long': { // Keskin Nişancı: thin long barrel, breech collar and a slotted muzzle brake
       g.fillStyle = dk; g.fillRect(x0, -bW / 2, len, bW);
       g.fillStyle = 'rgba(255,255,255,.16)'; g.fillRect(x0, -bW / 2 + 1, len, 1.1);
@@ -246,6 +258,13 @@ function drawTank(t, alpha, g) {
   g.fillStyle = c.dk; for (let k = 0; k < 3; k++) g.fillRect(hx + 3.5 + k * 3.2, hy + 4, 1.6, hh - 8);
   if (t.type === 'player' && s.shape !== 'std') hullMarks(g, s, c, hx, hy, hw, hh, alpha);
   g.strokeStyle = 'rgba(0,0,0,.55)'; g.lineWidth = 1.3; rrect(g, -L / 2, -W / 2, L, W, 4); g.stroke();
+  if (s.artillery) { // Ağır Topçu: side skirts with amber studs and hazard stripes on the rear deck
+    g.fillStyle = c.dk; for (const y0 of [-W / 2 - 2.5, W / 2 - tw + 2.5]) rrect(g, -L / 2 + 3, y0, L - 6, tw - 3, 2.5), g.fill();
+    g.fillStyle = c.acc; for (let k = 0; k < 4; k++) { g.fillRect(-L / 2 + 6 + k * 8.4, -W / 2 - 1.5, 3, 1.8); g.fillRect(-L / 2 + 6 + k * 8.4, W / 2 - 0.3, 3, 1.8); }
+    g.save(); g.beginPath(); g.rect(-L / 2 + 3, hy + 2, 11, hh - 4); g.clip(); g.fillStyle = c.acc;
+    for (let k = -2; k < 5; k++) { g.beginPath(); g.moveTo(-L / 2 + 3 + k * 5, hy + hh); g.lineTo(-L / 2 + 6 + k * 5, hy + hh); g.lineTo(-L / 2 + 6 + k * 5 + hh, hy); g.lineTo(-L / 2 + 3 + k * 5 + hh, hy); g.closePath(); g.globalAlpha = alpha * 0.75; g.fill(); }
+    g.restore(); g.globalAlpha = alpha;
+  }
   if (U.armor) { // Zırh plakası: one skirt plate per level along each track, front first
     const sw = (L - 6) / 5, ph = tw * 0.8;
     for (let k = 0; k < U.armor; k++) {
@@ -308,6 +327,13 @@ function drawTank(t, alpha, g) {
       g.fillStyle = k < 1 ? '#f0782a' : '#fff4d0'; g.beginPath(); g.arc(x, y, 3 + 2.2 * k, 0, TAU); g.fill();
     }
     g.globalAlpha = alpha;
+  }
+  if (s.artillery && t.tp && t.tp.charge > 0) { // the barrel glows before the shell leaves: heat creeps up the barrel, a halo and a hot dot at the muzzle (readable on snow too)
+    const k = clamp(t.tp.charge / TOPCU.charge, 0, 1), tipX = s.barrel - rec, bw = s.bW;
+    g.globalAlpha = alpha * (0.25 + 0.6 * k); g.fillStyle = '#ff6a1c'; g.fillRect(s.tR * 0.4 - rec + (s.barrel - s.tR * 0.4) * (1 - k), -bw / 2 + 1, (s.barrel - s.tR * 0.4) * k, bw - 2); g.globalAlpha = alpha;
+    g.fillStyle = `rgba(40,12,6,${(0.7 * k).toFixed(2)})`; g.beginPath(); g.arc(tipX + 1, 0, 8 + 4 * k, 0, TAU); g.fill();
+    if (fxScale === 1) { g.globalCompositeOperation = 'lighter'; const gs = 30 + 52 * k; g.globalAlpha = alpha * (0.35 + 0.65 * k); g.drawImage(SPR.fire, tipX + 1 - gs / 2, -gs / 2, gs, gs); g.globalCompositeOperation = 'source-over'; }
+    g.globalAlpha = alpha * (0.55 + 0.45 * k); g.fillStyle = k < 1 ? '#ff8a2a' : '#fff4d0'; g.beginPath(); g.arc(tipX + 1, 0, 4 + 3.5 * k, 0, TAU); g.fill(); g.globalAlpha = alpha;
   }
   if (U.loader) { // Otomatik yükleyici: ammo drum behind the turret, one brass round per level
     g.fillStyle = '#2b2823'; rrect(g, -tr * 1.05 - 5, -tr * 0.62, 7, tr * 1.24, 2); g.fill();

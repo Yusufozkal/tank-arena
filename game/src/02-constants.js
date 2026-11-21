@@ -53,7 +53,10 @@ const SPECS = {
     col: { body: '#6c4fa3', dk: '#432f6b', hi: '#9d84d1', acc: '#7ef0d0' } },
   // Tamirci (Orman): no weapon; a crane arm repairs the wounded allies near it (11-enemies updateTamirci)
   tamirci: { hp: 3, speed: 95, turn: 3.6, tTurn: 4.5, r: 16, mass: 1, len: 36, wid: 30, tread: 7, tR: 9.5, barrel: 24, bW: 5, cool: 99, bSpeed: 0, dmg: 0, bR: 0, score: 200, hold: 0, drop: 0.3, medic: true,
-    col: { body: '#6f8a3a', dk: '#46591f', hi: '#9fbf5a', acc: '#f2c14e' } }
+    col: { body: '#6f8a3a', dk: '#46591f', hi: '#9fbf5a', acc: '#f2c14e' } },
+  // Ağır Topçu (Kar): short wide hull, one very thick barrel, a huge slow shell that can be shot down (11-enemies updateTopcu, 10 shell bullets)
+  topcu: { hp: 5, speed: 40, turn: 1.7, tTurn: 1.6, r: 22, mass: 2.5, len: 38, wid: 48, tread: 11, tR: 17, barrel: 40, bW: 15, cool: 6, bSpeed: 150, dmg: 28, bR: 11, score: 350, hold: 5, drop: 0.4, artillery: true, shape: 'howitzer',
+    col: { body: '#4a3a33', dk: '#241a16', hi: '#86695a', acc: '#ffa52e' } }
 };
 
 // Komutan HP per boss wave, tuned with tests/boss_probe.py so that a medium card set (and the bot) takes about 3-4 minutes from wave 15 on; the wave-5 Komutan is the easy one

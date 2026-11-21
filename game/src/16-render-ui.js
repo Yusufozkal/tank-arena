@@ -110,20 +110,32 @@ function drawBullets() {
   // Ownership cue: player shells are bright elongated capsules (flying along their path); enemy and boss shells are round, red-orange with a dark ring
   ctx.lineCap = 'round';
   for (const b of G.bullets) {
-    if (b.lob || b.look === 'enemy') continue;
+    if (b.lob || b.look === 'enemy' || b.shell) continue;
     const lk = LOOK[b.look] || LOOK.player, sp = Math.hypot(b.vx, b.vy) || 1, ux = b.vx / sp * b.r * 1.5, uy = b.vy / sp * b.r * 1.5;
     ctx.strokeStyle = 'rgba(0,0,0,.5)'; ctx.lineWidth = b.r * 2 + 2.4; ctx.beginPath(); ctx.moveTo(b.x - ux, b.y - uy); ctx.lineTo(b.x + ux, b.y + uy); ctx.stroke();
     ctx.strokeStyle = lk.core; ctx.lineWidth = b.r * 2; ctx.beginPath(); ctx.moveTo(b.x - ux, b.y - uy); ctx.lineTo(b.x + ux, b.y + uy); ctx.stroke();
   }
   ctx.lineWidth = 1.8;
   for (const b of G.bullets) {
-    if (b.lob || b.look !== 'enemy') continue;
+    if (b.lob || b.look !== 'enemy' || b.shell) continue;
     const r = b.boss ? b.r * 1.15 : b.r;
     ctx.fillStyle = '#e8441c'; ctx.strokeStyle = '#2a0904'; ctx.beginPath(); ctx.arc(b.x, b.y, r + 0.6, 0, TAU); ctx.fill(); ctx.stroke();
     ctx.fillStyle = '#ffb070'; ctx.beginPath(); ctx.arc(b.x, b.y, r * 0.4, 0, TAU); ctx.fill();
     if (b.boss) { ctx.strokeStyle = '#ff2a1a'; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.arc(b.x, b.y, r + 3.2, 0, TAU); ctx.stroke(); ctx.lineWidth = 1.8; }
   }
   for (const b of G.bullets) if (b.lob) TT_obus.draw(b);
+  for (const b of G.bullets) if (b.shell) drawShell(b);
+}
+// Ağır Topçu shell: a big dark ball in an amber ring with a hot core; one crack per hit it has taken, white for a moment when hit
+function drawShell(b) {
+  const r = b.r, hit = Math.max(0, b.sh), cr = 3 - hit, fl = b.shT > 0 ? 1 : 0;
+  ctx.save(); ctx.translate(b.x, b.y);
+  ctx.fillStyle = '#ffa52e'; ctx.globalAlpha = 0.35 + 0.15 * Math.sin(G.time * 14); ctx.beginPath(); ctx.arc(0, 0, r + 5, 0, TAU); ctx.fill(); ctx.globalAlpha = 1;
+  ctx.fillStyle = fl ? '#fff4d0' : '#2a1d17'; ctx.strokeStyle = '#ffa52e'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(0, 0, r, 0, TAU); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = fl ? '#ffd9a0' : '#ff7a2a'; ctx.beginPath(); ctx.arc(0, 0, r * 0.42, 0, TAU); ctx.fill();
+  ctx.rotate(G.time * 3); ctx.strokeStyle = fl ? '#8a4a14' : '#fff0c0'; ctx.lineWidth = 1.7; ctx.lineCap = 'round';
+  for (let k = 0; k < cr; k++) { const a = k * 2.1 + 0.4; ctx.beginPath(); ctx.moveTo(Math.cos(a) * r * 0.3, Math.sin(a) * r * 0.3); ctx.lineTo(Math.cos(a + 0.25) * r * 0.65, Math.sin(a + 0.25) * r * 0.65); ctx.lineTo(Math.cos(a - 0.1) * r * 1.02, Math.sin(a - 0.1) * r * 1.02); ctx.stroke(); }
+  ctx.restore();
 }
 // Avcı's aiming light: a dashed mint line that brightens just before it fires, so the player gets a moment to react
 function drawLocks() {
@@ -295,7 +307,7 @@ function drawMini() {
   g.strokeStyle = 'rgba(224,83,58,.9)'; g.lineWidth = 1.2 * d;
   for (const q of G.portals) { g.beginPath(); g.arc(q.x * k, q.y * k, (2 + 2 * Math.sin(G.time * 10)) * d + 2 * d, 0, TAU); g.stroke(); }
   const thermal = upL('thermal') > 0;
-  for (const e of G.enemies) if (!e.hidden || thermal) {
+  for (const e of G.enemies) if ((!e.hidden || thermal) && !(e.isBoss && e.def.vis && e.def.vis(e) < 0.3)) { // an invisible boss is not on the minimap either
     g.fillStyle = e.spec.smart ? '#c9a2ff' : '#ff5a3c';
     g.beginPath(); g.arc(e.x * k, e.y * k, (e.type === 'boss' ? 3.4 : 2.3) * d, 0, TAU); g.fill();
   }

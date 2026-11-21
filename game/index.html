@@ -483,9 +483,11 @@ button:focus-visible{outline:2px solid var(--bone);outline-offset:2px}
       <li><canvas data-tank="heavy" aria-hidden="true"></canvas><div><b>Ağır tank</b><span>5 isabet. Çift namlulu, iri mermisi çok can yakar.</span></div></li>
       <li><canvas data-tank="hunter" aria-hidden="true"></canvas><div><b>Avcı</b><span>3 isabet. Yakından gelen mermiden kaçar ama uzaktan gelenden kaçamaz; uzaktan vurulunca siper alır. Seni kaybedince son gördüğü yeri arar. Ateş etmeden önce yeşil hedef ışığı yakar.</span></div></li>
       <li><canvas data-tank="tamirci" aria-hidden="true"></canvas><div><b>Tamirci</b><span>3 isabet. Silahı yok; yanındaki tankları onarır, bozulan paletini ve namlusunu hemen düzeltir. Önce onu vur.</span></div></li>
+      <li><canvas data-tank="topcu" aria-hidden="true"></canvas><div><b>Ağır Topçu</b><span>5 isabet. Kısa, geniş, tek kalın namlulu ve yavaştır. Namlusu parlayınca dev bir mermi atar; mermi yavaş gelir ve çok can yakar. Ona 3 isabet ettirirsen havada patlar. İkinci mermisi geç gelir, o arada yer değiştirir.</span></div></li>
       <li><canvas data-tank="boss" aria-hidden="true"></canvas><div><b>Komutan</b><span>Normal tankın boss'u. Her bölgenin ortasında (5, 15, 25, 35. dalga) kendi arenasında gelir. Üç evresi var; sırtındaki komuta kulesi topçu çağırır. Her gelişinde yeni saldırılar açar.</span></div></li>
       <li><canvas data-tank="fast" aria-hidden="true"></canvas><div><b>Sarı Fırtına</b><span>Keşif tankının boss'u, 10. dalgada Kum Çukuru'nda. Kırmızı çizgi boyunca hücum eder; onu çeliğe çarptırırsan sersemler.</span></div></li>
       <li><canvas data-tank="heavy" aria-hidden="true"></canvas><div><b>Demirkök</b><span>Ağır tankın boss'u, 20. dalgada Orman Kalesi'nde. Yan taretleri ayaktayken gövdesi yarı hasar alır; son evrede kök salar ve arenayı demir köklerle böler.</span></div></li>
+      <li><canvas data-tank="hunter" aria-hidden="true"></canvas><div><b>Kırağı</b><span>Avcı'nın boss'u, 30. dalgada Donmuş Göl'de. Çalıda görünmez, açıkta kısa süre kaybolur; karda izi ve havada titremesi kalır. Yeşil lazer çizgisi atıştan önce yönünü gösterir. Buz suretleri tek isabette kırılır; son evrede göl donar ve don dalgası seni yavaşlatır.</span></div></li>
     </ul>
     <h3 class="gh">GÜÇLENDİRMELER</h3>
     <ul class="pus" id="guidePus" aria-label="Güçlendirmeler"></ul>
@@ -498,7 +500,7 @@ button:focus-visible{outline:2px solid var(--bone);outline-offset:2px}
     <h3 class="gh">İPUÇLARI</h3>
     <ul class="tips-list">
       <li>Çalının içindeyken düşmanlar seni ancak yakından görebilir; seni kaybedince son gördükleri yere gidip etrafı ararlar. Ateş edince yerin kabaca belli olur.</li>
-      <li>Kendi mermin, sana gelen düşman mermisini havada patlatır.</li>
+      <li>Kendi mermin, sana gelen düşman mermisini havada patlatır; Ağır Topçu'nun dev mermisi için 3 isabet gerekir.</li>
       <li>Tuğlalar üç isabette yıkılır, çelik bloklar hiç yıkılmaz.</li>
       <li>Avcı yalnızca yakından gelen mermiden kaçar: onu uzaktan vur.</li>
       <li>Serbest Mod'da tankını, gücünü ve hedefini sen seçersin; rekora sayılmaz. Kapatıcı yalnızca orada çıkar.</li>
@@ -507,7 +509,7 @@ button:focus-visible{outline:2px solid var(--bone);outline-offset:2px}
       <li>Düşmanı yeterince vurursan parçası bozulur: yandan paleti kırılır, önden namlusu tutukluk yapar, arkadan motoru yavaşlar; kısa süre sonra onarır.</li>
       <li>Nükleer bomba bütün haritayı vurur. Bossları öldürmez ama canlarının büyük bir kısmını alır ve onları sersemletir.</li>
       <li>Zırhın azken atölyeye girersen kartlardan biri acil onarım olur.</li>
-      <li>Bir boss'u yenince onun türünden tanklar oyunun geri kalanında gelmez: Sarı Fırtına'dan sonra Keşif tankları, Demirkök'ten sonra Ağır tanklar ve Tamirciler.</li>
+      <li>Bir boss'u yenince onun türünden tanklar oyunun geri kalanında gelmez: Sarı Fırtına'dan sonra Keşif tankları, Demirkök'ten sonra Ağır tanklar ve Tamirciler, Kırağı'dan sonra Avcılar ve Ağır Topçular.</li>
     </ul>
     <button type="button" class="btn primary" id="btnGuideBack">TAMAM</button>
   </section>
@@ -640,7 +642,10 @@ const SPECS = {
     col: { body: '#6c4fa3', dk: '#432f6b', hi: '#9d84d1', acc: '#7ef0d0' } },
   // Tamirci (Orman): no weapon; a crane arm repairs the wounded allies near it (11-enemies updateTamirci)
   tamirci: { hp: 3, speed: 95, turn: 3.6, tTurn: 4.5, r: 16, mass: 1, len: 36, wid: 30, tread: 7, tR: 9.5, barrel: 24, bW: 5, cool: 99, bSpeed: 0, dmg: 0, bR: 0, score: 200, hold: 0, drop: 0.3, medic: true,
-    col: { body: '#6f8a3a', dk: '#46591f', hi: '#9fbf5a', acc: '#f2c14e' } }
+    col: { body: '#6f8a3a', dk: '#46591f', hi: '#9fbf5a', acc: '#f2c14e' } },
+  // Ağır Topçu (Kar): short wide hull, one very thick barrel, a huge slow shell that can be shot down (11-enemies updateTopcu, 10 shell bullets)
+  topcu: { hp: 5, speed: 40, turn: 1.7, tTurn: 1.6, r: 22, mass: 2.5, len: 38, wid: 48, tread: 11, tR: 17, barrel: 40, bW: 15, cool: 6, bSpeed: 150, dmg: 28, bR: 11, score: 350, hold: 5, drop: 0.4, artillery: true, shape: 'howitzer',
+    col: { body: '#4a3a33', dk: '#241a16', hi: '#86695a', acc: '#ffa52e' } }
 };
 
 // Komutan HP per boss wave, tuned with tests/boss_probe.py so that a medium card set (and the bot) takes about 3-4 minutes from wave 15 on; the wave-5 Komutan is the easy one
@@ -896,7 +901,7 @@ function synChipsHTML() { return synList().map(sy => `<div class="syn-row"><b>${
 function renderSynList(wrap, list) { const h = synChipsHTML(); $(list).innerHTML = h; $(wrap).classList.toggle('hidden', !h); }
 
 /* ================= rules, settings, records ================= */
-const RULES = { dmg: 1, cool: 1, err: 1, count: 1.25, alive: 0, fastFrom: 4, heavyFrom: 7, hunterFrom: 12, tamirciFrom: 13, maxAlive: 6, maxHunters: 3, dodge: 0.65, score: 1, heal: 25, hpGrow: 0.04 };
+const RULES = { dmg: 1, cool: 1, err: 1, count: 1.25, alive: 0, fastFrom: 4, heavyFrom: 7, hunterFrom: 12, tamirciFrom: 13, topcuFrom: 23, maxAlive: 6, maxHunters: 3, maxTopcu: 2, dodge: 0.65, score: 1, heal: 25, hpGrow: 0.04 };
 const SET_DEFAULTS = { volume: 80, lastVolume: 80, vibration: true, shake: true, aimAssist: true, minimap: true, stickSize: 'm', swapSticks: false, effects: 'high', orientation: 'auto' };
 const SET = (() => {
   const saved = store.get('tankArena.settings', null);
@@ -1482,6 +1487,7 @@ function trackUpdate(t, moved, dA) {
   const s = t.spec, half = s.wid * 0.5;
   t.treadL += moved + dA * half; t.treadR += moved - dA * half;
   t.trackAcc += Math.abs(moved) + Math.abs(dA) * half;
+  if (t.noTreads) { t.trackAcc = 0; return; } // Kırağı keeps its own short-lived snow tracks (11f)
   if (t.trackAcc < 6) return;
   t.trackAcc = 0;
   const off = half - s.tread * 0.5, nx = -Math.sin(t.angle), ny = Math.cos(t.angle);
@@ -2202,6 +2208,7 @@ function updateBullets(dt) {
   for (const b of G.bullets) {
     if (b.dead) continue;
     b.life -= dt; if (b.life <= 0) { b.dead = true; continue; }
+    if (b.shT > 0) b.shT -= dt; // Ağır Topçu shell: hit flash
     if (TT.bulletStep(b, dt) || b.dead) continue; // hook (A): lob shells fly over everything and are moved by the trait
     b.dist += Math.hypot(b.vx, b.vy) * dt; // path length for packages A/B
     const steps = Math.max(1, Math.ceil(Math.hypot(b.vx, b.vy) * dt / 8));
@@ -2216,7 +2223,7 @@ function updateBullets(dt) {
           if (!b.bricks) b.bricks = [];
           if (!b.bricks.includes(i)) { b.bricks.push(i); hitTile(b, b.x, b.y); }
         } else if (v === STEEL && b.bounce > 0) { ricochet(b, px, py); continue; }
-        else { hitTile(b, b.x, b.y); if (b.splash) blastAt(b, b.x, b.y, null); b.dead = true; break; }
+        else { hitTile(b, b.x, b.y); if (b.splash) blastAt(b, b.x, b.y, null); if (b.shell) topcuBoom(b, b.x, b.y); b.dead = true; break; } // b.shell: Ağır Topçu (11) bursts on a wall
       }
       if (b.owner === 0) {
         let hit = null;
@@ -2230,10 +2237,10 @@ function updateBullets(dt) {
           if (b.pierce || b.pn > 0) { (b.hits || (b.hits = [])).push(hit.id); if (!b.pierce) b.pn--; } else b.dead = true; // pn: a limited number of tank penetrations (Uclu)
           damageEnemy(hit, b);
           if (b.splash) blastAt(b, b.x, b.y, hit);
-        }
+        } else if (G.boss && G.boss.kr && G.boss.kr.dec.length && krDecoyHit(b)) { if (!b.pierce) { b.dead = true; break; } } // Kırağı's ice copies (11f) take a shell and break
       } else if (p && p.alive) {
         const rr = p.r + b.r + (G.buffs.shield > 0 || p.shield1T > 0 ? 8 : 0);
-        if (dist2(b.x, b.y, p.x, p.y) < rr * rr) { b.dead = true; damagePlayer(b); }
+        if (dist2(b.x, b.y, p.x, p.y) < rr * rr) { b.dead = true; if (b.shell) b.hitP = true; damagePlayer(b); if (b.shell) topcuBoom(b, b.x, b.y); }
       }
     }
   }
@@ -2242,6 +2249,10 @@ function updateBullets(dt) {
     for (const c of G.bullets) {
       if (c.dead || c.owner !== 1 || c.boss) continue; // boss shells are not shot down by the player's shells
       const rr = a.r + c.r + 3;
+      if (c.shell) { // Ağır Topçu shell: 3 hits of any shell, whatever the damage (a piercing shell counts once per Topçu shell)
+        if (dist2(a.x, a.y, c.x, c.y) < rr * rr && !(a.shot && a.shot.includes(c))) { shellHit(c, a); if (a.pierce) (a.shot || (a.shot = [])).push(c); else { a.dead = true; break; } }
+        continue;
+      }
       if (dist2(a.x, a.y, c.x, c.y) < rr * rr) { c.dead = true; if (!a.pierce) a.dead = true; sparks((a.x + c.x) / 2, (a.y + c.y) / 2, 8, '#fff0c0', 200); Sound.metal(volAt(a.x, a.y)); if (a.dead) break; }
     }
   }
@@ -2267,31 +2278,32 @@ function waveMods(w) {
 }
 // Region rule (docs/BOSSES.md section 9): a defeated boss takes its enemy types out of the rest of the run. G.beaten holds the ids of the bosses beaten in this run (13 waveCleared).
 // A boss wave still played by the stand-in Komutan records 'komutan', which removes nothing.
-const REGION_BAN = { sari: ['fast'], demirkok: ['heavy', 'tamirci'], kiragi: ['hunter'] };
-const REGION_NAME = { fast: 'Keşif tankları', heavy: 'Ağır tanklar', tamirci: 'Tamirciler', hunter: 'Avcılar' };
+const REGION_BAN = { sari: ['fast'], demirkok: ['heavy', 'tamirci'], kiragi: ['hunter', 'topcu'] };
+const REGION_NAME = { fast: 'Keşif tankları', heavy: 'Ağır tanklar', tamirci: 'Tamirciler', hunter: 'Avcılar', topcu: 'Ağır Topçular' };
 const typeBanned = type => { for (const id of G.beaten) { const l = REGION_BAN[id]; if (l && l.includes(type)) return true; } return false; };
 const regionGone = id => (REGION_BAN[id] || []).map(t => REGION_NAME[t]); // names removed by boss id
 // Share of Hızlı / Ağır / Avcı / Tamirci among normal-wave tanks. Each type is absent before its first wave (RULES.fastFrom / heavyFrom / hunterFrom / tamirciFrom), then grows slowly; a beaten boss's types stay at 0.
 // Thinner waves after a region change are made up with numbers and sharper fire, never with HP: +12% tanks, -7% reload time, -10% aim error per removed type
-const removedN = () => ['fast', 'heavy', 'hunter', 'tamirci'].filter(typeBanned).length;
+const removedN = () => ['fast', 'heavy', 'hunter', 'tamirci', 'topcu'].filter(typeBanned).length;
 function typeShares(w) {
   const D = G.D, ok = t => !typeBanned(t);
   return {
     pf: ok('fast') && w > D.fastFrom ? Math.min(0.28, 0.04 + 0.02 * (w - D.fastFrom)) - Math.max(0, w - 20) * 0.005 : 0,
     ph: ok('heavy') && w > D.heavyFrom ? Math.min(0.45, 0.04 + 0.02 * (w - D.heavyFrom)) : 0,
     pu: ok('hunter') && w > D.hunterFrom ? Math.min(0.5, 0.04 + 0.03 * (w - D.hunterFrom)) : 0,
-    pt: ok('tamirci') && w > D.tamirciFrom ? Math.min(0.15, 0.03 + 0.015 * (w - D.tamirciFrom)) : 0 };
+    pt: ok('tamirci') && w > D.tamirciFrom ? Math.min(0.15, 0.03 + 0.015 * (w - D.tamirciFrom)) : 0,
+    pa: ok('topcu') && w > D.topcuFrom && themeFor(w).key === 'snow' ? Math.min(0.12, 0.03 + 0.01 * (w - D.topcuFrom)) : 0 }; // Ağır Topçu: the Kar roster only (waves 24-29; 23 has exactly one)
 }
 function buildRoster(w) {
   const D = G.D, list = [];
   if (w % 5 === 0) return { list: ['boss'], maxAlive: 1 }; // boss stage: only the boss on the field, no escorts (startBossStage spawns it)
   const rk = 1 + 0.12 * removedN(), total = clamp(Math.round((3 + w + Math.floor(w / 2)) * D.count * rk), 3, Math.round((20 + Math.floor(Math.max(0, w - 20) / 3)) * rk));
-  const { pf, ph, pu, pt } = typeShares(w);
-  for (let i = 0; i < total; i++) { const r = Math.random(); list.push(r < ph ? 'heavy' : r < ph + pf ? 'fast' : r < ph + pf + pu ? 'hunter' : r < ph + pf + pu + pt ? 'tamirci' : 'basic'); }
+  const { pf, ph, pu, pt, pa } = typeShares(w);
+  for (let i = 0; i < total; i++) { const r = Math.random(); list.push(r < ph ? 'heavy' : r < ph + pf ? 'fast' : r < ph + pf + pu ? 'hunter' : r < ph + pf + pu + pt ? 'tamirci' : r < ph + pf + pu + pt + pa ? 'topcu' : 'basic'); }
   shuffle(list);
   // a type's first wave: exactly one of it (the roster above has none yet), placed a little way into the wave; never for a type the region rule removed
-  const first = w === D.fastFrom ? 'fast' : w === D.heavyFrom ? 'heavy' : w === D.hunterFrom ? 'hunter' : w === D.tamirciFrom ? 'tamirci' : null;
-  if (first && !typeBanned(first)) list[Math.min(list.length - 1, first === 'tamirci' ? 3 : 1 + Math.floor(Math.random() * 2))] = first;
+  const first = w === D.fastFrom ? 'fast' : w === D.heavyFrom ? 'heavy' : w === D.hunterFrom ? 'hunter' : w === D.tamirciFrom ? 'tamirci' : w === D.topcuFrom && themeFor(w).key === 'snow' ? 'topcu' : null;
+  if (first && !typeBanned(first)) list[Math.min(list.length - 1, first === 'tamirci' || first === 'topcu' ? 3 : 1 + Math.floor(Math.random() * 2))] = first;
   const alive = Math.min(6, 3 + Math.ceil(w / 2)) + (w > 12 ? Math.min(6, 1 + Math.floor((w - 13) / 5)) : 0) + D.alive;
   return { list, maxAlive: Math.min(D.maxAlive, alive) };
 }
@@ -2401,7 +2413,8 @@ const NEW_FOE = {
   fast: ['tankArena.seenFast', 'Yeni düşman: Hızlı. Küçük ve çevik, hızla yaklaşır ama az dayanır.'],
   heavy: ['tankArena.seenHeavy', 'Yeni düşman: Ağır. Yavaş ama çok sağlam, çift namlu ateş eder.'],
   hunter: ['tankArena.seenHunter', 'Yeni düşman: Avcı. Yakından gelen mermiden kaçar, uzaktan vurulunca siper alır; ateş etmeden önce yeşil hedef ışığı yakar.'],
-  tamirci: ['tankArena.seenTamirci', 'Yeni düşman: Tamirci. Silahı yok; yanındaki tankları onarır. Önce onu vur.'] };
+  tamirci: ['tankArena.seenTamirci', 'Yeni düşman: Tamirci. Silahı yok; yanındaki tankları onarır. Önce onu vur.'],
+  topcu: ['tankArena.seenTopcu', 'Yeni düşman: Ağır Topçu. Namlusu parlayınca dev bir mermi atar; mermiye 3 isabet ettirirsen havada patlar. İkinci mermisi geç gelir.'] };
 function spawnEnemy(type, x, y) {
   if (type === 'boss') { // debug / old paths: a boss in an ordinary wave (no phases, no stage)
     const a = Math.atan2(G.player.y - y, G.player.x - x), e = spawnBoss(bossDefAt(G.wave) || BOSS_DEFS.komutan, x, y, a);
@@ -2410,7 +2423,7 @@ function spawnEnemy(type, x, y) {
   const e = makeTank(type, x, y), p = G.player;
   const a = Math.atan2(G.map.n * T / 2 - y, G.map.n * T / 2 - x); // a new tank faces the map centre (it knows nothing of the player)
   e.angle = Math.round(a / (Math.PI / 2)) * (Math.PI / 2); e.turret = e.angle;
-  e.cool = rand(0.9, 1.7) * G.mods.cool; e.speedMul = G.mods.speed; e.coolMul = G.mods.cool; e.aimErr = rand(-G.mods.err, G.mods.err);
+  e.cool = type === 'topcu' ? rand(2.5, 4) : rand(0.9, 1.7) * G.mods.cool; e.speedMul = G.mods.speed; e.coolMul = G.mods.cool; e.aimErr = rand(-G.mods.err, G.mods.err);
   if (G.mods.hp > 1) e.hp = e.maxHp = Math.max(1, Math.round(e.spec.hp * G.mods.hp)); // later waves bring tougher tanks
   if (!(G.contactT <= G.time)) G.contactT = G.time; // no hint: a new tank patrols until it sees or hears something
   G.enemies.push(e);
@@ -2426,6 +2439,7 @@ function updateSpawns(dt) {
     if (sp) {
       let ty = G.queue.shift();
       if (ty === 'tamirci' && G.enemies.filter(o => o.type === 'tamirci').length + G.portals.filter(q => q.type === 'tamirci').length >= 2) ty = 'basic'; // at most two Tamirci on the field
+      if (ty === 'topcu' && G.enemies.filter(o => o.type === 'topcu').length + G.portals.filter(q => q.type === 'topcu').length >= RULES.maxTopcu) ty = 'basic'; // at most two Ağır Topçu on the field
       if (ty === 'hunter' && G.enemies.filter(o => o.type === 'hunter').length + G.portals.filter(q => q.type === 'hunter').length >= RULES.maxHunters) ty = 'basic'; // and a few Avcı at once
       G.portals.push({ x: sp.x, y: sp.y, t: 0, dur: 1.15, type: ty, done: false }); G.spawnTimer = rand(0.7, 1.5) * G.mods.pace; Sound.spawn(volAt(sp.x, sp.y));
     } else G.spawnTimer = 0.25;
@@ -2446,6 +2460,7 @@ function updateEnemy(e, dt) {
   const s = e.spec, p = G.player, m = G.map;
   if (s.smart) { updateHunter(e, dt); return; }
   if (s.medic) { updateTamirci(e, dt); return; }
+  if (s.artillery) { updateTopcu(e, dt); return; }
   e.cool -= dt; e.flash = Math.max(0, e.flash - dt); e.recoil = Math.max(0, e.recoil - dt * 6);
   e.hidden = m.at(e.x, e.y) === BUSH;
   e.senseT -= dt;
@@ -2805,6 +2820,121 @@ function updateTamirci(e, dt) {
   trackUpdate(e, (e.x - ox) * Math.cos(e.angle) + (e.y - oy) * Math.sin(e.angle), angDiff(before, e.angle));
   damageSmoke(e, dt);
 }
+
+/* ================= Ağır Topçu (Kar, docs/BOSSES.md 1.5.5) ================= */
+// A short wide hull with one very thick barrel. It keeps ~7 tiles away, stops, the barrel glows 0.8 s (the last 0.25 s the aim is locked) and one huge slow shell leaves the muzzle; reload 6 s (not scaled by the wave:
+// the reload is the whole idea), then it repositions to a new spot around the player. The shell (b.shell) has 3 "hit points": every player shell that touches it takes one, whatever its damage; at 0 it pops harmlessly (+25).
+// A piercing shell passes through and counts once per shell; a ricochet counts like any shell; Obüs lob shells fly over it, flame does not touch it, the nuke wipes it. On impact (player, wall) it blasts 58 px: bricks inside are destroyed, steel never, the player takes 60%.
+NUKE_WEIGHT.topcu = 2;
+const TOPCU = { reload: 6, charge: 0.8, lock: 0.25, shellHp: 3, repos: 2.6, boom: 58, splash: 0.6, pop: 25, life: 6, lead: 0.6, near: 3.3 };
+function topcuSpot(e) { // a free tile 4-5.6 tiles from the player with a clear line to it, well away from where the tank stands (a flank, not a retreat into the same lane)
+  const m = G.map, p = G.player, cur = Math.atan2(e.y - p.y, e.x - p.x); let best = null, bs = -1e9;
+  for (let k = 0; k < 18; k++) {
+    const a = cur + (k % 2 ? 1 : -1) * rand(0.7, 2.2), r = rand(4, 5.6) * T, x = p.x + Math.cos(a) * r, y = p.y + Math.sin(a) * r, c = Math.floor(x / T), rr = Math.floor(y / T);
+    if (c < 1 || rr < 1 || c > m.n - 2 || rr > m.n - 2 || blocksTank(m.get(c, rr))) continue;
+    const cx = c * T + T / 2, cy = rr * T + T / 2; if (!los(cx, cy, p.x, p.y) || Math.hypot(cx - e.x, cy - e.y) < 3 * T) continue;
+    let sc = Math.random() * 2 - Math.hypot(cx - e.x, cy - e.y) / T * 0.15;
+    for (const o of G.enemies) if (o !== e && !o.dead && dist2(o.x, o.y, cx, cy) < (2.5 * T) * (2.5 * T)) sc -= 3;
+    if (sc > bs) { bs = sc; best = { c, r: rr, x: cx, y: cy }; }
+  }
+  return best;
+}
+function topcuFire(e) {
+  const s = e.spec, m = G.map, ca = Math.cos(e.turret), sa = Math.sin(e.turret); let bx = e.x, by = e.y, blocked = false;
+  for (let d = 6; d <= s.barrel + 4; d += 6) { bx = e.x + ca * d; by = e.y + sa * d; if (isWall(m.at(bx, by))) { blocked = true; break; } }
+  const b = { x: bx, y: by, vx: ca * s.bSpeed, vy: sa * s.bSpeed, r: s.bR, owner: 1, dmg: Math.max(1, Math.round(s.dmg * G.mods.dmg)), life: TOPCU.life, big: true, dead: false, pierce: false, bounce: 0, splash: null,
+    look: 'enemy', hits: null, bricks: null, sx: bx, sy: by, dist: 0, bounced: false, vol: 0, volN: 0, pn: 0, shell: true, sh: TOPCU.shellHp, shT: 0, hitP: false };
+  e.recoil = 1.6; e.lastShot = G.time;
+  for (let k = 0; k < 4; k++) {
+    const a = e.turret + rand(-0.35, 0.35), mx = e.x + ca * (s.barrel + 4), my = e.y + sa * (s.barrel + 4);
+    addPart('fire', mx, my, Math.cos(a) * 90, Math.sin(a) * 90, 0.14, 26, 44, 0);
+    addPart('smoke', mx, my, ca * 40 + rand(-14, 14), sa * 40 + rand(-14, 14), rand(0.7, 1.1), 18, 34, 3);
+  }
+  moveTank(e, -ca * 3, -sa * 3); shake(3 * prox(e.x, e.y)); Sound.shoot(false, true, volAt(e.x, e.y));
+  if (blocked) { hitTile(b, bx, by); topcuBoom(b, bx, by); return; } // the muzzle is against a wall: it bursts at once
+  G.bullets.push(b);
+}
+function topcuBoom(b, x, y) { // impact: a small blast; bricks inside are destroyed, steel is not touched, the player takes 60% unless the shell hit him directly
+  const m = G.map, p = G.player, R = TOPCU.boom; b.dead = true;
+  explode(x, y, 0.8); addDecals(m, [{ k: 'scorch', x, y, r: R * 0.8 }]);
+  const c0 = Math.floor(x / T), r0 = Math.floor(y / T);
+  for (let dr = -2; dr <= 2; dr++) for (let dc = -2; dc <= 2; dc++) {
+    const c = c0 + dc, r = r0 + dr; if (c < 0 || r < 0 || c >= m.n || r >= m.n || m.t[r * m.n + c] !== BRICK) continue;
+    const cx = c * T + T / 2, cy = r * T + T / 2; if (dist2(cx, cy, x, y) < (R + T * 0.4) * (R + T * 0.4)) destroyBrick(m, c, r, volAt(cx, cy));
+  }
+  if (p.alive && !b.hitP && dist2(x, y, p.x, p.y) < (R + p.r * 0.5) * (R + p.r * 0.5)) damagePlayer({ x: p.x, y: p.y, dmg: Math.max(1, Math.round(b.dmg * TOPCU.splash)), owner: 1, vx: 0, vy: 0 });
+}
+function shellHit(c, a) { // a player shell touched an Ağır Topçu shell: one "hit point" whatever the damage; the third pops it
+  c.sh--; c.shT = 0.18;
+  sparks(c.x, c.y, 7, '#ffd27a', 220); Sound.metal(volAt(c.x, c.y));
+  if (c.sh > 0) { addPart('ring', c.x, c.y, 0, 0, 0.22, c.r, c.r * 2.2, 0, '255,200,120'); return; }
+  c.dead = true; // pops: no blast, a small reward cue
+  addPart('flash', c.x, c.y, 0, 0, 0.18, 90, 0, 0); addPart('ring', c.x, c.y, 0, 0, 0.45, c.r, c.r * 5, 0, '255,226,170');
+  sparks(c.x, c.y, 14, '#fff0c0', 320); for (let k = 0; k < 6; k++) addPart('debris', c.x, c.y, rand(-150, 150), rand(-150, 150), rand(0.5, 0.9), rand(3, 5), 0, 3.4, k & 1 ? '#241a16' : '#ffa52e');
+  Sound.pop(volAt(c.x, c.y)); G.score += TOPCU.pop; addText(c.x, c.y - 18, 'Mermi düştü +' + TOPCU.pop, '#ffd27a', 15);
+}
+function updateTopcu(e, dt) {
+  const s = e.spec, p = G.player, m = G.map, tp = e.tp || (e.tp = { charge: 0, repos: 0, tf: null, spot: null });
+  e.cool -= dt; e.flash = Math.max(0, e.flash - dt); e.recoil = Math.max(0, e.recoil - dt * 4);
+  e.hidden = m.at(e.x, e.y) === BUSH;
+  e.senseT -= dt;
+  if (e.senseT <= 0) {
+    e.senseT = 0.1 + Math.random() * 0.08;
+    if (p.alive) { e.distP = Math.hypot(p.x - e.x, p.y - e.y); e.canSee = sees(e, p, 0); } else e.canSee = false;
+  }
+  updateAware(e, dt);
+  const trB = !!e.pt && e.pt.tread > 0, jam = !!e.pt && e.pt.barrel > 0, pk = e.pt && e.pt.engine > 0 ? 0.5 : 1, before = e.angle, ox = e.x, oy = e.y;
+  const tt = e.distP / s.bSpeed * G.mods.lead * TOPCU.lead;
+  const aim = p.alive ? Math.atan2(p.y + p.avy * tt - e.y, p.x + p.avx * tt - e.x) + e.aimErr : null;
+  if (tp.charge > 0) { // the barrel glows; the tank stands still. A jammed barrel or a lost target calls it off
+    if (jam || !p.alive || !e.canSee) { tp.charge = 0; e.cool = Math.max(e.cool, 1.2); }
+    else {
+      tp.charge += dt;
+      if (tp.charge < TOPCU.charge - TOPCU.lock) e.turret = turnTo(e.turret, aim, s.tTurn * dt);
+      if (tp.charge >= TOPCU.charge) {
+        tp.charge = 0; topcuFire(e); e.cool = TOPCU.reload * rand(0.92, 1.08); e.aimErr = rand(-G.mods.err, G.mods.err);
+        tp.repos = TOPCU.repos; tp.spot = topcuSpot(e); tp.tf = null;
+      }
+    }
+    e.avx = e.avy = 0;
+  } else {
+    let goal = null;
+    if (!trB) {
+      if (tp.repos > 0) { // after the shot: walk to a new place around the player
+        tp.repos -= dt;
+        if (tp.spot) {
+          if (!tp.tf) { const n = m.n; tp.tf = new Float32Array(n * n); dijkstra(m, tp.spot.r * n + tp.spot.c, tp.tf, null); e.wp = null; }
+          if (dist2(tp.spot.x, tp.spot.y, e.x, e.y) < 30 * 30) tp.repos = 0;
+          else { if (!e.wp || dist2(e.wp.x, e.wp.y, e.x, e.y) < 25) { e.wp = nextWaypoint(e, tp.tf); e.wpBest = 1e9; e.stuckT = 0; } goal = e.wp; }
+        } else tp.repos = 0;
+      } else if (e.canSee && e.distP < TOPCU.near * T) { // too close: back away
+        const a = tamFlee(e); if (a !== null) goal = { x: e.x + Math.cos(a) * 60, y: e.y + Math.sin(a) * 60, c: -1, r: -1, free: true };
+      } else if (!(e.canSee && e.distP < s.hold * T)) {
+        if (!e.wp || dist2(e.wp.x, e.wp.y, e.x, e.y) < 25) { const f = fieldFor(e, m.flow); e.wp = f ? nextWaypoint(e, f) : null; e.wpBest = 1e9; e.stuckT = 0; }
+        goal = e.wp;
+      }
+    }
+    if (goal && !goal.free) { const v = m.get(goal.c, goal.r); if (blocksTank(v)) { e.wp = randomNeighbor(e); goal = null; } }
+    if (goal) {
+      const desired = Math.atan2(goal.y - e.y, goal.x - e.x);
+      e.angle = turnTo(e.angle, desired, s.turn * dt);
+      const diff = Math.abs(angDiff(e.angle, desired)), spd = diff < 0.5 ? s.speed * e.speedMul * pk * (1 - diff * 0.9) : 0;
+      moveTank(e, Math.cos(e.angle) * spd * dt, Math.sin(e.angle) * spd * dt);
+      if (!goal.free) {
+        const dw = Math.hypot(goal.x - e.x, goal.y - e.y);
+        if (dw < e.wpBest - 0.5) { e.wpBest = dw; e.stuckT = 0; } else e.stuckT += dt;
+        if (e.stuckT > 1.2) { e.wp = randomNeighbor(e); e.wpBest = 1e9; e.stuckT = 0; }
+      }
+    }
+    if (dt > 0) { e.avx = (e.x - ox) / dt; e.avy = (e.y - oy) / dt; }
+    if (e.canSee && p.alive) { // aim; the charge starts when the reload is over, the barrel points at the player and the tank is on screen
+      e.turret = turnTo(e.turret, aim, s.tTurn * dt);
+      if (e.cool <= 0 && !jam && tp.repos <= 0 && onFireView(e.x, e.y, T * 0.3) && Math.abs(angDiff(e.turret, aim)) < 0.12) tp.charge = 0.001;
+    } else e.turret = turnTo(e.turret, e.lookT > 0 ? e.lookA : e.angle, s.tTurn * 0.6 * dt);
+  }
+  trackUpdate(e, (e.x - ox) * Math.cos(e.angle) + (e.y - oy) * Math.sin(e.angle), angDiff(before, e.angle));
+  damageSmoke(e, dt);
+}
 /* ================= boss framework ================= */
 // Data-driven boss stage (docs/BOSSES.md section 1). A boss is an enemy with isBoss = true, a def from BOSS_DEFS (11b registers Komutan; later bosses add
 // their own def with the same fields), phases (HP thresholds in %), parts with their own HP and a list of attacks written as generators.
@@ -2919,6 +3049,7 @@ function bossDanger(x, y, pad, react) { // react: seconds a warning must have be
   if (e.def.danger && e.def.danger(e, x, y, pad)) return true; // per-boss hazards that are not telegraphs (sand strips)
   for (const tl of G.tele) {
     if (react && tl.t < react) continue;
+    if (tl.nodanger) continue; // a harmless warning (Kırağı's frost front, ice-copy lines)
     if (tl.kind === 'circle') { const rr = tl.r + pad; if (dist2(x, y, tl.x, tl.y) < rr * rr) return true; }
     else if (tl.kind === 'line') {
       const ca = Math.cos(tl.a), sa = Math.sin(tl.a), dx = x - tl.x, dy = y - tl.y, al = dx * ca + dy * sa, pr = -dx * sa + dy * ca;
@@ -4400,6 +4531,364 @@ BOSS_DEFS.kapatici = {
   draw: (e, g, alpha) => drawKapatici(e, g, alpha),
   drawGround: (e, g) => drawKapaniGround(e, g)
 };
+/* ================= Kırağı (docs/BOSSES.md section 6) ================= */
+// Kar's boss, the Avcı's: a long, low, purple tank that hides. Invisible in bushes; in the open it stays invisible up to 3 s (then 2 s visible); while invisible it leaves 2 s snow tracks and an air shimmer;
+// after a shot it is visible for 1.5 s and slower. Arena Donmuş Göl: the lake (W) is impassable until phase 3, when it freezes. Per-boss state lives in e.kr.
+// Phase 1 "Pusu": Keskin atış (mint laser line 1 s, the last 0.25 s locked, stops at walls), Saklan (walks to a bush, at most 4 s), Kaçın (a quick evasive run).
+// Phase 2 "Suretler": Çift atış (two lasers), Suretler (two ice copies, three in the second loop: the copies show laser lines too but only the real one hits; a copy breaks in one hit and slows what is near it for 2 s).
+// Phase 3 "Ayaz": the lake freezes; Don dalgası every 10 s (front line 1.5 s ahead, then the ground stays frosted 6 s: the player is 30% slower, Kırağı 40% faster).
+// Breaking the tread (a line warning) or the barrel (a glow warning) during a laser warning cancels the attack: every laser shows both a line and a barrel glow.
+// Hooks used from 11a: def.tick, def.move, def.flowGoal, def.onClear, def.onPhase, def.vis (15a drawBoss opacity), def.drawGround / def.drawTop (15-render-world), tl.rgb / tl.nodanger; 10 calls krDecoyHit, 12 calls playerSlowK; e.noTreads (07 trackUpdate).
+ARENAS.gol = { name: 'Donmuş Göl', rows: [
+  'SS.................SS',
+  'SS.................SS',
+  '.......S..X..S.......',
+  '...GG...........GG...',
+  '...GG...S...S...GG...',
+  '.....................',
+  '.....S...GGG...S.....',
+  '.........GGG.........',
+  '....S...........S....',
+  '..GG....WWWWW....GG..',
+  '..GG..S.WWWWW.S..GG..',
+  '..GG....WWWWW....GG..',
+  '....S...........S....',
+  '.........GGG.........',
+  '.....S...GGG...S.....',
+  '.....................',
+  '...GG...S...S...GG...',
+  '...GG...........GG...',
+  '.......S..P..S.......',
+  'SS.................SS',
+  'SS.................SS'] };
+
+const KIR_SPEC = { speed: 125, turn: 3.2, tTurn: 3.4, len: 90, wid: 44, r: 30, tread: 10, tR: 15, barrel: 66, bW: 6.5, cool: 1, bSpeed: 400, dmg: 9, bR: 5, mass: 5, score: 3000,
+  col: { body: '#6c4fa3', dk: '#432f6b', hi: '#9d84d1', acc: '#7ef0d0' } };
+const KIR_MINT = '126,240,208';
+const KIR = { open: 3, lockT: 2, shotVis: 1.5, shotSlow: 0.55, frostLife: 6, frostSlow: 0.7, frostFast: 1.4, decSlow: 0.6, slowT: 2, slowR: 2.4 * T, trail: 2, trail2: 0.5, decLife: 10, beamW: 12, dmg: 14, dmg2: 11,
+  hideMax: 4, frontDepth: 9 * T, frontSpeed: 480, frontLine: 1.5 };
+
+/* ---- shared helpers ---- */
+const krTile = (m, x, y) => clamp(Math.floor(y / T), 0, m.n - 1) * m.n + clamp(Math.floor(x / T), 0, m.n - 1);
+const krFree = (x, y, r) => { const m = G.map; for (let k = 0; k < 8; k++) { const a = k * Math.PI / 4; if (blocksTank(m.at(x + Math.cos(a) * r, y + Math.sin(a) * r))) return false; } return !blocksTank(m.at(x, y)); };
+function krRay(x, y, a, max) { // laser length: until a wall (steel or brick) or the limit
+  const m = G.map, ca = Math.cos(a), sa = Math.sin(a);
+  for (let d = 8; d < max; d += 8) if (isWall(m.at(x + ca * d, y + sa * d))) return d;
+  return max;
+}
+function krAimLine(tl, o, a) { const mx = o.x + Math.cos(o.turret) * KIR_SPEC.barrel, my = o.y + Math.sin(o.turret) * KIR_SPEC.barrel; tl.x = mx; tl.y = my; tl.a = a; tl.len = krRay(mx, my, a, 17 * T); }
+function krLine(e, o, fake) { return addTele(e, { kind: 'line', dur: 1.0, lock: 0.25, x: o.x, y: o.y, a: o.turret, len: 0, w: KIR.beamW, rgb: KIR_MINT, nodanger: !!fake, fake: !!fake }); }
+function krBeam(e, tl, dmg, silent) { // the strike behind a laser line: an instant beam along the locked line
+  const kr = e.kr, p = G.player, ca = Math.cos(tl.a), sa = Math.sin(tl.a), mx = tl.x, my = tl.y, len = tl.len;
+  kr.beams.push({ x: mx, y: my, a: tl.a, len, t: 0.24, fake: !!silent });
+  sparks(mx, my, 6, '#bffff0', 220, tl.a, 0.6); if (!silent) sparks(mx + ca * len, my + sa * len, 8, '#bffff0', 220);
+  if (silent) return;
+  if (p.alive) {
+    const dx = p.x - mx, dy = p.y - my, al = dx * ca + dy * sa, pr = -dx * sa + dy * ca;
+    if (al > -10 && al < len + p.r && Math.abs(pr) < KIR.beamW / 2 + p.r * 0.75) damagePlayer({ x: p.x, y: p.y, dmg: bossDmg(dmg), owner: 1, vx: ca * 400, vy: sa * 400 });
+  }
+}
+function krShot(e) { // after a real shot: visible for 1.5 s and slower, recoil, sound
+  const kr = e.kr, ca = Math.cos(e.turret), sa = Math.sin(e.turret);
+  kr.shot = KIR.shotVis; e.recoil = 1; moveTank(e, -ca * 2, -sa * 2); shake(3 * prox(e.x, e.y)); Sound.shoot(false, true, volAt(e.x, e.y));
+}
+
+/* ---- ice copies ---- */
+function krDecoyAdd(e, x, y) {
+  const kr = e.kr, d = { id: ++kr.decSeq, x, y, angle: e.angle, turret: e.turret, r: 28, t: 0, treadL: 0, treadR: 0, recoil: 0, glow: 0, goal: null, spd: 42, tr: [], lx: x, ly: y, flash: 0 };
+  kr.dec.push(d);
+  addPart('ring', x, y, 0, 0, 0.5, 12, 130, 0, '170,230,255'); sparks(x, y, 10, '#d8f4ff', 240);
+  for (let k = 0, n = Math.max(3, Math.round(7 * fxScale)); k < n; k++) { const a = rand(0, TAU); addPart('debris', x, y, Math.cos(a) * rand(30, 120), Math.sin(a) * rand(30, 120), rand(0.5, 0.9), rand(2.5, 4.5), 0, 3, '#d8f4ff'); }
+  return d;
+}
+function krDecoySpots(e, n) { // free spots 4-8 tiles from the player (a line to him), apart from each other and from the real one; relaxed step by step so there are always n
+  const p = G.player, out = [];
+  for (let relax = 0; relax < 3 && out.length < n; relax++) {
+    for (let k = 0; k < 60 && out.length < n; k++) {
+      const a = rand(0, TAU), r = rand(4 - relax, 8 + relax * 2) * T, x = p.x + Math.cos(a) * r, y = p.y + Math.sin(a) * r;
+      if (x < 2 * T || y < 2 * T || x > G.map.w - 2 * T || y > G.map.h - 2 * T || !krFree(x, y, 30)) continue;
+      if (relax < 2 && !los(x, y, p.x, p.y)) continue;
+      if (Math.hypot(x - e.x, y - e.y) < 2.5 * T || out.some(q => Math.hypot(q.x - x, q.y - y) < 3 * T)) continue;
+      out.push({ x, y });
+    }
+  }
+  return out;
+}
+function krClearDecoys(e, slow) { for (const d of e.kr.dec.slice()) krDecoyBreak(e, d, !!slow, true); }
+function krDecoyBreak(e, d, slow, quiet) { // an ice copy breaks (shot, expired or cleared); a shot one slows whatever stands near it for 2 s
+  const kr = e.kr, i = kr.dec.indexOf(d); if (i < 0) return;
+  kr.dec.splice(i, 1);
+  addPart('ring', d.x, d.y, 0, 0, 0.5, 10, KIR.slowR * 1.1, 0, '170,230,255'); addPart('flash', d.x, d.y, 0, 0, 0.15, 90, 0, 0);
+  sparks(d.x, d.y, 14, '#d8f4ff', 320);
+  for (let k = 0, n = Math.max(4, Math.round(10 * fxScale)); k < n; k++) { const a = rand(0, TAU), v = rand(60, 200); addPart('debris', d.x, d.y, Math.cos(a) * v, Math.sin(a) * v, rand(0.5, 1), rand(2.5, 5), 0, 3.2, k & 1 ? '#d8f4ff' : '#7ec6e8'); }
+  Sound.crumble(volAt(d.x, d.y));
+  for (const t of G.tele.slice()) if (t.d === d) removeTele(t);
+  if (!slow) return;
+  addText(d.x, d.y - 28, 'Suret kırıldı', '#bff0ff', 14);
+  const p = G.player;
+  if (p.alive && Math.hypot(p.x - d.x, p.y - d.y) < KIR.slowR) { kr.pSlow = KIR.slowT; addText(p.x, p.y - 30, 'Yavaşladın', '#bff0ff', 13); }
+  if (Math.hypot(e.x - d.x, e.y - d.y) < KIR.slowR + e.r) { kr.slowT = KIR.slowT; addText(e.x, e.y - e.r - 14, 'Yavaşladı', '#bff0ff', 14); }
+}
+function krDecoyHit(b) { // 10 updateBullets: a player shell inside an ice copy breaks it (one hit)
+  const e = G.boss, kr = e && e.kr; if (!kr) return false;
+  for (const d of kr.dec) if (dist2(b.x, b.y, d.x, d.y) < (d.r + b.r) * (d.r + b.r)) { krDecoyBreak(e, d, true); return true; }
+  return false;
+}
+function krDecoyTick(e, dt) {
+  const kr = e.kr, m = G.map, p = G.player, loop2 = kr.loop2;
+  for (const d of kr.dec.slice()) {
+    d.t += dt; d.flash = Math.max(0, d.flash - dt); d.recoil = Math.max(0, d.recoil - dt * 6);
+    if (d.t > KIR.decLife) { krDecoyBreak(e, d, false); continue; }
+    if (!d.goal || Math.hypot(d.goal.x - d.x, d.goal.y - d.y) < 10) { // wander: a free spot 2-4 tiles away
+      d.goal = null;
+      for (let k = 0; k < 8 && !d.goal; k++) { const a = rand(0, TAU), r = rand(2, 4) * T, x = d.x + Math.cos(a) * r, y = d.y + Math.sin(a) * r; if (krFree(x, y, 30)) d.goal = { x, y }; }
+    }
+    if (d.goal) {
+      const a = Math.atan2(d.goal.y - d.y, d.goal.x - d.x); d.angle = turnTo(d.angle, a, 2.4 * dt);
+      const sp = d.spd * (kr.gen ? 0.3 : 1) * dt, nx = d.x + Math.cos(d.angle) * sp, ny = d.y + Math.sin(d.angle) * sp;
+      if (krFree(nx, ny, 28)) { d.x = nx; d.y = ny; d.treadL += sp; d.treadR += sp; } else d.goal = null;
+    }
+    if (!kr.fakeAim && p.alive) d.turret = turnTo(d.turret, Math.atan2(p.y - d.y, p.x - d.x), 2.5 * dt);
+    if (loop2) krTrail(kr.dtrail, d, KIR.trail2); // second loop: the copies leave short tracks too (0.5 s)
+  }
+  for (let i = kr.dtrail.length - 1; i >= 0; i--) if (G.time - kr.dtrail[i].t > KIR.trail2) kr.dtrail.splice(i, 1);
+}
+
+/* ---- tracks (2 s in the snow; the copies' 0.5 s in the second loop) ---- */
+function krTrail(list, o, life) { // a pair of track segments each 6 px of travel; o carries lx/ly (last mark)
+  const dx = o.x - o.lx, dy = o.y - o.ly, d = Math.hypot(dx, dy); if (d < 6) return;
+  if (d < 40) {
+    const off = KIR_SPEC.wid / 2 - KIR_SPEC.tread / 2, nx = -Math.sin(o.angle) * off, ny = Math.cos(o.angle) * off;
+    list.push({ x1: o.lx + nx, y1: o.ly + ny, x2: o.x + nx, y2: o.y + ny, t: G.time }, { x1: o.lx - nx, y1: o.ly - ny, x2: o.x - nx, y2: o.y - ny, t: G.time });
+    if (list.length > 220) list.splice(0, list.length - 220);
+  }
+  o.lx = o.x; o.ly = o.y;
+}
+
+/* ---- frost front ---- */
+function krFrontPick(e) { // the edge the front starts from: one whose band covers the player, else any
+  const m = G.map, p = G.player, ok = [];
+  for (let d = 0; d < 4; d++) { const a = d === 0 ? p.x : d === 1 ? m.w - p.x : d === 2 ? p.y : m.h - p.y; if (a < KIR.frontDepth) ok.push(d); }
+  return pick(ok.length ? ok : [0, 1, 2, 3]);
+}
+const krAxis = (dir, m, x, y) => dir === 0 ? x : dir === 1 ? m.w - x : dir === 2 ? y : m.h - y;
+function krFrontStep(e, dt) {
+  const kr = e.kr, f = kr.front, m = G.map; if (!f || !f.active) return;
+  const prev = f.pos; f.pos += KIR.frontSpeed * dt;
+  for (let r = 0; r < m.n; r++) for (let c = 0; c < m.n; c++) {
+    const i = r * m.n + c, v = m.t[i]; if (isWall(v) || v === WATER) continue;
+    const a = krAxis(f.dir, m, c * T + T / 2, r * T + T / 2);
+    if (a > prev && a <= f.pos && a < f.depth) { kr.frost[i] = KIR.frostLife; if (fxScale === 1 && Math.random() < 0.5) addPart('dust', c * T + T / 2 + rand(-12, 12), r * T + T / 2 + rand(-12, 12), rand(-20, 20), rand(-30, -8), rand(0.5, 0.9), rand(10, 18), 18, 1, 'k'); }
+  }
+  if (f.pos >= f.depth + T) kr.front = null;
+}
+function krPlayerSlow(e) { // frost under the player: 30% slower; a broken ice copy next to him: 40% slower for 2 s (the stronger one counts)
+  const kr = e.kr, p = G.player; let k = 1;
+  if (kr.frost && kr.frost[krTile(G.map, p.x, p.y)] > 0) k = KIR.frostSlow;
+  if (kr.pSlow > 0) k = Math.min(k, KIR.decSlow);
+  return k;
+}
+const playerSlowK = () => { const e = G.boss; return e && !e.dead && !e.dying && e.kr ? krPlayerSlow(e) : 1; };
+
+/* ---- per-frame hook: stealth, tracks, frost, copies, beams, speed ---- */
+function krTick(e, dt) {
+  const kr = e.kr, m = G.map, n = m.n;
+  if (!kr.frost || kr.frost.length !== n * n) kr.frost = new Float32Array(n * n);
+  if (G.phase === 'bossIntro') { kr.a = 1; kr.inv = false; kr.lx = e.x; kr.ly = e.y; return; }
+  for (const b of kr.beams) b.t -= dt;
+  if (kr.beams.length && kr.beams[0].t <= 0) kr.beams = kr.beams.filter(b => b.t > 0);
+  kr.slowT = Math.max(0, kr.slowT - dt); kr.pSlow = Math.max(0, kr.pSlow - dt); kr.lakeT = Math.max(0, kr.lakeT - dt);
+  for (let i = 0; i < n * n; i++) if (kr.frost[i] > 0) kr.frost[i] = Math.max(0, kr.frost[i] - dt);
+  if (kr.front && !kr.front.active && !G.tele.some(t => t.front)) kr.front = null; // the warning was cancelled
+  krFrontStep(e, dt);
+  kr.gen = !!e.gen;
+  krDecoyTick(e, dt);
+  if (e.dying) { if (kr.dec.length) krClearDecoys(e, false); kr.front = null; }
+  // stealth: bush = invisible; open ground = invisible for up to 3 s, then visible for 2 s; a shot (or the copies attack) makes it visible
+  kr.shot = Math.max(0, kr.shot - dt); kr.force = Math.max(0, kr.force - dt);
+  if (kr.lock > 0) { kr.lock -= dt; if (kr.lock <= 0) { kr.lock = 0; kr.open = 0; } }
+  const inBush = m.at(e.x, e.y) === BUSH; let inv = false;
+  if (!e.dying && !e.invuln && kr.shot <= 0 && kr.force <= 0) {
+    if (inBush) inv = true;
+    else if (kr.lock <= 0) { inv = true; kr.open += dt; if (kr.open >= KIR.open) { kr.open = KIR.open; kr.lock = KIR.lockT; inv = false; } }
+  }
+  kr.inv = inv; kr.a = clamp(kr.a + (inv ? -1 : 1) * dt * 5, 0, 1);
+  const onFrost = kr.frost[krTile(m, e.x, e.y)] > 0;
+  e.speedMul = (kr.shot > 0 ? KIR.shotSlow : 1) * (onFrost ? KIR.frostFast : 1) * (kr.slowT > 0 ? KIR.decSlow : 1) * kr.boost;
+  krTrail(kr.trail, e, KIR.trail);
+  while (kr.trail.length && G.time - kr.trail[0].t > KIR.trail) kr.trail.shift();
+  if (inv && fxScale === 1 && Math.random() < dt * 8) addPart('spark', e.x + rand(-e.r, e.r), e.y + rand(-e.r, e.r), rand(-10, 10), rand(-30, -10), rand(0.4, 0.7), 1, 0, 4, '#e8fbff');
+}
+
+/* ---- movement between attacks: keeps 5.5-9 tiles away, strafes, backs off when pressed ---- */
+function krSteer(e, a, dt, k) {
+  const s = e.spec, before = e.angle, ox = e.x, oy = e.y;
+  if (e.treadT > 0) { e.avx = e.avy = 0; return; }
+  e.angle = turnTo(e.angle, a, s.turn * dt);
+  const diff = Math.abs(angDiff(e.angle, a)), spd = diff < 0.7 ? s.speed * e.speedMul * k * (1 - diff * 0.6) : 0;
+  moveTank(e, Math.cos(e.angle) * spd * dt, Math.sin(e.angle) * spd * dt);
+  if (dt > 0) { e.avx = (e.x - ox) / dt; e.avy = (e.y - oy) / dt; }
+  trackUpdate(e, (e.x - ox) * Math.cos(e.angle) + (e.y - oy) * Math.sin(e.angle), angDiff(before, e.angle));
+}
+function krAway(e) { // the best of 16 headings: away from the player, clear of walls and water, a bush a plus
+  const m = G.map, p = G.player; let best = null, bs = -1e9;
+  for (let k = 0; k < 16; k++) {
+    const an = k * TAU / 16, c = Math.cos(an), sn = Math.sin(an);
+    if (blocksTank(m.at(e.x + c * 40, e.y + sn * 40)) || blocksTank(m.at(e.x + c * 80, e.y + sn * 80)) || blocksTank(m.at(e.x + c * 40 - sn * 24, e.y + sn * 40 + c * 24)) || blocksTank(m.at(e.x + c * 40 + sn * 24, e.y + sn * 40 - c * 24))) continue;
+    const away = (e.x - p.x) * c + (e.y - p.y) * sn, sc = away / Math.max(1, e.distP) * 3 + (m.at(e.x + c * 80, e.y + sn * 80) === BUSH ? 1 : 0) - Math.abs(angDiff(e.angle, an)) * 0.4;
+    if (sc > bs) { bs = sc; best = an; }
+  }
+  return best;
+}
+function krMove(e, dt) {
+  const kr = e.kr, p = G.player, T9 = 9 * T;
+  if (!p.alive) return;
+  if (e.canSee) e.turret = turnTo(e.turret, Math.atan2(p.y - e.y, p.x - e.x), e.spec.tTurn * dt); else e.turret = turnTo(e.turret, e.angle, e.spec.tTurn * 0.6 * dt);
+  if (e.treadT > 0) { e.avx = e.avy = 0; return; }
+  if (!e.canSee || e.distP > T9) bossMove(e, dt, 9);
+  else if (e.distP < 5.5 * T) { const a = krAway(e); if (a !== null) krSteer(e, a, dt, 1); }
+  else { // strafe across the player's line, flipping now and then or when blocked
+    kr.sideT -= dt; if (kr.sideT <= 0) { kr.sideT = rand(1.5, 3); kr.side = -kr.side; }
+    const a = Math.atan2(p.y - e.y, p.x - e.x) + kr.side * Math.PI / 2;
+    if (blocksTank(G.map.at(e.x + Math.cos(a) * 60, e.y + Math.sin(a) * 60))) kr.side = -kr.side;
+    krSteer(e, a, dt, 0.5);
+  }
+}
+
+/* ---- attacks ---- */
+function* krSharp(e) { // keskin atış: barrel glow + mint laser line 1 s (last 0.25 s locked), then an instant beam
+  const kr = e.kr, tl = krLine(e, e), gl = addTele(e, { kind: 'glow', dur: 1.0 });
+  Sound.warnRise(volAt(e.x, e.y));
+  while (tl.t < tl.dur) {
+    if (tl.t < tl.dur - tl.lock) aimAtPlayer(e, e.dt, 1.6, 0);
+    krAimLine(tl, e, e.turret); yield 0;
+  }
+  release(e, 'keskin', tl); removeTele(gl); removeTele(tl);
+  if (!barrelSilent(e, 0)) { krBeam(e, tl, KIR.dmg); krShot(e); }
+  yield 0.5;
+}
+function* krDouble(e) { // çift atış: two lasers at once, one at the player and one where a sidestep would take him
+  const kr = e.kr, p = G.player, sgn = Math.sign(-Math.sin(e.turret) * (p.vx || 0) + Math.cos(e.turret) * (p.vy || 0)) || (Math.random() < 0.5 ? 1 : -1);
+  const a = krLine(e, e), b = krLine(e, e), gl = addTele(e, { kind: 'glow', dur: 1.0 }); let base = e.turret;
+  Sound.warnRise(volAt(e.x, e.y));
+  while (a.t < a.dur) {
+    if (a.t < a.dur - a.lock) { aimAtPlayer(e, e.dt, 1.6, 0); base = e.turret; }
+    krAimLine(a, e, base); krAimLine(b, e, base + sgn * 0.3); yield 0;
+  }
+  release(e, 'cift', a); release(e, 'cift', b); removeTele(gl); removeTele(a); removeTele(b);
+  if (!barrelSilent(e, 0)) { krBeam(e, a, KIR.dmg2); krBeam(e, b, KIR.dmg2); krShot(e); }
+  yield 0.5;
+}
+function* krDecoys(e) { // suretler: ice copies appear, every copy and the real one show a laser line, only the real one fires
+  const kr = e.kr, n = kr.loop2 ? 3 : 2;
+  krClearDecoys(e, false); kr.force = 2.2;
+  for (const q of krDecoySpots(e, n)) krDecoyAdd(e, q.x, q.y);
+  Sound.warnRise(volAt(e.x, e.y)); addText(e.x, e.y - e.r - 26, 'SURETLER', '#7ef0d0', 20);
+  for (let t = 0; t < 0.45; t += e.dt) { aimAtPlayer(e, e.dt, 1.2, 0); yield 0; }
+  const tl = krLine(e, e), gl = addTele(e, { kind: 'glow', dur: 1.0 }), fakes = kr.dec.map(d => { const f = krLine(e, d, true); f.d = d; return f; });
+  kr.fakeAim = true;
+  while (tl.t < tl.dur) {
+    const free = tl.t < tl.dur - tl.lock;
+    if (free) aimAtPlayer(e, e.dt, 1.6, 0);
+    krAimLine(tl, e, e.turret);
+    for (const f of fakes) { if (free && G.player.alive) f.d.turret = turnTo(f.d.turret, Math.atan2(G.player.y - f.d.y, G.player.x - f.d.x), 3.4 * e.dt); krAimLine(f, f.d, f.d.turret); f.d.glow = tl.t / tl.dur; }
+    yield 0;
+  }
+  kr.fakeAim = false;
+  release(e, 'suret', tl); removeTele(gl); removeTele(tl);
+  for (const f of fakes) { removeTele(f); if (kr.dec.includes(f.d)) { krBeam(e, f, 0, true); f.d.recoil = 1; f.d.glow = 0; } } // a harmless flash from every copy
+  if (!barrelSilent(e, 0)) { krBeam(e, tl, KIR.dmg); krShot(e); }
+  yield 0.6;
+}
+function krBushSpot(e) { // a bush the hull fits in, 4-10 tiles from the player (with a line to him if possible), near the boss
+  const m = G.map, p = G.player, fit = bossFitMap(e); let best = null, bs = -1e9;
+  for (let r = 0; r < m.n; r++) for (let c = 0; c < m.n; c++) {
+    if (m.t[r * m.n + c] !== BUSH || !fit[r * m.n + c]) continue;
+    const x = c * T + T / 2, y = r * T + T / 2, dp = Math.hypot(x - p.x, y - p.y), db = Math.hypot(x - e.x, y - e.y);
+    if (dp < 3.5 * T || dp > 11 * T || db > 12 * T) continue;
+    const sc = -Math.abs(dp - 6.5 * T) / T + (los(x, y, p.x, p.y) ? 3 : 0) - db / T * 0.35 + Math.random() * 1.2;
+    if (sc > bs) { bs = sc; best = { x, y }; }
+  }
+  return best;
+}
+function* krHide(e) { // saklan: walk to a bush and wait in it (invisible), at most 4 s in all
+  const kr = e.kr, p = G.player, g = krBushSpot(e);
+  if (!g) { yield 0.4; return; }
+  kr.goal = g; e.flowT = 0; kr.hid = 0;
+  let t = 0, inT = 0;
+  while (t < KIR.hideMax && inT < 1.8) {
+    t += e.dt;
+    if (G.map.at(e.x, e.y) === BUSH) { inT += e.dt; e.avx = e.avy = 0; } else bossMove(e, e.dt, 0);
+    if (p.alive) e.turret = turnTo(e.turret, Math.atan2(p.y - e.y, p.x - e.x), e.spec.tTurn * e.dt);
+    if (inT > 0 && e.distP < 3 * T) break; // the player walked up to the bush
+    yield 0;
+  }
+  kr.goal = null; kr.hid = t; e.cool = Math.min(e.cool, 0.4); // out of cover: the next shot comes quickly
+}
+function* krEvade(e) { // kaçın: a quick run away from the player (1.3 s, 1.6x speed)
+  const kr = e.kr; let a = krAway(e), re = 0;
+  kr.boost = 1.6;
+  for (let t = 0; t < 1.3; t += e.dt) {
+    re -= e.dt; if (re <= 0) { re = 0.25; const b = krAway(e); if (b !== null) a = b; }
+    if (a !== null) krSteer(e, a, e.dt, 1);
+    if (e.canSee) e.turret = turnTo(e.turret, Math.atan2(G.player.y - e.y, G.player.x - e.x), e.spec.tTurn * 0.6 * e.dt);
+    yield 0;
+  }
+  kr.boost = 1;
+}
+function* krFrost(e) { // don dalgası: a front line 1.5 s ahead (and the band it will cover), then the ground stays frosted for 6 s
+  const kr = e.kr, m = G.map, dir = krFrontPick(e), th = T * 0.7;
+  const line = { kind: 'line', dur: KIR.frontLine, lock: 0.3, w: th, rgb: '150,215,255', nodanger: true, front: true, len: dir < 2 ? m.h : m.w };
+  if (dir === 0) Object.assign(line, { x: th / 2, y: 0, a: Math.PI / 2 }); else if (dir === 1) Object.assign(line, { x: m.w - th / 2, y: 0, a: Math.PI / 2 });
+  else if (dir === 2) Object.assign(line, { x: 0, y: th / 2, a: 0 }); else Object.assign(line, { x: 0, y: m.h - th / 2, a: 0 });
+  const tl = addTele(e, line); kr.front = { dir, pos: 0, active: false, depth: KIR.frontDepth };
+  Sound.warnRise(volAt(e.x, e.y)); addText(e.x, e.y - e.r - 26, 'DON DALGASI', '#9fd8ff', 20);
+  while (tl.t < tl.dur) { aimAtPlayer(e, e.dt, 0.8, 0); yield 0; }
+  release(e, 'don', tl); removeTele(tl);
+  kr.front.active = true; shake(5); Sound.boom(1, 1);
+  for (let t = 0; kr.front && t < 3; t += e.dt) yield 0;
+  yield 0.4;
+}
+
+/* ---- definition ---- */
+BOSS_DEFS.kiragi = {
+  id: 'kiragi', name: 'KIRAĞI', arena: 'gol', introSub: 'Donmuş Göl', hold: 9, lead: 0, phases: [66, 33], plates: ['plate', 'fender'], r: KIR_SPEC.r,
+  deathText: 'KIRAĞI ERİDİ', loot: 'KIRAĞI GANİMETİ',
+  barrels: [{ id: 'm', name: 'Namlu', ang: 0, k: 0.07 }],
+  hp: w => Math.round(1800 + (w - 30) * 45),
+  attacks: [
+    { id: 'keskin', w: 4, ok: e => e.canSee && e.distP < 15 * T, run: krSharp },
+    { id: 'saklan', w: 2.4, ok: e => e.distP > 4 * T, run: krHide, mov: true, cd: 8 },
+    { id: 'kacin', w: 2, ok: e => e.distP < 7 * T, run: krEvade, mov: true, cd: 5 },
+    { id: 'cift', w: 3, ok: e => e.phase >= 1 && e.canSee && e.distP < 15 * T, run: krDouble },
+    { id: 'suret', w: 3, ok: e => e.phase >= 1 && e.canSee, run: krDecoys, cd: 12 },
+    { id: 'don', w: 6, ok: e => e.phase >= 2, run: krFrost, cd: 10 }
+  ],
+  setup(e, w) {
+    e.spec = Object.assign({}, SPECS.boss, KIR_SPEC); e.r = KIR_SPEC.r; e.pace = 1; e.noTreads = true;
+    const lake = []; for (let r = 0; r < G.map.n; r++) for (let c = 0; c < G.map.n; c++) if (G.map.t[r * G.map.n + c] === WATER) lake.push({ c, r });
+    e.kr = { a: 1, inv: false, open: 0, lock: 0, shot: 0, force: 0, trail: [], dtrail: [], dec: [], decSeq: 0, frost: new Float32Array(G.map.n * G.map.n), front: null, beams: [], slowT: 0, pSlow: 0, goal: null, boost: 1, side: 1, sideT: 0,
+      lake, lakeOpen: false, lakeT: 0, loop2: w > 40, fakeAim: false, gen: false, lx: e.x, ly: e.y, hid: 0 };
+  },
+  onPhase(e, i) {
+    if (i === 1) addText(e.x, e.y - e.r - 54, 'SURETLER', '#7ef0d0', 18);
+    if (i === 2) { // Ayaz: the lake freezes and can be crossed
+      const m = G.map, kr = e.kr; kr.lakeOpen = true; kr.lakeT = 1.6;
+      for (const q of kr.lake) { const j = q.r * m.n + q.c; if (m.t[j] === WATER) { m.t[j] = EMPTY; m.hp[j] = 0; miniTile(m, q.c, q.r); } }
+      m.flowDirty = true; paintRegion(m, 0, 0, m.n - 1, m.n - 1);
+      addText(e.x, e.y - e.r - 54, 'AYAZ: GÖL DONDU', '#9fd8ff', 18); Sound.crumble(1);
+    }
+  },
+  tick: krTick,
+  move: krMove,
+  flowGoal: e => e.kr.goal,
+  onClear(e) { const kr = e.kr; kr.front = null; kr.fakeAim = false; kr.goal = null; kr.boost = 1; if (kr.dec.length) krClearDecoys(e, false); },
+  vis: e => (e.kr ? Math.max(e.kr.a, e.flash > 0 ? 0.55 : 0) : 1),
+  draw: (e, g, alpha) => drawKiragi(e, g, alpha),
+  drawGround: (e, g) => drawKiragiGround(e, g),
+  drawTop: (e, g) => drawKiragiTop(e, g)
+};
+BOSS_ON[30] = 'kiragi';
 /* ================= input ================= */
 let STICK_R = 56; // set from the joystick size setting
 const mkStick = () => ({ id: null, ox: 0, oy: 0, vx: 0, vy: 0, t0: 0, max: 0 });
@@ -4514,7 +5003,7 @@ function updatePlayer(p, dt) {
   if (thr > 0) {
     const target = Math.atan2(iy, ix);
     p.angle = turnTo(p.angle, target, s.turn * (turbo > 1 ? 1.25 : 1) * dt);
-    const al = Math.cos(angDiff(p.angle, target)), spd = al > 0 ? s.speed * turbo * thr * al * al * pushK(p) : 0; // pushK: Çift Yön volley boost
+    const al = Math.cos(angDiff(p.angle, target)), spd = al > 0 ? s.speed * turbo * thr * al * al * pushK(p) * playerSlowK() : 0; // pushK: Çift Yön volley boost
     tvx = Math.cos(p.angle) * spd; tvy = Math.sin(p.angle) * spd;
   }
   const k = 1 - Math.exp(-12 * dt);
@@ -5212,12 +5701,13 @@ function render() {
   const p = G.player, pAlive = !!(p && p.alive), cloak = G.buffs.stealth > 0;
   const pa = cloak ? 0.4 + 0.08 * Math.sin(G.time * 7) : 1; // Kamuflaj: the player's tank shimmers, half seen
   ctx.fillStyle = m.theme.shadow;
-  for (const e of G.enemies) if (onScreen(e.x, e.y, 60)) tankShadow(e);
+  for (const e of G.enemies) if (onScreen(e.x, e.y, 60) && !(e.isBoss && e.def.vis && e.def.vis(e) < 0.3)) tankShadow(e); // no shadow under an invisible boss
   if (pAlive && !cloak) tankShadow(p);
   for (const e of G.enemies) if (onScreen(e.x, e.y, 60)) drawTank(e, 1);
   if (G.buffs.freeze > 0) for (const e of G.enemies) if (!e.dead && !e.hidden && onScreen(e.x, e.y, 60)) drawFrost(e);
   if (pAlive) drawTank(p, pa);
   drawBushes(c0, c1, r0, r1);
+  if (G.boss && G.boss.def && G.boss.def.drawTop) G.boss.def.drawTop(G.boss, ctx); // per-boss layer above the bushes (Kırağı's shimmer, ice copies, the laser flash)
   if (upL('thermal')) for (const e of G.enemies) if (e.hidden && !e.dead && onScreen(e.x, e.y, 60)) drawThermal(e);
   for (const e of G.enemies) if (e.spec.medic && !e.dead && (e.vis || 0) > 0 && m.at(e.x, e.y) === BUSH && onScreen(e.x, e.y, 60)) drawTank(e, 1); // a beaming Tamirci shows through its bush
   for (const e of G.enemies) if (e.beamOn && !e.dead && !e.beamOn.dead && G.time < e.beamUntil && onScreen(e.x, e.y, 400)) drawRepairBeam(e);
@@ -5294,6 +5784,17 @@ function barrel(s, rec, c, g, heat, len0) {
     if (heat > 0.25) { g.fillStyle = 'rgba(30,12,6,.9)'; g.fillRect(x0 - 1, -bW / 2 - 1.2, len + 2, bW + 2.4); }
   }
   switch (s.shape) {
+    case 'howitzer': { // Ağır Topçu: one very thick barrel, a pale breech collar, an amber band and a fat slotted muzzle brake
+      g.fillStyle = '#17110e'; g.fillRect(x0, -bW / 2 - 1.2, len, bW + 2.4);
+      g.fillStyle = c.dk; g.fillRect(x0, -bW / 2, len, bW);
+      g.fillStyle = c.body; g.fillRect(x0 + 2, -bW / 2 + 1.4, len * 0.55, bW - 2.8);
+      g.fillStyle = 'rgba(255,255,255,.16)'; g.fillRect(x0 + 2, -bW / 2 + 2, len * 0.55, 1.4);
+      g.fillStyle = c.hi; g.fillRect(x0 - 1, -bW / 2 - 2, 5, bW + 4);
+      g.fillStyle = c.acc; g.fillRect(x0 + len * 0.58, -bW / 2 - 0.8, 2.6, bW + 1.6);
+      g.fillStyle = '#17110e'; rrect(g, x0 + len - 11, -bW / 2 - 3, 11, bW + 6, 2); g.fill();
+      g.fillStyle = c.acc; for (let k = 0; k < 3; k++) g.fillRect(x0 + len - 9 + k * 3, -bW / 2 - 2.4, 1.4, bW + 4.8);
+      break;
+    }
     case 'long': { // Keskin Nişancı: thin long barrel, breech collar and a slotted muzzle brake
       g.fillStyle = dk; g.fillRect(x0, -bW / 2, len, bW);
       g.fillStyle = 'rgba(255,255,255,.16)'; g.fillRect(x0, -bW / 2 + 1, len, 1.1);
@@ -5436,6 +5937,13 @@ function drawTank(t, alpha, g) {
   g.fillStyle = c.dk; for (let k = 0; k < 3; k++) g.fillRect(hx + 3.5 + k * 3.2, hy + 4, 1.6, hh - 8);
   if (t.type === 'player' && s.shape !== 'std') hullMarks(g, s, c, hx, hy, hw, hh, alpha);
   g.strokeStyle = 'rgba(0,0,0,.55)'; g.lineWidth = 1.3; rrect(g, -L / 2, -W / 2, L, W, 4); g.stroke();
+  if (s.artillery) { // Ağır Topçu: side skirts with amber studs and hazard stripes on the rear deck
+    g.fillStyle = c.dk; for (const y0 of [-W / 2 - 2.5, W / 2 - tw + 2.5]) rrect(g, -L / 2 + 3, y0, L - 6, tw - 3, 2.5), g.fill();
+    g.fillStyle = c.acc; for (let k = 0; k < 4; k++) { g.fillRect(-L / 2 + 6 + k * 8.4, -W / 2 - 1.5, 3, 1.8); g.fillRect(-L / 2 + 6 + k * 8.4, W / 2 - 0.3, 3, 1.8); }
+    g.save(); g.beginPath(); g.rect(-L / 2 + 3, hy + 2, 11, hh - 4); g.clip(); g.fillStyle = c.acc;
+    for (let k = -2; k < 5; k++) { g.beginPath(); g.moveTo(-L / 2 + 3 + k * 5, hy + hh); g.lineTo(-L / 2 + 6 + k * 5, hy + hh); g.lineTo(-L / 2 + 6 + k * 5 + hh, hy); g.lineTo(-L / 2 + 3 + k * 5 + hh, hy); g.closePath(); g.globalAlpha = alpha * 0.75; g.fill(); }
+    g.restore(); g.globalAlpha = alpha;
+  }
   if (U.armor) { // Zırh plakası: one skirt plate per level along each track, front first
     const sw = (L - 6) / 5, ph = tw * 0.8;
     for (let k = 0; k < U.armor; k++) {
@@ -5498,6 +6006,13 @@ function drawTank(t, alpha, g) {
       g.fillStyle = k < 1 ? '#f0782a' : '#fff4d0'; g.beginPath(); g.arc(x, y, 3 + 2.2 * k, 0, TAU); g.fill();
     }
     g.globalAlpha = alpha;
+  }
+  if (s.artillery && t.tp && t.tp.charge > 0) { // the barrel glows before the shell leaves: heat creeps up the barrel, a halo and a hot dot at the muzzle (readable on snow too)
+    const k = clamp(t.tp.charge / TOPCU.charge, 0, 1), tipX = s.barrel - rec, bw = s.bW;
+    g.globalAlpha = alpha * (0.25 + 0.6 * k); g.fillStyle = '#ff6a1c'; g.fillRect(s.tR * 0.4 - rec + (s.barrel - s.tR * 0.4) * (1 - k), -bw / 2 + 1, (s.barrel - s.tR * 0.4) * k, bw - 2); g.globalAlpha = alpha;
+    g.fillStyle = `rgba(40,12,6,${(0.7 * k).toFixed(2)})`; g.beginPath(); g.arc(tipX + 1, 0, 8 + 4 * k, 0, TAU); g.fill();
+    if (fxScale === 1) { g.globalCompositeOperation = 'lighter'; const gs = 30 + 52 * k; g.globalAlpha = alpha * (0.35 + 0.65 * k); g.drawImage(SPR.fire, tipX + 1 - gs / 2, -gs / 2, gs, gs); g.globalCompositeOperation = 'source-over'; }
+    g.globalAlpha = alpha * (0.55 + 0.45 * k); g.fillStyle = k < 1 ? '#ff8a2a' : '#fff4d0'; g.beginPath(); g.arc(tipX + 1, 0, 4 + 3.5 * k, 0, TAU); g.fill(); g.globalAlpha = alpha;
   }
   if (U.loader) { // Otomatik yükleyici: ammo drum behind the turret, one brass round per level
     g.fillStyle = '#2b2823'; rrect(g, -tr * 1.05 - 5, -tr * 0.62, 7, tr * 1.24, 2); g.fill();
@@ -5564,6 +6079,9 @@ function drawThermal(e) {
 /* ================= boss drawing ================= */
 // drawTank hands bosses to drawBoss. Komutan: bordeaux hull, gold trim, three barrels, command tower with a banner (bigger than the old Komutan: 90 long).
 function drawBoss(e, alpha, g) {
+  const va = e.def && e.def.vis ? e.def.vis(e) : 1; // a boss that can be invisible (Kırağı) draws itself and its damage marks at that opacity
+  if (va < 0.02) return;
+  alpha *= va;
   if (e.def && e.def.draw) e.def.draw(e, g, alpha); else drawKomutan(e, g, alpha);
   if (e.tr) drawBossPartDamage(e, g, alpha);
 }
@@ -5679,6 +6197,13 @@ function drawTele() {
     if (tl.kind === 'line') {
       const locked = tl.t >= tl.dur - tl.lock, len = tl.len, w = tl.w;
       ctx.save(); ctx.translate(tl.x, tl.y); ctx.rotate(tl.a);
+      if (tl.rgb) { // a line in its own colour (Kırağı's mint laser, the ice-blue frost front): same shape language
+        ctx.fillStyle = locked ? `rgba(${tl.rgb},.5)` : `rgba(${tl.rgb},${(0.14 + 0.2 * k).toFixed(3)})`; ctx.fillRect(0, -w / 2, len, w);
+        ctx.strokeStyle = locked ? `rgba(${tl.rgb},1)` : `rgba(${tl.rgb},.85)`; ctx.lineWidth = locked ? 3 : 2; ctx.setLineDash(locked ? [] : [14, 10]); ctx.lineDashOffset = -G.time * 60;
+        ctx.strokeRect(0, -w / 2, len, w); ctx.setLineDash([]);
+        ctx.strokeStyle = locked ? 'rgba(255,255,255,.95)' : 'rgba(255,255,255,.6)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(len, 0); ctx.stroke();
+        ctx.restore(); continue;
+      }
       ctx.fillStyle = locked ? 'rgba(140,16,12,.5)' : `rgba(224,60,40,${(0.16 + 0.2 * k).toFixed(3)})`; ctx.fillRect(0, -w / 2, len, w);
       ctx.strokeStyle = locked ? 'rgba(90,6,6,.95)' : 'rgba(255,90,60,.85)'; ctx.lineWidth = locked ? 3 : 2; ctx.setLineDash(locked && !tl.dash ? [] : [14, 10]); // tl.dash: a bounce warning stays dashed ctx.lineDashOffset = -G.time * 60;
       ctx.strokeRect(0, -w / 2, len, w); ctx.setLineDash([]);
@@ -6011,6 +6536,139 @@ function drawKapaniGround(e, g) {
   }
   g.restore();
 }
+/* ================= Kırağı drawing (docs/BOSSES.md section 6; logic 11f) ================= */
+// A long, low kite-shaped hull (90 x 44), purple with mint lights, ice shards on the rear deck, a long thin barrel with a mint emitter. Invisible: only the air shimmer and the snow tracks (and the laser line) show.
+// The ice copies use the same body in pale ice colours. drawKiragi is the opaque body (opacity from def.vis), drawKiragiGround the tracks / frost / lake ice, drawKiragiTop the shimmer, copies and beams (above the bushes).
+function krHullPath(g, L, hy) { // the kite: pointed nose, straight flanks, a notched tail
+  g.beginPath(); g.moveTo(L / 2 + 1, 0); g.lineTo(L / 2 - 20, -hy); g.lineTo(-L / 2 + 10, -hy); g.lineTo(-L / 2 + 1, -hy * 0.5); g.lineTo(-L / 2 + 6, 0); g.lineTo(-L / 2 + 1, hy * 0.5); g.lineTo(-L / 2 + 10, hy); g.lineTo(L / 2 - 20, hy); g.closePath();
+}
+function krBody(g, o, alpha, ice) { // o: { x, y, angle, turret, treadL, treadR, recoil, glow, flash, scorch? }
+  const s = KIR_SPEC, L = s.len, W = s.wid, tw = s.tread, tr = s.tR, c = ice ? { body: '#c3e6f3', dk: '#6ea9c6', hi: '#f2fcff', acc: '#7ef0d0' } : s.col, hy = W / 2 - tw + 1.5;
+  g.save(); g.translate(o.x, o.y); g.rotate(o.angle); g.globalAlpha = alpha;
+  // treads
+  g.fillStyle = ice ? '#78a9c2' : '#1f1d19'; rrect(g, -L / 2, -W / 2, L, tw, 4); g.fill(); rrect(g, -L / 2, W / 2 - tw, L, tw, 4); g.fill();
+  g.fillStyle = ice ? '#dff3fb' : '#4b473e'; const st = 6;
+  let off = ((o.treadL % st) + st) % st; for (let x = -L / 2 + off; x < L / 2 - 2; x += st) g.fillRect(x, -W / 2 + 1.5, 2, tw - 3);
+  off = ((o.treadR % st) + st) % st; for (let x = -L / 2 + off; x < L / 2 - 2; x += st) g.fillRect(x, W / 2 - tw + 1.5, 2, tw - 3);
+  g.fillStyle = c.acc; g.fillRect(L / 2 - 9, -W / 2 + 2, 5, 2.2); g.fillRect(L / 2 - 9, W / 2 - 4.2, 5, 2.2); // mint front lights
+  // ice shards on the tail
+  g.fillStyle = c.hi; for (const [y0, k] of [[-9, 1], [0, 1.35], [9, 1]]) { g.beginPath(); g.moveTo(-L / 2 + 6, y0 - 3.5); g.lineTo(-L / 2 - 8 * k, y0); g.lineTo(-L / 2 + 6, y0 + 3.5); g.closePath(); g.fill(); }
+  // hull
+  krHullPath(g, L, hy); g.fillStyle = c.dk; g.fill();
+  g.save(); g.scale(0.94, 0.8); krHullPath(g, L, hy); g.fillStyle = c.body; g.fill(); g.restore();
+  g.globalAlpha = alpha * 0.8; g.strokeStyle = c.hi; g.lineWidth = 1.6; g.beginPath(); g.moveTo(L / 2 - 4, 0); g.lineTo(-L / 2 + 14, 0); g.stroke(); g.globalAlpha = alpha;
+  g.strokeStyle = c.acc; g.lineWidth = 1.4; for (const sy of [-1, 1]) { g.beginPath(); g.moveTo(L / 2 - 26, sy * hy * 0.6); g.lineTo(-L / 2 + 16, sy * hy * 0.6); g.stroke(); }
+  g.fillStyle = c.dk; for (let k = 0; k < 3; k++) g.fillRect(-L / 2 + 12 + k * 4, -4, 2, 8);
+  g.strokeStyle = 'rgba(0,0,0,.5)'; g.lineWidth = 1.3; krHullPath(g, L, hy); g.stroke();
+  if (o.scorch) { g.fillStyle = 'rgba(20,10,8,.5)'; for (const q of o.scorch) { g.save(); g.translate(q.x, q.y); g.rotate(q.a); g.beginPath(); g.ellipse(0, 0, q.r * 1.3, q.r * 0.85, 0, 0, TAU); g.fill(); g.restore(); } }
+  if (ice) { g.strokeStyle = 'rgba(255,255,255,.85)'; g.lineWidth = 1; g.beginPath(); g.moveTo(L / 2 - 22, -hy * 0.3); g.lineTo(6, 4); g.lineTo(-10, -hy * 0.4); g.moveTo(6, 4); g.lineTo(-4, hy * 0.7); g.stroke(); } // cracks
+  const fl = o.flash > 0 ? Math.min(1, o.flash * 10) * 0.8 : 0;
+  if (fl) { g.globalAlpha = alpha * fl; g.fillStyle = '#fff'; krHullPath(g, L, hy); g.fill(); g.globalAlpha = alpha; }
+  // turret and the long barrel
+  g.rotate(o.turret - o.angle);
+  const rec = (o.recoil || 0) * 5, gk = clamp(o.glow || 0, 0, 1), bl = s.barrel, bw = s.bW;
+  g.fillStyle = '#1f1d19'; g.fillRect(tr * 0.4 - rec - 1, -bw / 2 - 1, bl - tr * 0.4 + 2, bw + 2);
+  g.fillStyle = c.dk; g.fillRect(tr * 0.4 - rec, -bw / 2, bl - tr * 0.4, bw);
+  g.fillStyle = 'rgba(255,255,255,.2)'; g.fillRect(tr * 0.4 - rec, -bw / 2 + 1, bl - tr * 0.4, 1.2);
+  g.fillStyle = c.acc; for (const k of [0.45, 0.62]) g.fillRect(bl * k - rec, -bw / 2 - 1.2, 1.8, bw + 2.4);
+  g.fillStyle = '#17141f'; g.fillRect(bl - 8 - rec, -bw / 2 - 1.6, 8, bw + 3.2); g.fillStyle = c.acc; g.fillRect(bl - 3 - rec, -bw / 2 - 1.6, 2, bw + 3.2);
+  if (gk > 0) { // glow telegraph: the emitter charges mint
+    const x = bl - rec + 2;
+    g.fillStyle = `rgba(12,30,28,${(0.65 * gk).toFixed(2)})`; g.beginPath(); g.arc(x, 0, 5 + 3 * gk, 0, TAU); g.fill();
+    if (fxScale === 1) { g.globalCompositeOperation = 'lighter'; const gs = 22 + 40 * gk; g.globalAlpha = alpha * (0.4 + 0.6 * gk); g.drawImage(SPR.pu_speed, x - gs / 2, -gs / 2, gs, gs); g.globalCompositeOperation = 'source-over'; }
+    g.globalAlpha = alpha * (0.55 + 0.45 * gk); g.fillStyle = gk < 1 ? '#7ef0d0' : '#f2fffb'; g.beginPath(); g.arc(x, 0, 3.2 + 2.4 * gk, 0, TAU); g.fill(); g.globalAlpha = alpha;
+  }
+  g.fillStyle = c.dk; rrect(g, -tr * 1.15 - 1.5, -tr * 0.8 - 1.5, tr * 2.1 + 3, tr * 1.6 + 3, tr * 0.7); g.fill();
+  g.fillStyle = c.body; rrect(g, -tr * 1.15, -tr * 0.8, tr * 2.1, tr * 1.6, tr * 0.65); g.fill();
+  g.globalAlpha = alpha * 0.55; g.fillStyle = c.hi; rrect(g, -tr * 0.9, -tr * 0.62, tr * 1.5, tr * 0.5, tr * 0.25); g.fill(); g.globalAlpha = alpha;
+  g.fillStyle = c.acc; g.beginPath(); g.moveTo(tr * 0.55, 0); g.lineTo(tr * 0.05, -tr * 0.32); g.lineTo(-tr * 0.35, 0); g.lineTo(tr * 0.05, tr * 0.32); g.closePath(); g.fill(); // mint crystal on the turret
+  g.strokeStyle = c.dk; g.lineWidth = 1; g.stroke();
+  if (fl) { g.globalAlpha = alpha * fl; g.fillStyle = '#fff'; rrect(g, -tr * 1.15, -tr * 0.8, tr * 2.1, tr * 1.6, tr * 0.65); g.fill(); }
+  g.restore();
+}
+function drawKiragi(e, g, alpha) { krBody(g, { x: e.x, y: e.y, angle: e.angle, turret: e.turret, treadL: e.treadL, treadR: e.treadR, recoil: e.recoil, glow: e.glow, flash: e.flash, scorch: e.scorch }, alpha, false); }
+
+function drawKiragiGround(e, g) {
+  const kr = e.kr, m = G.map; if (!kr || !m) return;
+  // the frozen lake (phase 3): an ice sheet over the old water, fading in as it freezes
+  if (kr.lakeOpen) {
+    const k = 1 - kr.lakeT / 1.6;
+    g.save(); g.globalAlpha = 0.35 + 0.5 * k;
+    for (const q of kr.lake) {
+      const x = q.c * T, y = q.r * T; g.fillStyle = '#cfeaf8'; g.fillRect(x, y, T, T);
+      g.strokeStyle = 'rgba(255,255,255,.9)'; g.lineWidth = 1.2; const rn = mulberry32(seedOf(q.c, q.r, 7));
+      g.beginPath(); g.moveTo(x + rn() * T, y); g.lineTo(x + rn() * T, y + T * 0.5); g.lineTo(x + rn() * T, y + T); g.moveTo(x, y + rn() * T); g.lineTo(x + T * 0.5, y + rn() * T); g.lineTo(x + T, y + rn() * T); g.stroke();
+    }
+    g.restore();
+  }
+  // frost on the ground
+  if (kr.frost) {
+    g.save();
+    for (let r = 0; r < m.n; r++) for (let c = 0; c < m.n; c++) {
+      const f = kr.frost[r * m.n + c]; if (f <= 0) continue;
+      const a = Math.min(1, f / 1.2) * 0.5, x = c * T, y = r * T;
+      g.fillStyle = `rgba(150,205,245,${a.toFixed(3)})`; g.fillRect(x, y, T, T);
+      g.strokeStyle = `rgba(255,255,255,${(a * 1.4).toFixed(3)})`; g.lineWidth = 1.1; const rn = mulberry32(seedOf(c, r, 31)); g.beginPath();
+      for (let k = 0; k < 3; k++) { const cx = x + 6 + rn() * (T - 12), cy = y + 6 + rn() * (T - 12), an = rn() * TAU; for (let j = 0; j < 3; j++) { g.moveTo(cx, cy); g.lineTo(cx + Math.cos(an + j * 2.09) * 7, cy + Math.sin(an + j * 2.09) * 7); } }
+      g.stroke();
+    }
+    g.restore();
+  }
+  // the coming band (during the warning) and the moving front
+  const f = kr.front;
+  if (f) {
+    g.save(); const d = f.depth, x0 = f.dir === 0 ? 0 : f.dir === 1 ? m.w - d : 0, y0 = f.dir === 2 ? 0 : f.dir === 3 ? m.h - d : 0, w = f.dir < 2 ? d : m.w, h = f.dir < 2 ? m.h : d;
+    if (!f.active) { g.fillStyle = 'rgba(150,205,245,.16)'; g.fillRect(x0, y0, w, h); g.strokeStyle = 'rgba(120,190,245,.7)'; g.lineWidth = 2; g.setLineDash([12, 9]); g.strokeRect(x0 + 1, y0 + 1, w - 2, h - 2); g.setLineDash([]); }
+    else {
+      const p = f.pos, px = f.dir === 0 ? p : f.dir === 1 ? m.w - p : 0, py = f.dir === 2 ? p : f.dir === 3 ? m.h - p : 0;
+      g.fillStyle = 'rgba(235,248,255,.75)'; if (f.dir < 2) g.fillRect(px - 5, 0, 10, m.h); else g.fillRect(0, py - 5, m.w, 10);
+    }
+    g.restore();
+  }
+  // snow tracks: dark blue-grey strokes that fade over 2 s; the copies' (second loop) over 0.5 s
+  const lists = [[kr.trail, KIR.trail], [kr.dtrail, KIR.trail2]];
+  g.save(); g.lineCap = 'round'; g.lineWidth = 4;
+  for (const [list, life] of lists) for (const q of list) {
+    const k = 1 - (G.time - q.t) / life; if (k <= 0) continue;
+    g.strokeStyle = `rgba(70,92,130,${(0.55 * k).toFixed(3)})`; g.beginPath(); g.moveTo(q.x1, q.y1); g.lineTo(q.x2, q.y2); g.stroke();
+  }
+  g.restore();
+}
+function drawKiragiTop(e, g) {
+  const kr = e.kr; if (!kr) return;
+  // ice copies: pale, faintly glowing, lightly pulsing
+  for (const d of kr.dec) {
+    if (!onScreen(d.x, d.y, 90)) continue;
+    const rise = clamp(d.t / 0.35, 0, 1), fade = d.t > KIR.decLife - 1 ? clamp(KIR.decLife - d.t, 0, 1) : 1, pulse = 0.5 + 0.1 * Math.sin(G.time * 5 + d.id);
+    g.save(); g.globalCompositeOperation = 'lighter'; g.globalAlpha = 0.3 * rise * fade; const gs = 130; g.drawImage(SPR.blue, d.x - gs / 2, d.y - gs / 2, gs, gs); g.restore();
+    krBody(g, d, (pulse + 0.15) * rise * fade, true);
+  }
+  // the air shimmer while invisible: wavering rings around the hull and slow glints
+  const k = 1 - kr.a;
+  if (k > 0.05 && !e.dying && onScreen(e.x, e.y, 90)) {
+    const s = KIR_SPEC, t = G.time;
+    g.save(); g.translate(e.x, e.y); g.rotate(e.angle); g.lineWidth = 1.7;
+    for (let i = 0; i < 3; i++) {
+      const wob = Math.sin(t * 4 + i * 2.1) * 2.4, rx = s.len / 2 + 2 + i * 3.5 + wob, ry = s.wid / 2 + 3 + i * 3 + wob * 0.6;
+      g.strokeStyle = i === 1 ? `rgba(255,255,255,${(0.7 * k).toFixed(3)})` : `rgba(60,86,132,${((0.38 - i * 0.07) * k).toFixed(3)})`;
+      g.setLineDash(i === 2 ? [10, 8] : []); g.lineDashOffset = -t * 30 * (i % 2 ? 1 : -1);
+      g.beginPath(); g.ellipse(0, 0, rx, ry, 0, 0, TAU); g.stroke();
+    }
+    g.setLineDash([]); g.fillStyle = `rgba(255,255,255,${(0.65 * k).toFixed(3)})`;
+    for (let i = 0; i < 4; i++) { const u = ((t * 0.6 + i * 0.25) % 1), x = (u - 0.5) * s.len * 0.9, y = Math.sin(u * 9 + i) * s.wid * 0.35; g.beginPath(); g.arc(x, y, 1.8, 0, TAU); g.fill(); }
+    g.restore();
+  }
+  // beams: a bright mint line that fades out (the harmless copies' flashes are thinner)
+  if (kr.beams.length) {
+    g.save(); g.lineCap = 'round';
+    for (const b of kr.beams) {
+      const k2 = clamp(b.t / 0.24, 0, 1), x2 = b.x + Math.cos(b.a) * b.len, y2 = b.y + Math.sin(b.a) * b.len, w = b.fake ? 4 : 11;
+      g.strokeStyle = `rgba(${KIR_MINT},${(0.5 * k2).toFixed(3)})`; g.lineWidth = w * (0.6 + k2); g.beginPath(); g.moveTo(b.x, b.y); g.lineTo(x2, y2); g.stroke();
+      g.strokeStyle = `rgba(255,255,255,${(0.95 * k2).toFixed(3)})`; g.lineWidth = w * 0.35 * (0.6 + k2); g.beginPath(); g.moveTo(b.x, b.y); g.lineTo(x2, y2); g.stroke();
+    }
+    g.restore();
+  }
+}
 function drawStrikes() {
   if (!G.strikes.length) return;
   const blink = ((G.time * 12) | 0) % 2;
@@ -6123,20 +6781,32 @@ function drawBullets() {
   // Ownership cue: player shells are bright elongated capsules (flying along their path); enemy and boss shells are round, red-orange with a dark ring
   ctx.lineCap = 'round';
   for (const b of G.bullets) {
-    if (b.lob || b.look === 'enemy') continue;
+    if (b.lob || b.look === 'enemy' || b.shell) continue;
     const lk = LOOK[b.look] || LOOK.player, sp = Math.hypot(b.vx, b.vy) || 1, ux = b.vx / sp * b.r * 1.5, uy = b.vy / sp * b.r * 1.5;
     ctx.strokeStyle = 'rgba(0,0,0,.5)'; ctx.lineWidth = b.r * 2 + 2.4; ctx.beginPath(); ctx.moveTo(b.x - ux, b.y - uy); ctx.lineTo(b.x + ux, b.y + uy); ctx.stroke();
     ctx.strokeStyle = lk.core; ctx.lineWidth = b.r * 2; ctx.beginPath(); ctx.moveTo(b.x - ux, b.y - uy); ctx.lineTo(b.x + ux, b.y + uy); ctx.stroke();
   }
   ctx.lineWidth = 1.8;
   for (const b of G.bullets) {
-    if (b.lob || b.look !== 'enemy') continue;
+    if (b.lob || b.look !== 'enemy' || b.shell) continue;
     const r = b.boss ? b.r * 1.15 : b.r;
     ctx.fillStyle = '#e8441c'; ctx.strokeStyle = '#2a0904'; ctx.beginPath(); ctx.arc(b.x, b.y, r + 0.6, 0, TAU); ctx.fill(); ctx.stroke();
     ctx.fillStyle = '#ffb070'; ctx.beginPath(); ctx.arc(b.x, b.y, r * 0.4, 0, TAU); ctx.fill();
     if (b.boss) { ctx.strokeStyle = '#ff2a1a'; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.arc(b.x, b.y, r + 3.2, 0, TAU); ctx.stroke(); ctx.lineWidth = 1.8; }
   }
   for (const b of G.bullets) if (b.lob) TT_obus.draw(b);
+  for (const b of G.bullets) if (b.shell) drawShell(b);
+}
+// Ağır Topçu shell: a big dark ball in an amber ring with a hot core; one crack per hit it has taken, white for a moment when hit
+function drawShell(b) {
+  const r = b.r, hit = Math.max(0, b.sh), cr = 3 - hit, fl = b.shT > 0 ? 1 : 0;
+  ctx.save(); ctx.translate(b.x, b.y);
+  ctx.fillStyle = '#ffa52e'; ctx.globalAlpha = 0.35 + 0.15 * Math.sin(G.time * 14); ctx.beginPath(); ctx.arc(0, 0, r + 5, 0, TAU); ctx.fill(); ctx.globalAlpha = 1;
+  ctx.fillStyle = fl ? '#fff4d0' : '#2a1d17'; ctx.strokeStyle = '#ffa52e'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(0, 0, r, 0, TAU); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = fl ? '#ffd9a0' : '#ff7a2a'; ctx.beginPath(); ctx.arc(0, 0, r * 0.42, 0, TAU); ctx.fill();
+  ctx.rotate(G.time * 3); ctx.strokeStyle = fl ? '#8a4a14' : '#fff0c0'; ctx.lineWidth = 1.7; ctx.lineCap = 'round';
+  for (let k = 0; k < cr; k++) { const a = k * 2.1 + 0.4; ctx.beginPath(); ctx.moveTo(Math.cos(a) * r * 0.3, Math.sin(a) * r * 0.3); ctx.lineTo(Math.cos(a + 0.25) * r * 0.65, Math.sin(a + 0.25) * r * 0.65); ctx.lineTo(Math.cos(a - 0.1) * r * 1.02, Math.sin(a - 0.1) * r * 1.02); ctx.stroke(); }
+  ctx.restore();
 }
 // Avcı's aiming light: a dashed mint line that brightens just before it fires, so the player gets a moment to react
 function drawLocks() {
@@ -6308,7 +6978,7 @@ function drawMini() {
   g.strokeStyle = 'rgba(224,83,58,.9)'; g.lineWidth = 1.2 * d;
   for (const q of G.portals) { g.beginPath(); g.arc(q.x * k, q.y * k, (2 + 2 * Math.sin(G.time * 10)) * d + 2 * d, 0, TAU); g.stroke(); }
   const thermal = upL('thermal') > 0;
-  for (const e of G.enemies) if (!e.hidden || thermal) {
+  for (const e of G.enemies) if ((!e.hidden || thermal) && !(e.isBoss && e.def.vis && e.def.vis(e) < 0.3)) { // an invisible boss is not on the minimap either
     g.fillStyle = e.spec.smart ? '#c9a2ff' : '#ff5a3c';
     g.beginPath(); g.arc(e.x * k, e.y * k, (e.type === 'boss' ? 3.4 : 2.3) * d, 0, TAU); g.fill();
   }
@@ -6382,7 +7052,7 @@ function bossAutopilot(dt) {
     if (k) { const kc = Math.floor(k.x / T), kr = Math.floor(k.y / T), d = botBfs((c, r) => c === kc && r === kr, 14); if (d) { bot.mx = d.x; bot.my = d.y; return; } }
   }
   const want = Math.max(TANKS[G.tank].botRange || 290, 150);
-  const lineWarn = e.treadT <= 0 && G.tele.some(t => t.kind === 'line' && t.t < t.dur), brk = e.treadT > 0; // part damage: a charge line is up (shoot the tread from the side) / a tread is broken (get behind)
+  const lineWarn = e.treadT <= 0 && G.tele.some(t => t.kind === 'line' && t.t < t.dur && !t.nodanger), brk = e.treadT > 0; // part damage: a charge line is up (shoot the tread from the side) / a tread is broken (get behind)
   let best = null, bs = -1e9;
   for (let i = 0; i < 8; i++) {
     const a = i * Math.PI / 4, x = p.x + Math.cos(a) * 60, y = p.y + Math.sin(a) * 60;
@@ -6495,6 +7165,7 @@ if (DEBUG) {
     // start any BOSS_DEFS key (also sandboxOnly ones) at wave w with its own arena; the intro runs (bossSkip ends it)
     bossStart(key, w) { G.forceBoss = key; G.wave = (w || 25) - 1; nextWave(); G.forceBoss = null; return this.bossInfo(); },
     bossSkip() { G.introSeen = true; G.phaseT = Math.max(G.phaseT, 0.3); bossIntroTap(); },
+    KIR, KIR_SPEC, bossFitMap, playerSlowK, krDecoyHit, krDecoyBreak, krBeam, TOPCU, topcuBoom, topcuFire, shellHit, updateTopcu,
     bossDanger, bossClearHazards, BOSS_DEFS, BOSS_ON, startBossStage, loadArena, ARENAS, parseArena, themeFor, bossDefAt,
     // one boss fight for the probe: wave w, workshop cards (object), tank id; the bot plays until the boss falls, the tank dies or maxSec passes
     bossFight(w, cards, tank, maxSec, key) {

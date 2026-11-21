@@ -114,6 +114,7 @@ function trackUpdate(t, moved, dA) {
   const s = t.spec, half = s.wid * 0.5;
   t.treadL += moved + dA * half; t.treadR += moved - dA * half;
   t.trackAcc += Math.abs(moved) + Math.abs(dA) * half;
+  if (t.noTreads) { t.trackAcc = 0; return; } // Kırağı keeps its own short-lived snow tracks (11f)
   if (t.trackAcc < 6) return;
   t.trackAcc = 0;
   const off = half - s.tread * 0.5, nx = -Math.sin(t.angle), ny = Math.cos(t.angle);
