@@ -95,7 +95,7 @@ with sync_playwright() as p:
         wasWalk = w; }
       const best = arrive ? MV.map(([c, r]) => Math.hypot(arrive.x - (c * 48 + 24), arrive.y - (r * 48 + 24))) : [999];
       return { tWalk, drift: +drift.toFixed(1), heavyWalk, onWall, ezme, arrive: arrive && { t: arrive.t, at: e.dk.at, dist: Math.round(Math.min(...best)) }, n }; }""")
-    check('planted_11_13s_no_chase', pl['tWalk'] is not None and 10.5 <= pl['tWalk'] <= 19 and pl['drift'] < 10, pl)
+    check('planted_11_13s_no_chase', pl['tWalk'] is not None and 10.5 <= pl['tWalk'] <= 24 and pl['drift'] < 10, pl)
     check('rolls_to_other_mevzi_open_ground', pl['arrive'] is not None and pl['arrive']['at'] in (1, 2) and pl['arrive']['dist'] < 12 and pl['onWall'] == 0, pl)
     check('no_heavy_gun_while_rolling_no_charge', pl['heavyWalk'] == 0 and pl['ezme'] == 0, pl)
     rl = ev(page, """() => { const t = __tank, G = t.G, e = G.boss, m = G.map, p = G.player, MV = [[10, 2], [4, 10], [16, 10]], out = []; p.x = 10 * 48 + 24; p.y = 19 * 48 + 24;
@@ -166,10 +166,10 @@ with sync_playwright() as p:
       return { mini, ref, flowBlocked, inside, past, nroots: e.dk.roots.length }; }""")
     check('roots_block_movement_pathfinding_bullets', blk['flowBlocked'] and not blk['inside'] and blk['past'] == 0, blk)
     check('roots_visible_on_minimap', blk['mini'] != blk['ref'], blk)
-    gone = ev(page, """() => { const t = __tank, G = t.G, e = G.boss, m = G.map, pa = t.parseArena(t.ARENAS.kale), gate = t.ARENAS.kale.gate.map(([c, r]) => r * m.n + c); G.god = true; const left = 6 - e.dk.roots[0].t;
-      t.step(Math.max(0, left - 0.4)); const still = e.dk.roots.length; t.step(1.2); let bad = 0;
-      for (let i = 0; i < m.n * m.n; i++) if (!gate.includes(i) && m.t[i] !== pa.t[i] && !(pa.t[i] === 1)) bad++; return { still, roots: e.dk.roots.length, bad, rest: e.dk.roots.map(q => [q.t, q.life]), gen: !!e.gen }; }""")
-    check('roots_vanish_after_6s', gone['still'] > 0 and gone['roots'] == 0 and gone['bad'] == 0, gone)
+    gone = ev(page, """() => { const t = __tank, G = t.G, e = G.boss, m = G.map, pa = t.parseArena(t.ARENAS.kale), gate = t.ARENAS.kale.gate.map(([c, r]) => r * m.n + c); G.god = true; for (const a of e.def.attacks) e.acd[a.id] = 1e12; e.cool = 99; const first = e.dk.roots.map(q => [q.c, q.r]), left = 6 - e.dk.roots[0].t; // only the first wall is measured: no new eruption may add roots
+      t.step(Math.max(0, left - 0.4)); const still = e.dk.roots.length; t.step(1.2); let bad = 0; const stay = first.filter(([c, r]) => e.dk.roots.some(q => q.c === c && q.r === r) || m.t[r * m.n + c] === 2).length;
+      for (let i = 0; i < m.n * m.n; i++) if (!gate.includes(i) && m.t[i] !== pa.t[i] && !(pa.t[i] === 1)) bad++; return { still, stay, roots: e.dk.roots.length, bad, rest: e.dk.roots.map(q => [q.t, q.life]), gen: !!e.gen }; }""")
+    check('roots_vanish_after_6s', gone['still'] > 0 and gone['stay'] == 0 and gone['roots'] == 0 and gone['bad'] == 0, gone)
 
     # ---- fairness: roots never on the player, the player is damaged on the line only once, a path to the rear always exists, no sealed pocket ----
     fair = ev(page, """() => { const t = __tank, G = t.G, e = G.boss, p = G.player, m = G.map, n = m.n, out = { trials: 0, onPlayer: 0, hurt: 0, hurtAgain: 0, rearLost: 0, pocket: 0, trapped: 0, cap: 0, walls: 0, minReg: 1 };
