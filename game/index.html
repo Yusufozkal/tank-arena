@@ -728,6 +728,15 @@ const UPS = {
   boost: { name: 'Uzun etki', max: 3, brief: 'Güçlendirmeler uzar, Tamir artar',
     svg: '<path d="M6 3h12M6 21h12M7.5 3c0 4.5 3.5 6 3.5 9s-3.5 4.5-3.5 9M16.5 3c0 4.5-3.5 6-3.5 9s3.5 4.5 3.5 9"/>',
     desc: L => `Güçlendirme süresi +%25${tot(L, '+%' + 25 * L)}, Tamir ${35 + 10 * L} zırh` },
+  antitank: { name: 'Antitank mermisi', max: 3, brief: 'Parça kırar, yandan ve arkadan vurunca güçlü',
+    svg: '<path d="M3 12h11M14 7l7 5-7 5zM3 8v8"/>',
+    desc: L => `Parçalara çift hasar: palet, namlu ve motor tek isabette kırılır. Yandan ve arkadan +%${15 * L} hasar (bosslarda yarısı)` },
+  slope: { name: 'Eğimli zırh', max: 3, brief: 'Bazı mermiler zırhtan seker',
+    svg: '<path d="M4 20L20 6M4 20h16M9 15l3 4M14.5 10.5l3 4"/>',
+    desc: L => `Mermiler seker: önden %${30 + 10 * L}, yandan %${15 + 5 * L}, arkadan %0. Ağır mermi, lazer ve patlamada işlemez` },
+  reflex: { name: 'Refleks', max: 2, rare: true, brief: 'Gelen mermiden yana kayar',
+    svg: '<path d="M3 12h9M8 8l-4 4 4 4M15 5l6 7-6 7M17 12h4"/>',
+    desc: L => `Mermi gelirken tank yana kayar, bekleme ${L === 1 ? 3 : 2} sn. Lazer ve patlamada işlemez. Hazırken tankta ışık yanar` },
   // extra cards: never levelled, only offered when they matter or the pool runs dry
   fix: { name: 'Acil onarım', max: 99, extra: true,
     svg: '<circle cx="12" cy="12" r="9"/><path d="M12 7.5v9M7.5 12h9"/>',
@@ -1919,7 +1928,10 @@ function hurtEnemy(e, dmg, x, y, dir, quiet) { // quiet: burn ticks and flame, n
   if (!quiet) Sound.metal(volAt(e.x, e.y));
 }
 function damageEnemy(e, b) {
-  hurtEnemy(e, b.dmg * synDmg(b, e), b.x, b.y, Math.atan2(-b.vy, -b.vx));
+  const L = b.owner === 0 ? upL('antitank') : 0, boss = e.isBoss || e.type === 'boss'; let k = 1; // Antitank mermisi: side / rear hits +15% per level (half on a boss), boss parts x1.5 (11a bossHurt reads G.partK), ordinary tanks' parts x2 (11 partBreak)
+  if (L) { if (Math.abs(angDiff(e.angle, Math.atan2(-b.vy, -b.vx))) >= 0.785) k = 1 + 0.15 * L * (boss ? 0.5 : 1); G.partK = boss ? 1.5 : 1; }
+  hurtEnemy(e, b.dmg * synDmg(b, e) * k, b.x, b.y, Math.atan2(-b.vy, -b.vx));
+  G.partK = 1;
   if (!e.dead) { alertHit(e, b); partBreak(e, b); } // 11: a surviving enemy tank loses a part by the hit direction
 }
 // Explosive shells (Patlayıcı mermi): a small blast that hurts every other enemy tank in reach
@@ -2061,7 +2073,8 @@ const NUKE_BOSS_FLOOR = 0.1; // a boss keeps at least this share of its max HP a
 // blast damage to a boss at wave w: 150 up to wave 15, +6 per wave after, never above 30% of the boss's max HP
 const nukeBossDmg = (w, maxHp) => Math.min(NUKE_BOSS_CAP * maxHp, NUKE_BOSS_BASE + NUKE_BOSS_PER_WAVE * Math.max(0, w - 15));
 const NUKE_BOSS_STUN = 3;   // seconds a boss is stunned
-const NUKE_BOSS_FILL = 0.6; // share of a boss's max HP that, dealt as damage, fills the meter once (boss stage)
+const NUKE_BOSS_FILL = 0.34; // share of a boss's max HP that, dealt as damage, fills the meter once (boss stage; 1.5.5: was 0.6, the bomb came too late). Up to NUKE_BOSS_MAX charges per fight
+const NUKE_BOSS_MAX = 2;
 const NUKE_FLASH = 0.6;     // seconds the white flash fades
 // expected total weight of wave w's roster; mirrors buildRoster without touching its random numbers
 function nukeWaveWeight(w) {
@@ -2092,13 +2105,14 @@ const nukeIsBoss = e => e.isBoss === true || e.type === 'boss';
 // a living boss that takes no damage now (intro, phase transition, death scene): no blast may start
 const nukeBossSafe = () => G.enemies.some(e => !e.dead && nukeIsBoss(e) && (e.invuln || e.invulnerable));
 // boss-stage charging: the boss agent calls this from the boss damage path with the damage applied to the boss body.
-// 60% of max HP dealt fills the meter once; at most one charge per fight (per wave). The blast's own damage never counts.
+// 34% of max HP dealt fills the meter once; at most two charges per fight (per wave); damage dealt while the meter is already full does not count towards the next one. The blast's own damage never counts.
 function nukeOnBossDamage(e, amount) {
   const n = G.nuke;
   if (n.firing || !(amount > 0) || !e || !(e.maxHp > 0) || G.phase === 'dying' || !G.player || !G.player.alive) return;
   if (n.bossWave !== G.wave) { n.bossWave = G.wave; n.bossAcc = 0; }
-  const room = 1 - n.bossAcc; if (room <= 0) return;
-  const add = Math.min(room, amount / (NUKE_BOSS_FILL * e.maxHp));
+  const room = NUKE_BOSS_MAX - n.bossAcc; if (room <= 0) return;
+  const add = Math.min(room, 1 - n.meter, amount / (NUKE_BOSS_FILL * e.maxHp));
+  if (add <= 0) return;
   n.bossAcc += add; n.meter = Math.min(1, n.meter + add);
 }
 G.nukeOnBossDamage = nukeOnBossDamage; // also reachable for tests (module 19 is not edited here)
@@ -2203,12 +2217,46 @@ function ricochet(b, px, py) {
   b.x = px; b.y = py; b.bounced = true; b.bounce--; b.life = Math.max(b.life, 0.9); b.seenBy = null; b.hits = null;
   sparks(px, py, 5, '#cfe8ff', 180); Sound.bounce(volAt(px, py));
 }
+/* ===== 1.5.5 cards on the receiving end: Eğimli zırh (slope) and Refleks (reflex) ===== */
+// Eligible: bullets and shells of enemies (b.owner 1). Never touched: lasers, flames, rings/explosions and rams (those call damagePlayer without a bullet), Ağır Topçu shells and boss heavy shells for the slope.
+const SLOPE = { front: 0.4, side: 0.2, fStep: 0.1, sStep: 0.05, bossK: 0.5, fa: 0.785, ra: 2.356 };
+const REFLEX = { dist: 0.6, time: 0.12, cd: [3, 2], look: 0.16 };
+function slopeChance(b) { // chance that enemy bullet b glances off the player's hull, by the direction it comes from (against the HULL facing)
+  const L = upL('slope'), p = G.player; if (!L || !p || b.owner !== 1 || b.shell || b.heavy) return 0;
+  const aa = Math.abs(angDiff(p.angle, Math.atan2(-b.vy, -b.vx)));
+  const c = aa < SLOPE.fa ? SLOPE.front + SLOPE.fStep * (L - 1) : aa > SLOPE.ra ? 0 : SLOPE.side + SLOPE.sStep * (L - 1);
+  return c * (b.boss ? SLOPE.bossK : 1);
+}
+function slopeRoll(b) { if (b.dfl === undefined) { const c = slopeChance(b); b.dfl = c > 0 && Math.random() < c; } return b.dfl; } // rolled once per bullet
+function slopeBounce(b) { // the bullet leaves harmlessly: it flies back a short way and can hurt nobody
+  const a = Math.atan2(-b.vy, -b.vx) + rand(-0.5, 0.5), sp = Math.hypot(b.vx, b.vy) * 0.6;
+  b.vx = Math.cos(a) * sp; b.vy = Math.sin(a) * sp; b.inert = true; b.life = Math.min(b.life, 0.45); b.shell = false;
+  sparks(b.x, b.y, 7, '#e8f4ff', 240); addPart('ring', b.x, b.y, 0, 0, 0.18, 3, 24, 0, '220,240,255'); Sound.metal(volAt(b.x, b.y));
+}
+function reflexRoom(p, dx, dy) { // the whole slide (3 stops and the end) stays on free ground: no wall, steel, water or map edge under the hull
+  const m = G.map, r = p.r * 0.85;
+  for (const f of [0.34, 0.67, 1]) { const x = p.x + dx * f, y = p.y + dy * f; for (const [ox, oy] of [[0, 0], [r, 0], [-r, 0], [0, r], [0, -r]]) if (blocksTank(m.at(x + ox, y + oy))) return false; }
+  return true;
+}
+function reflexTry(b) { // called each frame for every enemy bullet: about to touch the hull within REFLEX.look s -> slide sideways (the slope roll comes first: a deflection needs no slide)
+  const p = G.player, L = upL('reflex'); if (!L || !p.alive || p.rfCd > 0 || p.rf) return;
+  const sp = Math.hypot(b.vx, b.vy); if (sp < 1) return;
+  const ux = b.vx / sp, uy = b.vy / sp, rx = p.x - b.x, ry = p.y - b.y, along = rx * ux + ry * uy;
+  if (along <= 0 || (along - p.r - b.r) / sp > REFLEX.look) return; // time to contact (hull edge to shell edge), not to the centre: a big slow shell must be seen early enough
+  const off = -uy * rx + ux * ry; if (Math.abs(off) >= p.r + b.r) return; // it would miss anyway
+  if (slopeRoll(b)) return;
+  const D = clamp(p.r + b.r + 6 - Math.abs(off), REFLEX.dist * T, T), nx = -uy * (off >= 0 ? 1 : -1), ny = ux * (off >= 0 ? 1 : -1);
+  p.rfCd = REFLEX.cd[Math.min(L, 2) - 1]; b.rf = true; // used up either way; with no room the bullet passes through
+  for (const sg of [1, -1]) if (reflexRoom(p, nx * D * sg, ny * D * sg)) { p.rf = { vx: nx * D * sg / REFLEX.time, vy: ny * D * sg / REFLEX.time, t: REFLEX.time }; break; }
+  addPart('ring', p.x, p.y, 0, 0, 0.3, 8, 46, 0, '126,240,255'); sparks(p.x, p.y, 6, '#9ff0ff', 180); Sound.pop(volAt(p.x, p.y));
+}
 function updateBullets(dt) {
   const m = G.map, p = G.player;
   for (const b of G.bullets) {
     if (b.dead) continue;
     b.life -= dt; if (b.life <= 0) { b.dead = true; continue; }
     if (b.shT > 0) b.shT -= dt; // Ağır Topçu shell: hit flash
+    if (b.owner === 1 && p && p.alive && !b.inert && !b.rf && !b.lob) reflexTry(b); // Refleks
     if (TT.bulletStep(b, dt) || b.dead) continue; // hook (A): lob shells fly over everything and are moved by the trait
     b.dist += Math.hypot(b.vx, b.vy) * dt; // path length for packages A/B
     const steps = Math.max(1, Math.ceil(Math.hypot(b.vx, b.vy) * dt / 8));
@@ -2217,6 +2265,7 @@ function updateBullets(dt) {
       b.x += b.vx * dt / steps; b.y += b.vy * dt / steps;
       const v = m.at(b.x, b.y);
       if (isWall(v)) {
+        if (b.inert) { b.dead = true; break; } // a deflected bullet is harmless
         if (v === BRICK && b.pierce) {
           // Delici mermi: damage each brick once and keep flying
           const i = Math.floor(b.y / T) * m.n + Math.floor(b.x / T);
@@ -2238,16 +2287,16 @@ function updateBullets(dt) {
           damageEnemy(hit, b);
           if (b.splash) blastAt(b, b.x, b.y, hit);
         } else if (G.boss && G.boss.kr && G.boss.kr.dec.length && krDecoyHit(b)) { if (!b.pierce) { b.dead = true; break; } } // Kırağı's ice copies (11f) take a shell and break
-      } else if (p && p.alive) {
+      } else if (p && p.alive && !b.inert && !b.rf) {
         const rr = p.r + b.r + (G.buffs.shield > 0 || p.shield1T > 0 ? 8 : 0);
-        if (dist2(b.x, b.y, p.x, p.y) < rr * rr) { b.dead = true; if (b.shell) b.hitP = true; damagePlayer(b); if (b.shell) topcuBoom(b, b.x, b.y); }
+        if (dist2(b.x, b.y, p.x, p.y) < rr * rr) { if (slopeRoll(b)) { slopeBounce(b); continue; } b.dead = true; if (b.shell) b.hitP = true; damagePlayer(b); if (b.shell) topcuBoom(b, b.x, b.y); } // Eğimli zırh: the roll comes before the damage
       }
     }
   }
   for (const a of G.bullets) {
     if (a.dead || a.owner !== 0 || a.lob) continue; // lob shells fly above enemy shells
     for (const c of G.bullets) {
-      if (c.dead || c.owner !== 1 || c.boss) continue; // boss shells are not shot down by the player's shells
+      if (c.dead || c.owner !== 1 || c.boss || c.inert) continue; // boss shells are not shot down by the player's shells
       const rr = a.r + c.r + 3;
       if (c.shell) { // Ağır Topçu shell: 3 hits of any shell, whatever the damage (a piercing shell counts once per Topçu shell)
         if (dist2(a.x, a.y, c.x, c.y) < rr * rr && !(a.shot && a.shot.includes(c))) { shellHit(c, a); if (a.pierce) (a.shot || (a.shot = [])).push(c); else { a.dead = true; break; } }
@@ -2677,7 +2726,7 @@ function partBreak(e, b) { // called from damageEnemy: a direct shell of the pla
   if (k === 'barrel' && e.spec.medic) return; // the Tamirci has no barrel to jam
   const pt = e.pt || (e.pt = { tread: 0, barrel: 0, engine: 0, imm: { tread: 0, barrel: 0, engine: 0 }, acc: { tread: 0, barrel: 0, engine: 0 }, dur: { tread: 0, barrel: 0, engine: 0 }, side: 0, fx: 0 });
   if (pt[k] > 0 || pt.imm[k] > 0) return;
-  pt.acc[k] += b.dmg || 1;
+  const at = upL('antitank') > 0; pt.acc[k] += (b.dmg || 1) * (at ? 2 : 1); // Antitank mermisi: x2 part damage
   if (pt.acc[k] < PART_HP) return;
   pt.acc[k] = 0;
   pt[k] = pt.dur[k] = PART_T[k] / (G.wave > PART_T.fastFrom ? PART_T.fast : 1);
@@ -2688,6 +2737,7 @@ function partBreak(e, b) { // called from damageEnemy: a direct shell of the pla
     sparks(q.x, q.y, 9, '#ffd27a', 240);
   } else if (k === 'barrel') { sparks(q.x, q.y, 8, '#ffb04a', 220); for (let i = 0; i < 3; i++) addPart('smoke', q.x, q.y, rand(-20, 20), rand(-30, -8), rand(0.6, 1), rand(10, 15), 22, 2); }
   else { for (let i = 0, n = Math.max(2, Math.round(5 * fxScale)); i < n; i++) addPart('smoke', q.x + rand(-4, 4), q.y + rand(-4, 4), rand(-40, 10) - Math.cos(e.angle) * 20, rand(-30, 5), rand(0.8, 1.4), rand(12, 20), 26, 1.6, 'k'); sparks(q.x, q.y, 5, '#ffb04a', 160); }
+  if (at) { sparks(q.x, q.y, 8, '#ffffff', 260); addPart('ring', q.x, q.y, 0, 0, 0.25, 4, 34, 0, '255,255,255'); }
   Sound.metal(vl);
   if (!partSeen[k]) { partSeen[k] = true; addText(e.x, e.y - e.r - 12, PART_NAME[k], '#ffd27a', 13); }
 }
@@ -3075,7 +3125,7 @@ function bossShell(e, ang, o) {
   for (let d = 6; d <= len; d += 6) { bx = ox + ca * d; by = oy + sa * d; if (isWall(m.at(bx, by))) { blocked = true; break; } }
   const sp = s.bSpeed * (o.speed || 1);
   const b = { x: bx, y: by, vx: ca * sp, vy: sa * sp, r: s.bR, owner: 1, dmg: bossDmg(s.dmg * (o.dmgK || 1)), life: 3.2, big: true, dead: false,
-    pierce: false, bounce: 0, splash: null, look: 'enemy', hits: null, bricks: null, sx: bx, sy: by, dist: 0, bounced: false, vol: 0, volN: 0, pn: 0, boss: true };
+    pierce: false, bounce: 0, splash: null, look: 'enemy', hits: null, bricks: null, sx: bx, sy: by, dist: 0, bounced: false, vol: 0, volN: 0, pn: 0, boss: true, heavy: (o.dmgK || 1) >= 1.5 };
   if (blocked) hitTile(b, bx, by); else G.bullets.push(b);
 }
 function bossVolley(e, fan, o) { // one volley: a shell per entry of fan (radians relative to the turret), muzzle puffs, recoil; o: bossShell options (speed, dmgK)
@@ -3377,7 +3427,7 @@ function bossHurt(e, dmg, x, y, dir, quiet) {
     if (pt.hp <= 0) breakPart(e, pt);
     return;
   }
-  if (direct && dir !== undefined && !quiet) bossPartHit(e, dmg * k, x, y, dir); // treads and barrels: own HP / accumulated hits (the hull takes the damage too)
+  if (direct && dir !== undefined && !quiet) bossPartHit(e, dmg * k * (G.partK || 1), x, y, dir); // treads and barrels: own HP / accumulated hits (the hull takes the damage too)
   if (e.def.hullMul) dmg *= e.def.hullMul(e, x, y, dir, direct, quiet); // hook: damage multiplier of the hull itself (Demirkök: turret shield, rear weak point)
   const applied = Math.min(dmg * k, e.hp);
   e.hp -= dmg * k; e.flash = 0.1;
@@ -5011,6 +5061,8 @@ function updatePlayer(p, dt) {
   p.vx += (tvx - p.vx) * k; p.vy += (tvy - p.vy) * k;
   const ox = p.x, oy = p.y;
   moveTank(p, p.vx * dt, p.vy * dt);
+  if (p.rfCd > 0) p.rfCd -= dt;
+  if (p.rf) { const d2 = Math.min(dt, p.rf.t); moveTank(p, p.rf.vx * d2, p.rf.vy * d2); p.rf.t -= dt; if (p.rf.t <= 0) p.rf = null; } // Refleks slide
   if (dt > 0) { p.avx = (p.x - ox) / dt; p.avy = (p.y - oy) / dt; }
   trackUpdate(p, (p.x - ox) * Math.cos(p.angle) + (p.y - oy) * Math.sin(p.angle), angDiff(before, p.angle));
   const moving = Math.hypot(p.vx, p.vy) > 50, bx = p.x - Math.cos(p.angle) * s.len * 0.55, by = p.y - Math.sin(p.angle) * s.len * 0.55;
@@ -6024,6 +6076,12 @@ function drawTank(t, alpha, g) {
   g.globalAlpha = alpha * 0.5; g.fillStyle = c.hi; rrect(g, -tr * 0.85, -tr * 0.72, tr * 1.45, tr * 0.5, tr * 0.25); g.fill(); g.globalAlpha = alpha;
   g.fillStyle = c.dk; g.beginPath(); g.arc(-tr * 0.35, tr * 0.28, tr * 0.3, 0, TAU); g.fill();
   if (U.thermal) { g.fillStyle = '#1f1d19'; g.beginPath(); g.arc(tr * 0.2, -tr * 0.58, 2.7, 0, TAU); g.fill(); g.fillStyle = '#ff8a3d'; g.beginPath(); g.arc(tr * 0.2, -tr * 0.58, 1.5, 0, TAU); g.fill(); }
+  if (U.reflex && !(t.rfCd > 0)) { // Refleks ready: a bright cyan light on the hull (a ring around it so it reads on a phone)
+    const lx = -tr * 0.15, ly = -tr * 0.62, pu = 0.75 + 0.25 * Math.sin(G.time * 7);
+    g.fillStyle = '#0c2a30'; g.beginPath(); g.arc(lx, ly, 5.6, 0, TAU); g.fill(); g.fillStyle = '#7ef0ff'; g.beginPath(); g.arc(lx, ly, 4.4, 0, TAU); g.fill();
+    g.globalAlpha = alpha * pu; g.fillStyle = '#ffffff'; g.beginPath(); g.arc(lx, ly, 2.6, 0, TAU); g.fill();
+    g.globalCompositeOperation = 'lighter'; g.globalAlpha = alpha * 0.55 * pu; g.drawImage(SPR.pu_speed, lx - 13, ly - 13, 26, 26); g.globalCompositeOperation = 'source-over'; g.globalAlpha = alpha;
+  }
   if (U.magnet) { // Mıknatıs: whip antenna with a blinking tip
     const ax = -tr * 0.65, ay = tr * 0.55, tx = ax - 11 - U.magnet * 2, ty = ay + 5;
     g.strokeStyle = '#1f1d19'; g.lineWidth = 1.3; g.lineCap = 'round'; g.beginPath(); g.moveTo(ax, ay); g.lineTo(tx, ty); g.stroke();
@@ -6786,6 +6844,10 @@ function drawBullets() {
     const lk = LOOK[b.look] || LOOK.player, sp = Math.hypot(b.vx, b.vy) || 1, ux = b.vx / sp * b.r * 1.5, uy = b.vy / sp * b.r * 1.5;
     ctx.strokeStyle = 'rgba(0,0,0,.5)'; ctx.lineWidth = b.r * 2 + 2.4; ctx.beginPath(); ctx.moveTo(b.x - ux, b.y - uy); ctx.lineTo(b.x + ux, b.y + uy); ctx.stroke();
     ctx.strokeStyle = lk.core; ctx.lineWidth = b.r * 2; ctx.beginPath(); ctx.moveTo(b.x - ux, b.y - uy); ctx.lineTo(b.x + ux, b.y + uy); ctx.stroke();
+    if (b.owner === 0 && upL('antitank')) { // Antitank mermisi: a dark pointed tip
+      const vx = ux / 1.5 / b.r, vy = uy / 1.5 / b.r, r = b.r * 1.15; ctx.fillStyle = '#17120e'; ctx.beginPath();
+      ctx.moveTo(b.x + ux + vx * r * 1.9, b.y + uy + vy * r * 1.9); ctx.lineTo(b.x + ux * 0.35 - vy * r, b.y + uy * 0.35 + vx * r); ctx.lineTo(b.x + ux * 0.35 + vy * r, b.y + uy * 0.35 - vx * r); ctx.closePath(); ctx.fill();
+    }
   }
   ctx.lineWidth = 1.8;
   for (const b of G.bullets) {
@@ -7166,20 +7228,21 @@ if (DEBUG) {
     // start any BOSS_DEFS key (also sandboxOnly ones) at wave w with its own arena; the intro runs (bossSkip ends it)
     bossStart(key, w) { G.forceBoss = key; G.wave = (w || 25) - 1; nextWave(); G.forceBoss = null; return this.bossInfo(); },
     bossSkip() { G.introSeen = true; G.phaseT = Math.max(G.phaseT, 0.3); bossIntroTap(); },
-    KIR, KIR_SPEC, WATER, bossFitMap, playerSlowK, krDecoyHit, krDecoyBreak, krBeam, TOPCU, topcuBoom, topcuFire, shellHit, updateTopcu,
+    UPS, UP_KEYS, blocksTank, damagePlayer, bossBlast, nukeWaveWeight, NUKE_WAVES, NUKE_WEIGHT, nukeOnKill, KIR, KIR_SPEC, WATER, SLOPE, REFLEX, slopeChance, slopeRoll, reflexTry, reflexRoom, NUKE_BOSS_FILL, nukeOnBossDamage, bossFitMap, playerSlowK, krDecoyHit, krDecoyBreak, krBeam, TOPCU, topcuBoom, topcuFire, shellHit, updateTopcu,
     bossDanger, bossClearHazards, BOSS_DEFS, BOSS_ON, startBossStage, loadArena, ARENAS, parseArena, themeFor, bossDefAt,
     // one boss fight for the probe: wave w, workshop cards (object), tank id; the bot plays until the boss falls, the tank dies or maxSec passes
-    bossFight(w, cards, tank, maxSec, key) {
-      store.set(BOSS_SEEN_KEY, true); bot.on = true; bot.nuke = false; G.god = false; G.noEvo = true;
+    bossFight(w, cards, tank, maxSec, key, nuke) { // nuke: the bot may use the bomb; the result lists when the meter became ready (s)
+      store.set(BOSS_SEEN_KEY, true); bot.on = true; bot.nuke = !!nuke; nukeReset(0); G.god = false; G.noEvo = true;
       G.up = Object.assign({}, cards); G.tank = tank || 'std'; refreshPlayer(); G.player.hp = G.player.maxHp;
       view.zoomK = TANKS[G.tank].zoom; G.forceBoss = key || null; G.wave = w - 1; nextWave(); G.forceBoss = null; G.introSeen = true; endBossIntro(true);
-      const p = G.player, e = G.boss, hp0 = p.hp; let n = 0, hurtSum = 0, last = p.hp; const max = Math.round(maxSec * 60);
+      const p = G.player, e = G.boss, hp0 = p.hp; let n = 0, hurtSum = 0, last = p.hp, was = false; const max = Math.round(maxSec * 60), ready = [];
       while (n < max && G.state === 'play' && p.alive && !e.dead && !e.dying) {
         autopilot(1 / 60); update(1 / 60); n++;
         if (p.hp < last) hurtSum += last - p.hp; last = p.hp;
+        const r = nukeReady(); if (r && !was) ready.push(+(n / 60).toFixed(1)); was = r;
       }
       bot.on = false; G.noEvo = false;
-      return { win: !!(e.dead || e.dying), secs: +(n / 60).toFixed(1), dmg: Math.round(hurtSum), hpLeft: Math.round(p.hp), bphase: e.phase, bossHp: +(e.hp / e.maxHp).toFixed(2), maxHp: e.maxHp };
+      return { win: !!(e.dead || e.dying), secs: +(n / 60).toFixed(1), dmg: Math.round(hurtSum), hpLeft: Math.round(p.hp), bphase: e.phase, bossHp: +(e.hp / e.maxHp).toFixed(2), maxHp: e.maxHp, nukeReady: ready, nukeUsed: G.nuke.used };
     },
     // stuck watch: like bossFight, but samples the boss while it is supposed to walk; returns the longest stretch without progress (s) and where it happened
     bossWatch(w, cards, tank, maxSec, key) {

@@ -12,7 +12,8 @@ const NUKE_BOSS_FLOOR = 0.1; // a boss keeps at least this share of its max HP a
 // blast damage to a boss at wave w: 150 up to wave 15, +6 per wave after, never above 30% of the boss's max HP
 const nukeBossDmg = (w, maxHp) => Math.min(NUKE_BOSS_CAP * maxHp, NUKE_BOSS_BASE + NUKE_BOSS_PER_WAVE * Math.max(0, w - 15));
 const NUKE_BOSS_STUN = 3;   // seconds a boss is stunned
-const NUKE_BOSS_FILL = 0.6; // share of a boss's max HP that, dealt as damage, fills the meter once (boss stage)
+const NUKE_BOSS_FILL = 0.34; // share of a boss's max HP that, dealt as damage, fills the meter once (boss stage; 1.5.5: was 0.6, the bomb came too late). Up to NUKE_BOSS_MAX charges per fight
+const NUKE_BOSS_MAX = 2;
 const NUKE_FLASH = 0.6;     // seconds the white flash fades
 // expected total weight of wave w's roster; mirrors buildRoster without touching its random numbers
 function nukeWaveWeight(w) {
@@ -43,13 +44,14 @@ const nukeIsBoss = e => e.isBoss === true || e.type === 'boss';
 // a living boss that takes no damage now (intro, phase transition, death scene): no blast may start
 const nukeBossSafe = () => G.enemies.some(e => !e.dead && nukeIsBoss(e) && (e.invuln || e.invulnerable));
 // boss-stage charging: the boss agent calls this from the boss damage path with the damage applied to the boss body.
-// 60% of max HP dealt fills the meter once; at most one charge per fight (per wave). The blast's own damage never counts.
+// 34% of max HP dealt fills the meter once; at most two charges per fight (per wave); damage dealt while the meter is already full does not count towards the next one. The blast's own damage never counts.
 function nukeOnBossDamage(e, amount) {
   const n = G.nuke;
   if (n.firing || !(amount > 0) || !e || !(e.maxHp > 0) || G.phase === 'dying' || !G.player || !G.player.alive) return;
   if (n.bossWave !== G.wave) { n.bossWave = G.wave; n.bossAcc = 0; }
-  const room = 1 - n.bossAcc; if (room <= 0) return;
-  const add = Math.min(room, amount / (NUKE_BOSS_FILL * e.maxHp));
+  const room = NUKE_BOSS_MAX - n.bossAcc; if (room <= 0) return;
+  const add = Math.min(room, 1 - n.meter, amount / (NUKE_BOSS_FILL * e.maxHp));
+  if (add <= 0) return;
   n.bossAcc += add; n.meter = Math.min(1, n.meter + add);
 }
 G.nukeOnBossDamage = nukeOnBossDamage; // also reachable for tests (module 19 is not edited here)
@@ -154,12 +156,46 @@ function ricochet(b, px, py) {
   b.x = px; b.y = py; b.bounced = true; b.bounce--; b.life = Math.max(b.life, 0.9); b.seenBy = null; b.hits = null;
   sparks(px, py, 5, '#cfe8ff', 180); Sound.bounce(volAt(px, py));
 }
+/* ===== 1.5.5 cards on the receiving end: Eğimli zırh (slope) and Refleks (reflex) ===== */
+// Eligible: bullets and shells of enemies (b.owner 1). Never touched: lasers, flames, rings/explosions and rams (those call damagePlayer without a bullet), Ağır Topçu shells and boss heavy shells for the slope.
+const SLOPE = { front: 0.4, side: 0.2, fStep: 0.1, sStep: 0.05, bossK: 0.5, fa: 0.785, ra: 2.356 };
+const REFLEX = { dist: 0.6, time: 0.12, cd: [3, 2], look: 0.16 };
+function slopeChance(b) { // chance that enemy bullet b glances off the player's hull, by the direction it comes from (against the HULL facing)
+  const L = upL('slope'), p = G.player; if (!L || !p || b.owner !== 1 || b.shell || b.heavy) return 0;
+  const aa = Math.abs(angDiff(p.angle, Math.atan2(-b.vy, -b.vx)));
+  const c = aa < SLOPE.fa ? SLOPE.front + SLOPE.fStep * (L - 1) : aa > SLOPE.ra ? 0 : SLOPE.side + SLOPE.sStep * (L - 1);
+  return c * (b.boss ? SLOPE.bossK : 1);
+}
+function slopeRoll(b) { if (b.dfl === undefined) { const c = slopeChance(b); b.dfl = c > 0 && Math.random() < c; } return b.dfl; } // rolled once per bullet
+function slopeBounce(b) { // the bullet leaves harmlessly: it flies back a short way and can hurt nobody
+  const a = Math.atan2(-b.vy, -b.vx) + rand(-0.5, 0.5), sp = Math.hypot(b.vx, b.vy) * 0.6;
+  b.vx = Math.cos(a) * sp; b.vy = Math.sin(a) * sp; b.inert = true; b.life = Math.min(b.life, 0.45); b.shell = false;
+  sparks(b.x, b.y, 7, '#e8f4ff', 240); addPart('ring', b.x, b.y, 0, 0, 0.18, 3, 24, 0, '220,240,255'); Sound.metal(volAt(b.x, b.y));
+}
+function reflexRoom(p, dx, dy) { // the whole slide (3 stops and the end) stays on free ground: no wall, steel, water or map edge under the hull
+  const m = G.map, r = p.r * 0.85;
+  for (const f of [0.34, 0.67, 1]) { const x = p.x + dx * f, y = p.y + dy * f; for (const [ox, oy] of [[0, 0], [r, 0], [-r, 0], [0, r], [0, -r]]) if (blocksTank(m.at(x + ox, y + oy))) return false; }
+  return true;
+}
+function reflexTry(b) { // called each frame for every enemy bullet: about to touch the hull within REFLEX.look s -> slide sideways (the slope roll comes first: a deflection needs no slide)
+  const p = G.player, L = upL('reflex'); if (!L || !p.alive || p.rfCd > 0 || p.rf) return;
+  const sp = Math.hypot(b.vx, b.vy); if (sp < 1) return;
+  const ux = b.vx / sp, uy = b.vy / sp, rx = p.x - b.x, ry = p.y - b.y, along = rx * ux + ry * uy;
+  if (along <= 0 || (along - p.r - b.r) / sp > REFLEX.look) return; // time to contact (hull edge to shell edge), not to the centre: a big slow shell must be seen early enough
+  const off = -uy * rx + ux * ry; if (Math.abs(off) >= p.r + b.r) return; // it would miss anyway
+  if (slopeRoll(b)) return;
+  const D = clamp(p.r + b.r + 6 - Math.abs(off), REFLEX.dist * T, T), nx = -uy * (off >= 0 ? 1 : -1), ny = ux * (off >= 0 ? 1 : -1);
+  p.rfCd = REFLEX.cd[Math.min(L, 2) - 1]; b.rf = true; // used up either way; with no room the bullet passes through
+  for (const sg of [1, -1]) if (reflexRoom(p, nx * D * sg, ny * D * sg)) { p.rf = { vx: nx * D * sg / REFLEX.time, vy: ny * D * sg / REFLEX.time, t: REFLEX.time }; break; }
+  addPart('ring', p.x, p.y, 0, 0, 0.3, 8, 46, 0, '126,240,255'); sparks(p.x, p.y, 6, '#9ff0ff', 180); Sound.pop(volAt(p.x, p.y));
+}
 function updateBullets(dt) {
   const m = G.map, p = G.player;
   for (const b of G.bullets) {
     if (b.dead) continue;
     b.life -= dt; if (b.life <= 0) { b.dead = true; continue; }
     if (b.shT > 0) b.shT -= dt; // Ağır Topçu shell: hit flash
+    if (b.owner === 1 && p && p.alive && !b.inert && !b.rf && !b.lob) reflexTry(b); // Refleks
     if (TT.bulletStep(b, dt) || b.dead) continue; // hook (A): lob shells fly over everything and are moved by the trait
     b.dist += Math.hypot(b.vx, b.vy) * dt; // path length for packages A/B
     const steps = Math.max(1, Math.ceil(Math.hypot(b.vx, b.vy) * dt / 8));
@@ -168,6 +204,7 @@ function updateBullets(dt) {
       b.x += b.vx * dt / steps; b.y += b.vy * dt / steps;
       const v = m.at(b.x, b.y);
       if (isWall(v)) {
+        if (b.inert) { b.dead = true; break; } // a deflected bullet is harmless
         if (v === BRICK && b.pierce) {
           // Delici mermi: damage each brick once and keep flying
           const i = Math.floor(b.y / T) * m.n + Math.floor(b.x / T);
@@ -189,16 +226,16 @@ function updateBullets(dt) {
           damageEnemy(hit, b);
           if (b.splash) blastAt(b, b.x, b.y, hit);
         } else if (G.boss && G.boss.kr && G.boss.kr.dec.length && krDecoyHit(b)) { if (!b.pierce) { b.dead = true; break; } } // Kırağı's ice copies (11f) take a shell and break
-      } else if (p && p.alive) {
+      } else if (p && p.alive && !b.inert && !b.rf) {
         const rr = p.r + b.r + (G.buffs.shield > 0 || p.shield1T > 0 ? 8 : 0);
-        if (dist2(b.x, b.y, p.x, p.y) < rr * rr) { b.dead = true; if (b.shell) b.hitP = true; damagePlayer(b); if (b.shell) topcuBoom(b, b.x, b.y); }
+        if (dist2(b.x, b.y, p.x, p.y) < rr * rr) { if (slopeRoll(b)) { slopeBounce(b); continue; } b.dead = true; if (b.shell) b.hitP = true; damagePlayer(b); if (b.shell) topcuBoom(b, b.x, b.y); } // Eğimli zırh: the roll comes before the damage
       }
     }
   }
   for (const a of G.bullets) {
     if (a.dead || a.owner !== 0 || a.lob) continue; // lob shells fly above enemy shells
     for (const c of G.bullets) {
-      if (c.dead || c.owner !== 1 || c.boss) continue; // boss shells are not shot down by the player's shells
+      if (c.dead || c.owner !== 1 || c.boss || c.inert) continue; // boss shells are not shot down by the player's shells
       const rr = a.r + c.r + 3;
       if (c.shell) { // Ağır Topçu shell: 3 hits of any shell, whatever the damage (a piercing shell counts once per Topçu shell)
         if (dist2(a.x, a.y, c.x, c.y) < rr * rr && !(a.shot && a.shot.includes(c))) { shellHit(c, a); if (a.pierce) (a.shot || (a.shot = [])).push(c); else { a.dead = true; break; } }

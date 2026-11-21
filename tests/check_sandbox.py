@@ -40,9 +40,9 @@ with sync_playwright() as p:
         up = page.evaluate(INFO)['up']
         res[pid] = {'up': up, 'pressed': pressed}
         page.evaluate('__tank.pauseGame()'); page.tap('#btnPauseSbx'); page.wait_for_timeout(200)
-    full_ok = page.evaluate("(up) => Object.keys(up).length === 11 && Object.entries(up).every(([k, v]) => v >= 1)", res['full']['up'])
+    full_ok = page.evaluate("(up) => Object.keys(up).length === 14 && Object.entries(up).every(([k, v]) => v >= 1)", res['full']['up'])
     ck('preset_yok', res['none']['up'] == {} and res['none']['pressed'] == 'none', res['none'])
-    ck('preset_orta', res['mid']['up'] == {'armor': 3, 'engine': 2, 'loader': 3, 'caliber': 2, 'barrel': 2, 'repair': 2, 'magnet': 1, 'boost': 2} and res['mid']['pressed'] == 'mid', res['mid'])
+    ck('preset_orta', res['mid']['up'] == {'armor': 3, 'engine': 2, 'loader': 3, 'caliber': 2, 'barrel': 2, 'repair': 2, 'magnet': 1, 'boost': 2, 'antitank': 2, 'slope': 2} and res['mid']['pressed'] == 'mid', res['mid'])
     ck('preset_tam', full_ok and res['full']['up'].get('armor') == 5 and res['full']['up'].get('thermal') == 1 and res['full']['pressed'] == 'full', res['full'])
     # card tap cycles and wraps
     page.tap('#sbxPresets button[data-p="none"]')

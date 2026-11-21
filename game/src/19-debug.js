@@ -64,20 +64,21 @@ if (DEBUG) {
     // start any BOSS_DEFS key (also sandboxOnly ones) at wave w with its own arena; the intro runs (bossSkip ends it)
     bossStart(key, w) { G.forceBoss = key; G.wave = (w || 25) - 1; nextWave(); G.forceBoss = null; return this.bossInfo(); },
     bossSkip() { G.introSeen = true; G.phaseT = Math.max(G.phaseT, 0.3); bossIntroTap(); },
-    KIR, KIR_SPEC, WATER, bossFitMap, playerSlowK, krDecoyHit, krDecoyBreak, krBeam, TOPCU, topcuBoom, topcuFire, shellHit, updateTopcu,
+    UPS, UP_KEYS, blocksTank, damagePlayer, bossBlast, nukeWaveWeight, NUKE_WAVES, NUKE_WEIGHT, nukeOnKill, KIR, KIR_SPEC, WATER, SLOPE, REFLEX, slopeChance, slopeRoll, reflexTry, reflexRoom, NUKE_BOSS_FILL, nukeOnBossDamage, bossFitMap, playerSlowK, krDecoyHit, krDecoyBreak, krBeam, TOPCU, topcuBoom, topcuFire, shellHit, updateTopcu,
     bossDanger, bossClearHazards, BOSS_DEFS, BOSS_ON, startBossStage, loadArena, ARENAS, parseArena, themeFor, bossDefAt,
     // one boss fight for the probe: wave w, workshop cards (object), tank id; the bot plays until the boss falls, the tank dies or maxSec passes
-    bossFight(w, cards, tank, maxSec, key) {
-      store.set(BOSS_SEEN_KEY, true); bot.on = true; bot.nuke = false; G.god = false; G.noEvo = true;
+    bossFight(w, cards, tank, maxSec, key, nuke) { // nuke: the bot may use the bomb; the result lists when the meter became ready (s)
+      store.set(BOSS_SEEN_KEY, true); bot.on = true; bot.nuke = !!nuke; nukeReset(0); G.god = false; G.noEvo = true;
       G.up = Object.assign({}, cards); G.tank = tank || 'std'; refreshPlayer(); G.player.hp = G.player.maxHp;
       view.zoomK = TANKS[G.tank].zoom; G.forceBoss = key || null; G.wave = w - 1; nextWave(); G.forceBoss = null; G.introSeen = true; endBossIntro(true);
-      const p = G.player, e = G.boss, hp0 = p.hp; let n = 0, hurtSum = 0, last = p.hp; const max = Math.round(maxSec * 60);
+      const p = G.player, e = G.boss, hp0 = p.hp; let n = 0, hurtSum = 0, last = p.hp, was = false; const max = Math.round(maxSec * 60), ready = [];
       while (n < max && G.state === 'play' && p.alive && !e.dead && !e.dying) {
         autopilot(1 / 60); update(1 / 60); n++;
         if (p.hp < last) hurtSum += last - p.hp; last = p.hp;
+        const r = nukeReady(); if (r && !was) ready.push(+(n / 60).toFixed(1)); was = r;
       }
       bot.on = false; G.noEvo = false;
-      return { win: !!(e.dead || e.dying), secs: +(n / 60).toFixed(1), dmg: Math.round(hurtSum), hpLeft: Math.round(p.hp), bphase: e.phase, bossHp: +(e.hp / e.maxHp).toFixed(2), maxHp: e.maxHp };
+      return { win: !!(e.dead || e.dying), secs: +(n / 60).toFixed(1), dmg: Math.round(hurtSum), hpLeft: Math.round(p.hp), bphase: e.phase, bossHp: +(e.hp / e.maxHp).toFixed(2), maxHp: e.maxHp, nukeReady: ready, nukeUsed: G.nuke.used };
     },
     // stuck watch: like bossFight, but samples the boss while it is supposed to walk; returns the longest stretch without progress (s) and where it happened
     bossWatch(w, cards, tank, maxSec, key) {

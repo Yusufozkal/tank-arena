@@ -114,6 +114,10 @@ function drawBullets() {
     const lk = LOOK[b.look] || LOOK.player, sp = Math.hypot(b.vx, b.vy) || 1, ux = b.vx / sp * b.r * 1.5, uy = b.vy / sp * b.r * 1.5;
     ctx.strokeStyle = 'rgba(0,0,0,.5)'; ctx.lineWidth = b.r * 2 + 2.4; ctx.beginPath(); ctx.moveTo(b.x - ux, b.y - uy); ctx.lineTo(b.x + ux, b.y + uy); ctx.stroke();
     ctx.strokeStyle = lk.core; ctx.lineWidth = b.r * 2; ctx.beginPath(); ctx.moveTo(b.x - ux, b.y - uy); ctx.lineTo(b.x + ux, b.y + uy); ctx.stroke();
+    if (b.owner === 0 && upL('antitank')) { // Antitank mermisi: a dark pointed tip
+      const vx = ux / 1.5 / b.r, vy = uy / 1.5 / b.r, r = b.r * 1.15; ctx.fillStyle = '#17120e'; ctx.beginPath();
+      ctx.moveTo(b.x + ux + vx * r * 1.9, b.y + uy + vy * r * 1.9); ctx.lineTo(b.x + ux * 0.35 - vy * r, b.y + uy * 0.35 + vx * r); ctx.lineTo(b.x + ux * 0.35 + vy * r, b.y + uy * 0.35 - vx * r); ctx.closePath(); ctx.fill();
+    }
   }
   ctx.lineWidth = 1.8;
   for (const b of G.bullets) {

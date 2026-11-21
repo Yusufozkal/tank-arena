@@ -344,6 +344,12 @@ function drawTank(t, alpha, g) {
   g.globalAlpha = alpha * 0.5; g.fillStyle = c.hi; rrect(g, -tr * 0.85, -tr * 0.72, tr * 1.45, tr * 0.5, tr * 0.25); g.fill(); g.globalAlpha = alpha;
   g.fillStyle = c.dk; g.beginPath(); g.arc(-tr * 0.35, tr * 0.28, tr * 0.3, 0, TAU); g.fill();
   if (U.thermal) { g.fillStyle = '#1f1d19'; g.beginPath(); g.arc(tr * 0.2, -tr * 0.58, 2.7, 0, TAU); g.fill(); g.fillStyle = '#ff8a3d'; g.beginPath(); g.arc(tr * 0.2, -tr * 0.58, 1.5, 0, TAU); g.fill(); }
+  if (U.reflex && !(t.rfCd > 0)) { // Refleks ready: a bright cyan light on the hull (a ring around it so it reads on a phone)
+    const lx = -tr * 0.15, ly = -tr * 0.62, pu = 0.75 + 0.25 * Math.sin(G.time * 7);
+    g.fillStyle = '#0c2a30'; g.beginPath(); g.arc(lx, ly, 5.6, 0, TAU); g.fill(); g.fillStyle = '#7ef0ff'; g.beginPath(); g.arc(lx, ly, 4.4, 0, TAU); g.fill();
+    g.globalAlpha = alpha * pu; g.fillStyle = '#ffffff'; g.beginPath(); g.arc(lx, ly, 2.6, 0, TAU); g.fill();
+    g.globalCompositeOperation = 'lighter'; g.globalAlpha = alpha * 0.55 * pu; g.drawImage(SPR.pu_speed, lx - 13, ly - 13, 26, 26); g.globalCompositeOperation = 'source-over'; g.globalAlpha = alpha;
+  }
   if (U.magnet) { // Mıknatıs: whip antenna with a blinking tip
     const ax = -tr * 0.65, ay = tr * 0.55, tx = ax - 11 - U.magnet * 2, ty = ay + 5;
     g.strokeStyle = '#1f1d19'; g.lineWidth = 1.3; g.lineCap = 'round'; g.beginPath(); g.moveTo(ax, ay); g.lineTo(tx, ty); g.stroke();

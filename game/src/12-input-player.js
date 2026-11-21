@@ -119,6 +119,8 @@ function updatePlayer(p, dt) {
   p.vx += (tvx - p.vx) * k; p.vy += (tvy - p.vy) * k;
   const ox = p.x, oy = p.y;
   moveTank(p, p.vx * dt, p.vy * dt);
+  if (p.rfCd > 0) p.rfCd -= dt;
+  if (p.rf) { const d2 = Math.min(dt, p.rf.t); moveTank(p, p.rf.vx * d2, p.rf.vy * d2); p.rf.t -= dt; if (p.rf.t <= 0) p.rf = null; } // Refleks slide
   if (dt > 0) { p.avx = (p.x - ox) / dt; p.avy = (p.y - oy) / dt; }
   trackUpdate(p, (p.x - ox) * Math.cos(p.angle) + (p.y - oy) * Math.sin(p.angle), angDiff(before, p.angle));
   const moving = Math.hypot(p.vx, p.vy) > 50, bx = p.x - Math.cos(p.angle) * s.len * 0.55, by = p.y - Math.sin(p.angle) * s.len * 0.55;

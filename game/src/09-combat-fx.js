@@ -77,7 +77,10 @@ function hurtEnemy(e, dmg, x, y, dir, quiet) { // quiet: burn ticks and flame, n
   if (!quiet) Sound.metal(volAt(e.x, e.y));
 }
 function damageEnemy(e, b) {
-  hurtEnemy(e, b.dmg * synDmg(b, e), b.x, b.y, Math.atan2(-b.vy, -b.vx));
+  const L = b.owner === 0 ? upL('antitank') : 0, boss = e.isBoss || e.type === 'boss'; let k = 1; // Antitank mermisi: side / rear hits +15% per level (half on a boss), boss parts x1.5 (11a bossHurt reads G.partK), ordinary tanks' parts x2 (11 partBreak)
+  if (L) { if (Math.abs(angDiff(e.angle, Math.atan2(-b.vy, -b.vx))) >= 0.785) k = 1 + 0.15 * L * (boss ? 0.5 : 1); G.partK = boss ? 1.5 : 1; }
+  hurtEnemy(e, b.dmg * synDmg(b, e) * k, b.x, b.y, Math.atan2(-b.vy, -b.vx));
+  G.partK = 1;
   if (!e.dead) { alertHit(e, b); partBreak(e, b); } // 11: a surviving enemy tank loses a part by the hit direction
 }
 // Explosive shells (Patlayıcı mermi): a small blast that hurts every other enemy tank in reach

@@ -20,7 +20,7 @@ from common import *  # noqa: F401,F403
 WAVE_JS = r"""
 ([mode, strategy, maxT, target]) => {
   const t = __tank, G = t.G;
-  const PRI = ['caliber', 'loader', 'blast', 'ricochet', 'armor', 'repair', 'barrel', 'engine', 'boost', 'magnet', 'thermal', 'prep', 'fix', 'bounty'];
+  const PRI = ['caliber', 'loader', 'blast', 'antitank', 'ricochet', 'slope', 'armor', 'repair', 'reflex', 'barrel', 'engine', 'boost', 'magnet', 'thermal', 'prep', 'fix', 'bounty'];
   const w = G.wave, sp = t.playerSpec(), up = Object.assign({}, G.up);
   const roster = G.queue.slice().concat(G.enemies.map(e => e.type));
   // real enemy hp: SPECS * mods.hp; the boss ignores mods.hp and uses bossHp(w)

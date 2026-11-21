@@ -416,7 +416,7 @@ function partBreak(e, b) { // called from damageEnemy: a direct shell of the pla
   if (k === 'barrel' && e.spec.medic) return; // the Tamirci has no barrel to jam
   const pt = e.pt || (e.pt = { tread: 0, barrel: 0, engine: 0, imm: { tread: 0, barrel: 0, engine: 0 }, acc: { tread: 0, barrel: 0, engine: 0 }, dur: { tread: 0, barrel: 0, engine: 0 }, side: 0, fx: 0 });
   if (pt[k] > 0 || pt.imm[k] > 0) return;
-  pt.acc[k] += b.dmg || 1;
+  const at = upL('antitank') > 0; pt.acc[k] += (b.dmg || 1) * (at ? 2 : 1); // Antitank mermisi: x2 part damage
   if (pt.acc[k] < PART_HP) return;
   pt.acc[k] = 0;
   pt[k] = pt.dur[k] = PART_T[k] / (G.wave > PART_T.fastFrom ? PART_T.fast : 1);
@@ -427,6 +427,7 @@ function partBreak(e, b) { // called from damageEnemy: a direct shell of the pla
     sparks(q.x, q.y, 9, '#ffd27a', 240);
   } else if (k === 'barrel') { sparks(q.x, q.y, 8, '#ffb04a', 220); for (let i = 0; i < 3; i++) addPart('smoke', q.x, q.y, rand(-20, 20), rand(-30, -8), rand(0.6, 1), rand(10, 15), 22, 2); }
   else { for (let i = 0, n = Math.max(2, Math.round(5 * fxScale)); i < n; i++) addPart('smoke', q.x + rand(-4, 4), q.y + rand(-4, 4), rand(-40, 10) - Math.cos(e.angle) * 20, rand(-30, 5), rand(0.8, 1.4), rand(12, 20), 26, 1.6, 'k'); sparks(q.x, q.y, 5, '#ffb04a', 160); }
+  if (at) { sparks(q.x, q.y, 8, '#ffffff', 260); addPart('ring', q.x, q.y, 0, 0, 0.25, 4, 34, 0, '255,255,255'); }
   Sound.metal(vl);
   if (!partSeen[k]) { partSeen[k] = true; addText(e.x, e.y - e.r - 12, PART_NAME[k], '#ffd27a', 13); }
 }

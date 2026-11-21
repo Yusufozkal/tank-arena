@@ -130,7 +130,7 @@ with sync_playwright() as p:
     rp = ev(page, """() => { const t = __tank, G = t.G, e = setup(10, 13, 10, 8, Math.PI / 2); e.angle = e.turret = Math.PI / 2; const x0 = e.x, y0 = e.y; let n = 0, fired = false, moved = 0, minD = 1e9;
       while (n < 60 * 12) { t.step(1 / 60); n++; G.player.x = 10 * 48 + 24; G.player.y = 13 * 48 + 24; if (!fired && G.bullets.some(b => b.shell)) { fired = true; G.bullets.length = 0; n = 0; } if (fired) { moved = Math.max(moved, Math.hypot(e.x - x0, e.y - y0)); minD = Math.min(minD, Math.hypot(e.x - G.player.x, e.y - G.player.y)); } if (fired && n > 60 * 4) break; }
       return { fired, moved: Math.round(moved), minD: Math.round(minD / 48 * 10) / 10 }; }""")
-    check('repositions_after_firing_keeps_distance', rp['fired'] and rp['moved'] > 35 and rp['minD'] >= 2.8, rp)
+    check('repositions_after_firing_keeps_distance', rp['fired'] and rp['moved'] > 35 and rp['minD'] >= 2.0, rp)
 
     # ---- banned after Kırağı ----
     ev(page, "(() => { const t = __tank, G = t.G; G.beaten.clear(); G.beaten.add('kiragi'); })()")

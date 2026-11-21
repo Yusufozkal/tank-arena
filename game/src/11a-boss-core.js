@@ -137,7 +137,7 @@ function bossShell(e, ang, o) {
   for (let d = 6; d <= len; d += 6) { bx = ox + ca * d; by = oy + sa * d; if (isWall(m.at(bx, by))) { blocked = true; break; } }
   const sp = s.bSpeed * (o.speed || 1);
   const b = { x: bx, y: by, vx: ca * sp, vy: sa * sp, r: s.bR, owner: 1, dmg: bossDmg(s.dmg * (o.dmgK || 1)), life: 3.2, big: true, dead: false,
-    pierce: false, bounce: 0, splash: null, look: 'enemy', hits: null, bricks: null, sx: bx, sy: by, dist: 0, bounced: false, vol: 0, volN: 0, pn: 0, boss: true };
+    pierce: false, bounce: 0, splash: null, look: 'enemy', hits: null, bricks: null, sx: bx, sy: by, dist: 0, bounced: false, vol: 0, volN: 0, pn: 0, boss: true, heavy: (o.dmgK || 1) >= 1.5 };
   if (blocked) hitTile(b, bx, by); else G.bullets.push(b);
 }
 function bossVolley(e, fan, o) { // one volley: a shell per entry of fan (radians relative to the turret), muzzle puffs, recoil; o: bossShell options (speed, dmgK)
@@ -439,7 +439,7 @@ function bossHurt(e, dmg, x, y, dir, quiet) {
     if (pt.hp <= 0) breakPart(e, pt);
     return;
   }
-  if (direct && dir !== undefined && !quiet) bossPartHit(e, dmg * k, x, y, dir); // treads and barrels: own HP / accumulated hits (the hull takes the damage too)
+  if (direct && dir !== undefined && !quiet) bossPartHit(e, dmg * k * (G.partK || 1), x, y, dir); // treads and barrels: own HP / accumulated hits (the hull takes the damage too)
   if (e.def.hullMul) dmg *= e.def.hullMul(e, x, y, dir, direct, quiet); // hook: damage multiplier of the hull itself (Demirkök: turret shield, rear weak point)
   const applied = Math.min(dmg * k, e.hp);
   e.hp -= dmg * k; e.flash = 0.1;
