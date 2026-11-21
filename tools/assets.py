@@ -24,7 +24,8 @@ SPRITE_HOOK = '''    sprite(type, px, up, tank) { // tank: a TANKS id, draws tha
 '''
 BOSS_HOOK = '''    bossSprite(w, px, span, key) { // the real boss drawing (drawBoss) of the boss at wave w (or of the sandbox-only boss key), alone and idle on a transparent canvas, nose up
       G.forceBoss = key || null; G.wave = w - 1; nextWave(); G.forceBoss = null; G.introSeen = true; endBossIntro(true);
-      const e = G.boss, keep = [e.x, e.y, e.angle, e.turret], cv = document.createElement('canvas'); cv.width = cv.height = px;
+      const e = G.boss; if (e.dk) e.dk.root = 1; // Demirkök: planted, anchors out (15c)
+      const keep = [e.x, e.y, e.angle, e.turret], cv = document.createElement('canvas'); cv.width = cv.height = px;
       const k = px / span, g = cv.getContext('2d'); g.setTransform(k, 0, 0, k, px / 2, px / 2 + 3 * k);
       e.x = e.y = 0; e.angle = -Math.PI / 2; e.turret = -Math.PI / 2; e.flash = 0; drawBoss(e, 1, g);
       [e.x, e.y, e.angle, e.turret] = keep; return cv.toDataURL('image/png');
