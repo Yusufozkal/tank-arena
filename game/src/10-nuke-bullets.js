@@ -158,13 +158,14 @@ function ricochet(b, px, py) {
 }
 /* ===== 1.5.5 cards on the receiving end: Eğimli zırh (slope) and Refleks (reflex) ===== */
 // Eligible: bullets and shells of enemies (b.owner 1). Never touched: lasers, flames, rings/explosions and rams (those call damagePlayer without a bullet), Ağır Topçu shells and boss heavy shells for the slope.
-const SLOPE = { front: 0.4, side: 0.2, fStep: 0.1, sStep: 0.05, bossK: 0.5, fa: 0.785, ra: 2.356 };
-const REFLEX = { dist: 0.6, time: 0.12, cd: [3, 2], look: 0.16 };
+const SLOPE = { front: 0.4, side: 0.2, fStep: 0.1, sStep: 0.05, fa: 0.785, ra: 2.356 };
+const REFLEX = { dist: 0.6, time: 0.12, cd: [3, 2], look: 0.16, bossCdK: 2 }; // 1.5.6: in a boss fight the slope never works and Refleks cools down twice as long and ignores heavy boss shells
+const inBossFight = () => !!(G.boss && !G.boss.dead);
 function slopeChance(b) { // chance that enemy bullet b glances off the player's hull, by the direction it comes from (against the HULL facing)
-  const L = upL('slope'), p = G.player; if (!L || !p || b.owner !== 1 || b.shell || b.heavy) return 0;
+  const L = upL('slope'), p = G.player; if (!L || !p || b.owner !== 1 || b.shell || b.heavy || b.boss || inBossFight()) return 0; // bosses: no deflection at all
   const aa = Math.abs(angDiff(p.angle, Math.atan2(-b.vy, -b.vx)));
   const c = aa < SLOPE.fa ? SLOPE.front + SLOPE.fStep * (L - 1) : aa > SLOPE.ra ? 0 : SLOPE.side + SLOPE.sStep * (L - 1);
-  return c * (b.boss ? SLOPE.bossK : 1);
+  return c;
 }
 function slopeRoll(b) { if (b.dfl === undefined) { const c = slopeChance(b); b.dfl = c > 0 && Math.random() < c; } return b.dfl; } // rolled once per bullet
 function slopeBounce(b) { // the bullet leaves harmlessly: it flies back a short way and can hurt nobody
@@ -179,13 +180,14 @@ function reflexRoom(p, dx, dy) { // the whole slide (3 stops and the end) stays 
 }
 function reflexTry(b) { // called each frame for every enemy bullet: about to touch the hull within REFLEX.look s -> slide sideways (the slope roll comes first: a deflection needs no slide)
   const p = G.player, L = upL('reflex'); if (!L || !p.alive || p.rfCd > 0 || p.rf) return;
+  const bf = b.boss || inBossFight(); if (bf && b.heavy) return; // no dodge of heavy boss shells
   const sp = Math.hypot(b.vx, b.vy); if (sp < 1) return;
   const ux = b.vx / sp, uy = b.vy / sp, rx = p.x - b.x, ry = p.y - b.y, along = rx * ux + ry * uy;
   if (along <= 0 || (along - p.r - b.r) / sp > REFLEX.look) return; // time to contact (hull edge to shell edge), not to the centre: a big slow shell must be seen early enough
   const off = -uy * rx + ux * ry; if (Math.abs(off) >= p.r + b.r) return; // it would miss anyway
   if (slopeRoll(b)) return;
   const D = clamp(p.r + b.r + 6 - Math.abs(off), REFLEX.dist * T, T), nx = -uy * (off >= 0 ? 1 : -1), ny = ux * (off >= 0 ? 1 : -1);
-  p.rfCd = REFLEX.cd[Math.min(L, 2) - 1]; b.rf = true; // used up either way; with no room the bullet passes through
+  p.rfCd = REFLEX.cd[Math.min(L, 2) - 1] * (bf ? REFLEX.bossCdK : 1); b.rf = true; // used up either way; with no room the bullet passes through
   for (const sg of [1, -1]) if (reflexRoom(p, nx * D * sg, ny * D * sg)) { p.rf = { vx: nx * D * sg / REFLEX.time, vy: ny * D * sg / REFLEX.time, t: REFLEX.time }; break; }
   addPart('ring', p.x, p.y, 0, 0, 0.3, 8, 46, 0, '126,240,255'); sparks(p.x, p.y, 6, '#9ff0ff', 180); Sound.pop(volAt(p.x, p.y));
 }

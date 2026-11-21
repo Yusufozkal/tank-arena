@@ -34,7 +34,8 @@ ARENAS.kapanis = { name: 'Kapanış', theme: KAP_FLOOR, rows: [ // steel blocks 
 
 const KAP_SPEC = { speed: 230, turn: 4.4, tTurn: 4.8, len: 54, wid: 46, r: 27, tread: 10, tR: 15, barrel: 66, bW: 8, cool: 1, bSpeed: 430, dmg: 12, bR: 5.5, mass: 14, score: 4000,
   col: { body: '#2a2b2f', dk: '#0b0b0d', hi: '#4d4f56', acc: '#e02828' } };
-const KAP = { hp: 1600, react: 0.25, fov: 3.5, cone: 3.5, open: 1.0, ringT: 90, ringEvery: 30, ringWarn: 2, rings: 4, dodgeP: 0.85, dodgeCd: 0.8,
+const KAP = { hp: 2400, // 1.5.6: 1600 -> 2400
+  react: 0.25, fov: 3.5, cone: 3.5, open: 1.0, ringT: 90, ringEvery: 30, ringWarn: 2, rings: 4, dodgeP: 0.85, dodgeCd: 0.8,
   dmgPrecise: 0.4, dmgBounce: 0.3, dmgRam: 0.3, dmgMortar: 0.3, hear: 1.6 }; // damage shares of the player's max HP; hear: hearing range factor against AWARE.hear
 
 /* ---- helpers ---- */

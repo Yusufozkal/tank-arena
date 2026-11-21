@@ -70,7 +70,7 @@ with sync_playwright() as p:
     ev(page, DONE, 3)
     heavy = ev(page, """() => { const e = __tank.G.boss, l = e.log.filter(x => x.atk === 'agir').pop(), bs = __tank.G.bullets.filter(b => b.heavy);
       return { dur: l && l.dur, n: bs.length, speed: bs[0] ? Math.round(Math.hypot(bs[0].vx, bs[0].vy)) : 0 }; }""")
-    check('heavy_glow_0_8s_two_slow_shells', heavy['dur'] is not None and heavy['dur'] >= 0.8 and heavy['n'] == 2 and heavy['speed'] < 250, heavy)
+    check('heavy_glow_0_8s_two_slow_shells', heavy['dur'] is not None and heavy['dur'] >= 0.8 and heavy['n'] == 2 and heavy['speed'] < 340, heavy)  # 1.5.6: 370 x 1.25 x 0.7 = 324 (was 0.55: 204)
     br = ev(page, """() => { const t = __tank, G = t.G, m = G.map, e = G.boss; G.bullets.length = 0; e.x = 10 * 48 + 24; e.y = 8 * 48 + 24;
       const c = 10, r = 11, i = r * m.n + c; m.t[i] = 1; m.hp[i] = 3; G.player.x = 10 * 48 + 24; G.player.y = 14 * 48 + 24;
       e.angle = e.turret = Math.PI / 2; e.gen = t.BOSS_DEFS.demirkok.attacks.find(a => a.id === 'agir').run(e); e.wait = 0; e.atkId = 'agir';

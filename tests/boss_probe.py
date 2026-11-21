@@ -19,9 +19,12 @@ nuke_on = (sys.argv[6] if len(sys.argv) > 6 else 'off') == 'on'  # the bot fires
 T2 = ['uclu', 'cift', 'rayli', 'obus', 'alev', 'sarapnel']
 MAXL = {'antitank': 3, 'slope': 3, 'reflex': 2, 'armor': 5, 'engine': 4, 'loader': 5, 'caliber': 4, 'barrel': 3, 'repair': 3, 'blast': 2, 'ricochet': 2, 'magnet': 2, 'thermal': 1, 'boost': 3}
 ORDER = {
-    'full': ['caliber'] * 4 + ['loader'] * 5 + ['barrel'] * 3 + ['armor'] * 5 + ['engine'] * 4 + ['repair'] * 3 + ['blast'] * 2 + ['thermal'] + ['boost'] * 3 + ['ricochet'] * 2 + ['magnet'] * 2 + ['antitank'] * 3 + ['slope'] * 3 + ['reflex'] * 2,
-    'medium': ['armor', 'caliber', 'engine', 'loader', 'barrel', 'armor', 'repair', 'loader', 'caliber', 'boost', 'armor', 'blast', 'magnet', 'caliber', 'engine', 'loader', 'barrel',
-               'armor', 'ricochet', 'repair', 'boost', 'loader', 'caliber', 'armor', 'thermal', 'engine', 'magnet', 'repair', 'blast', 'boost', 'engine', 'barrel', 'armor', 'loader', 'ricochet'],
+    # 1.5.6: full = a strong build with every card at its maximum, offence and armour interleaved; the picks run in this order up to wave-1 cards (so wave 10 holds the first 9, wave 30 the first 29: Antitank, Eğimli zırh and Refleks are in from about pick 14, 20 and 28)
+    'full': ['armor', 'caliber', 'loader', 'armor', 'caliber', 'loader', 'armor', 'barrel', 'repair', 'loader', 'armor', 'caliber', 'antitank', 'engine', 'repair', 'loader', 'barrel', 'armor', 'caliber', 'slope', 'barrel', 'engine', 'repair',
+             'loader', 'antitank', 'reflex', 'slope', 'blast', 'engine', 'thermal', 'boost', 'antitank', 'slope', 'engine', 'reflex', 'blast', 'boost', 'boost', 'ricochet', 'ricochet', 'magnet', 'magnet'],
+    # 1.5.6: the medium set carries Antitank, Eğimli zırh and Refleks like a real run (one each by wave ~8, a second Antitank and Eğimli zırh later)
+    'medium': ['armor', 'caliber', 'engine', 'loader', 'barrel', 'armor', 'antitank', 'repair', 'loader', 'slope', 'caliber', 'boost', 'armor', 'reflex', 'blast', 'magnet', 'caliber', 'engine', 'loader', 'barrel',
+               'antitank', 'armor', 'slope', 'ricochet', 'repair', 'boost', 'loader', 'caliber', 'armor', 'thermal', 'engine', 'magnet', 'repair', 'blast', 'boost', 'engine', 'barrel', 'armor', 'loader', 'ricochet'],
     'strong': ['caliber', 'loader', 'caliber', 'loader', 'thermal', 'blast', 'caliber', 'loader', 'armor', 'blast', 'caliber', 'loader', 'armor', 'loader', 'barrel', 'armor', 'barrel', 'armor',
                'engine', 'barrel', 'repair', 'engine', 'repair', 'boost', 'ricochet', 'ricochet', 'engine', 'repair', 'boost', 'boost', 'engine', 'magnet', 'magnet'],
 }
@@ -42,11 +45,14 @@ def cards(kind, w):
 
 FIGHT = "([w, up, tank, key, nuke]) => __tank.bossFight(w, up, tank, 540, key, nuke)"
 rows = []
+TUNE = os.environ.get('TANK_TUNE')  # JSON, e.g. {"full": {"gap": 0.7}}: merged into BOSS_TUNE before the fights (tuning without a rebuild)
 with sync_playwright() as p:
     b = p.chromium.launch()
     ctx = new_ctx(b, 'probe', viewport={'width': 1280, 'height': 800})
     page = ctx.new_page(); seed(page)
     page.click('#btnStart'); page.wait_for_timeout(300)
+    if TUNE:
+        page.evaluate("(t) => { for (const k in t) Object.assign(__tank.BOSS_TUNE[k], t[k]); }", json.loads(TUNE))
     for w in waves:
         for kind in sets:
             res = []
@@ -64,6 +70,18 @@ with sync_playwright() as p:
             if wins:
                 print(f"        nuke: ready in {len(fr)}/{len(wins)} fights, first ready at {100 * st.mean(fr) if fr else 0:3.0f}% of the fight (median {100 * st.median(fr) if fr else 0:3.0f}%), ready times per fight mean {st.mean(len(r['nukeReady']) for r in wins):.1f}, used mean {st.mean(r['nukeUsed'] for r in wins):.1f}")
     b.close()
+# where the damage came from: hp lost per attack id (a leading ~ = after the attack ended, i.e. the shells still flying)
+for w in waves:
+    for kind in sets:
+        agg = {}
+        n = 0
+        for r in rows:
+            if r['wave'] == w and r['set'] == kind:
+                n += 1
+                for k, v in (r.get('hits') or {}).items():
+                    agg[k] = agg.get(k, 0) + v
+        if agg and os.environ.get('TANK_HITS'):
+            print(f"   hits w{w} {kind}: " + '  '.join(f"{k}={v / max(n, 1):.0f}" for k, v in sorted(agg.items(), key=lambda kv: -kv[1])))
 (TMP).mkdir(exist_ok=True)
 (TMP / 'boss_probe.json').write_text(json.dumps(rows))
 print('page errors:', real_errors()[:3] or 'none')

@@ -56,7 +56,7 @@ function demirSoften(e, fan) { // the heavy shell breaks a brick in one hit: bri
 function demirHeavyVolley(e) { // two big, slow shells
   demirSoften(e, DEMIR_FAN);
   const n0 = G.bullets.length;
-  bossVolley(e, DEMIR_FAN, { speed: 0.55, dmgK: 1.7 });
+  bossVolley(e, DEMIR_FAN, { speed: 0.7, dmgK: 1.7 }); // 1.5.6: slower shells 0.55 -> 0.7 (harder to sidestep)
   for (let i = n0; i < G.bullets.length; i++) { const b = G.bullets[i]; b.heavy = true; b.r *= 1.6; }
   shake(6);
 }
@@ -87,7 +87,7 @@ function demirTurretJob(e, j, t) { // returns true once the shot is done (or the
   demirTurretShot(e, pt); return true;
 }
 function* demirTurrets(e) { // taret ateşi: both side turrets, each with its own red eye (the second 0.3 s later); one aims straight at the player, the other leads them
-  const dk = e.dk, rounds = e.phase >= 1 ? 5 : 4;
+  const dk = e.dk, rounds = e.phase >= 1 ? 6 : 5; // 1.5.6: one more round each (was 5 / 4)
   for (let k = 0; k < rounds; k++) {
     let live = e.parts.filter(q => q.alive); if (!live.length) break;
     const flip = dk.side++ & 1; if (flip) live = live.slice().reverse();
@@ -392,7 +392,7 @@ BOSS_DEFS.demirkok = {
   onClear(e) { const dk = e.dk; dk.sw = null; dk.lift = 0; dk.who = ''; for (const pt of e.parts) { pt.busy = false; pt.eye = 0; } if (dk.walk) { dk.walk = false; dk.goal = null; dk.plantT = 0; dk.at = -1; } }, // a phase change cuts a roll short: it plants where it stands and rolls on afterwards
   move(e, dt) { // planted: the hull never chases; the main turret follows the player while it sees them
     e.avx = e.avy = 0;
-    if (G.player.alive && e.canSee) aimAtPlayer(e, dt, 0.8, e.def.lead); else e.turret = turnTo(e.turret, e.angle, e.spec.tTurn * 0.6 * dt);
+    if (G.player.alive && e.canSee) aimAtPlayer(e, dt, 0.8, e.lead); else e.turret = turnTo(e.turret, e.angle, e.spec.tTurn * 0.6 * dt);
   },
   watchGoal: () => false, // the stuck watch of the probes only follows bosses that chase; Demirkök's rolls are tested on their own
   flowGoal: e => (e.dk.walk ? e.dk.goal : null),

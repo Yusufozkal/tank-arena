@@ -65,13 +65,13 @@ with sync_playwright() as p:
     bh0, bh1, bh3 = (ev(page, BOSS, [L, 'hull'])['lost'] for L in (0, 1, 3))
     check('antitank_boss_bonus_halved', bh0 > 0 and abs(bh1 / bh0 - 1.075) < 0.02 and abs(bh3 / bh0 - 1.225) < 0.02, [bh0, bh1, bh3])
     bt0, bt1 = ev(page, BOSS, [0, 'tread']), ev(page, BOSS, [1, 'tread'])
-    check('antitank_boss_part_damage_x1_5', bt0['tread'] > 0 and abs(bt1['tread'] / bt0['tread'] - 1.5 * (1 + 0.075)) < 0.05, [bt0, bt1])
+    check('antitank_boss_part_damage_x1', bt0['tread'] > 0 and abs(bt1['tread'] / bt0['tread'] - 1 * (1 + 0.075)) < 0.05, [bt0, bt1])  # 1.5.6: no extra part damage on a boss, the halved side bonus stays
 
     # ---- Eğimli zırh: the chance by direction (hull facing east): front 40/50/60, side 20/25/30, rear 0; boss bullets half; Topçu / heavy / lasers never ----
     CH = """(L) => { const t = __tank, G = t.G; window.arena({ slope: L }); const c = side => +t.slopeChance(window.ebullet(side)).toFixed(3); const cb = side => +t.slopeChance(window.ebullet(side, 300, { boss: true })).toFixed(3);
       return { front: c('E'), side: [c('N'), c('S')], rear: c('W'), bossFront: cb('E'), bossSide: cb('N'), shell: t.slopeChance(window.ebullet('E', 150, { shell: true })), heavy: t.slopeChance(window.ebullet('E', 150, { boss: true, heavy: true })) }; }"""
     c1, c2, c3 = ev(page, CH, 1), ev(page, CH, 2), ev(page, CH, 3)
-    check('slope_chance_level1', c1['front'] == 0.4 and c1['side'] == [0.2, 0.2] and c1['rear'] == 0 and c1['bossFront'] == 0.2 and c1['bossSide'] == 0.1, c1)
+    check('slope_chance_level1', c1['front'] == 0.4 and c1['side'] == [0.2, 0.2] and c1['rear'] == 0 and c1['bossFront'] == 0 and c1['bossSide'] == 0, c1)  # 1.5.6: bosses are never deflected
     check('slope_chance_level2', c2['front'] == 0.5 and c2['side'] == [0.25, 0.25] and c2['rear'] == 0, c2)
     check('slope_chance_level3', c3['front'] == 0.6 and c3['side'] == [0.3, 0.3] and c3['rear'] == 0, c3)
     check('slope_never_shell_or_heavy', all(c['shell'] == 0 and c['heavy'] == 0 for c in (c1, c2, c3)), [c1['shell'], c1['heavy']])
@@ -93,7 +93,10 @@ with sync_playwright() as p:
     check('no_card_no_deflection', d_none['lost'] > 0 and d_none['dfl'] is False, d_none)
     d_boss = ev(page, DEF, [3, 0.25, 'boss'])  # boss front chance 0.3: a roll of 0.25 deflects, 0.35 does not
     d_boss2 = ev(page, DEF, [3, 0.35, 'boss'])
-    check('slope_boss_chance_halved', d_boss['lost'] == 0 and d_boss2['lost'] > 0, [d_boss, d_boss2])
+    check('slope_never_deflects_boss_bullets', d_boss['lost'] > 0 and not d_boss['inert'] and d_boss2['lost'] > 0, [d_boss, d_boss2])
+    # in a boss fight even a bullet without the boss flag is never deflected
+    inb = ev(page, "(() => { const t = __tank, G = t.G; window.arena({ slope: 3 }); const q = window.ebullet('E'); const before = +t.slopeChance(q).toFixed(3); G.boss = { dead: false }; const during = t.slopeChance(window.ebullet('E')); G.boss = null; return [before, during]; })()")
+    check('slope_off_for_every_bullet_in_boss_fight', inb == [0.6, 0], inb)
     d_heavy = ev(page, DEF, [3, 0, 'heavy']); d_shell = ev(page, DEF, [3, 0, 'topcu'])
     check('slope_never_deflects_heavy_boss_shell', d_heavy['lost'] > 0 and not d_heavy['inert'], d_heavy)
     check('slope_never_deflects_topcu_shell', d_shell['lost'] > 0, d_shell)
@@ -105,6 +108,10 @@ with sync_playwright() as p:
     RF = """([L, side, sp]) => { const t = __tank, G = t.G; const p = window.arena({ reflex: L }, 10, 10); const x0 = p.x, y0 = p.y; const b = window.ebullet(side, sp || 300); G.bullets.push(b); let cd0 = null, hp0 = p.hp; for (let i = 0; i < 60 && !b.dead; i++) { t.step(1 / 60); if (cd0 === null && p.rf) cd0 = +p.rfCd.toFixed(2); } const lost = +(hp0 - p.hp).toFixed(2);
       return { cd0, lost, dx: +(p.x - x0).toFixed(1), dy: +(p.y - y0).toFixed(1), cd: +p.rfCd.toFixed(2), rf: !!p.rf }; }"""
     r1 = ev(page, RF, [1, 'E']); r2 = ev(page, RF, [2, 'E']); r3 = ev(page, RF, [1, 'N'])
+    RFB = """([L, heavy]) => { const t = __tank, G = t.G; const p = window.arena({ reflex: L }, 10, 10); const b = window.ebullet('E', 300, { boss: true, heavy: !!heavy }); G.bullets.push(b); let cd0 = null, hp0 = p.hp; for (let i = 0; i < 60 && !b.dead; i++) { t.step(1 / 60); if (cd0 === null && p.rf) cd0 = +p.rfCd.toFixed(2); } return { cd0, lost: +(hp0 - p.hp).toFixed(2) }; }"""
+    rb1, rb2, rbh = ev(page, RFB, [1, False]), ev(page, RFB, [2, False]), ev(page, RFB, [1, True])
+    check('reflex_cooldown_doubled_on_boss_shells', rb1['cd0'] is not None and 5.9 <= rb1['cd0'] <= 6.0 and 3.9 <= rb2['cd0'] <= 4.0 and rb1['lost'] == 0, [rb1, rb2])
+    check('reflex_never_dodges_heavy_boss_shell', rbh['cd0'] is None and rbh['lost'] > 0, rbh)
     check('reflex_card_rare_max2', ev(page, "(() => [__tank.UPS.reflex.rare, __tank.UPS.reflex.max])()") == [True, 2])
     check('reflex_slides_perpendicular_and_avoids_hit', r1['lost'] == 0 and abs(r1['dx']) < 2 and 28 <= abs(r1['dy']) <= 50 and r3['lost'] == 0 and abs(r3['dy']) < 2 and 28 <= abs(r3['dx']) <= 50, [r1, r3])
     check('reflex_cooldown_3s_level1_2s_level2', 2.95 <= r1['cd0'] <= 3.0 and 1.95 <= r2['cd0'] <= 2.0, [r1['cd0'], r2['cd0']])

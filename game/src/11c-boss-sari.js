@@ -62,13 +62,13 @@ function sariOrbit(e, st, dt, R) { // circle the player at about R px, tangent p
 function* sariShots(e) { // çevik atış: two bursts of three shots while circling 5-7 tiles from the player; each burst warned by a 0.45 s glow
   const st = { sign: Math.random() < 0.5 ? 1 : -1, stuck: 0 }, R = rand(5, 7) * T;
   for (let b = 0; b < 2; b++) {
-    for (let t = 0; t < (b ? 0.5 : 0.9); t += e.dt) { sariOrbit(e, st, e.dt, R); aimAtPlayer(e, e.dt, 1.4, e.def.lead); yield 0; }
+    for (let t = 0; t < (b ? 0.5 : 0.9); t += e.dt) { sariOrbit(e, st, e.dt, R); aimAtPlayer(e, e.dt, 1.4, e.lead); yield 0; }
     const tl = addTele(e, { kind: 'glow', dur: 0.45, fan: [0] });
-    while (tl.t < tl.dur) { sariOrbit(e, st, e.dt, R); aimAtPlayer(e, e.dt, 1.8, e.def.lead); yield 0; }
+    while (tl.t < tl.dur) { sariOrbit(e, st, e.dt, R); aimAtPlayer(e, e.dt, 1.8, e.lead); yield 0; }
     release(e, 'cevik', tl); removeTele(tl);
     for (let k = 0; k < 3; k++) {
       bossVolley(e, [0]);
-      for (let t = 0; t < 0.13; t += e.dt) { sariOrbit(e, st, e.dt, R); aimAtPlayer(e, e.dt, 1.8, e.def.lead); yield 0; }
+      for (let t = 0; t < 0.13; t += e.dt) { sariOrbit(e, st, e.dt, R); aimAtPlayer(e, e.dt, 1.8, e.lead); yield 0; }
     }
   }
   yield 0.2;
@@ -183,7 +183,7 @@ BOSS_DEFS.sari = {
   id: 'sari', lead: 0.35, name: 'SARI FIRTINA', arena: 'kum', introSub: 'Kum Çukuru', hold: 4, phases: [66, 33], plates: ['plate', 'fender'], r: SARI_SPEC.r,
   deathText: 'SARI FIRTINA DİNDİ', loot: 'SARI FIRTINA GANİMETİ',
   barrels: [{ id: 'main', name: 'Namlu', ang: 0, k: 0.1 }],
-  hp: w => Math.round(460 + (w - 10) * 23),
+  hp: w => Math.round(620 + (w - 10) * 31), // 1.5.6: 460 + 23/wave -> 620 + 31/wave (the harder attacks should not end the fight in under 3 minutes)
   attacks: [
     { id: 'cevik', w: 3, ok: e => true, run: sariShots },
     { id: 'hucum', w: 3, ok: e => e.distP > 2.5 * T && e.phase < 2, run: sariCharge, mov: true },

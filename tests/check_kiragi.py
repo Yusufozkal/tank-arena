@@ -115,7 +115,7 @@ with sync_playwright() as p:
     dc = ev(page, "(() => { const e = __tank.G.boss, T = __tank.G.tele; return { n: e.kr.dec.length, lines: T.filter(x => x.kind === 'line').length, fake: T.filter(x => x.fake).length, fakeSafe: T.filter(x => x.fake).every(x => x.nodanger), glow: e.kr.dec.every(d => true) }; })()")
     check('two_copies_three_laser_lines', dc['n'] == 2 and dc['lines'] == 3 and dc['fake'] == 2 and dc['fakeSafe'], dc)
     ev(page, DONE, 4)
-    hl = ev(page, "(() => { const e = __tank.G.boss, p = __tank.G.player; return { hurt: p.maxHp - p.hp, one: Math.max(1, Math.round(14 * __tank.G.mods.dmg)), logs: e.log.filter(x => x.atk === 'suret').length, left: e.kr.dec.length }; })()")
+    hl = ev(page, "(() => { const e = __tank.G.boss, p = __tank.G.player; return { hurt: p.maxHp - p.hp, one: Math.max(1, Math.round(14 * __tank.G.mods.dmg * __tank.G.boss.tune.dmg)), logs: e.log.filter(x => x.atk === 'suret').length, left: e.kr.dec.length }; })()")
     check('copy_lines_do_no_damage_only_real_hits', hl['hurt'] == hl['one'] and hl['logs'] == 1 and hl['left'] == 2, hl)
     # one hit breaks a copy (a real shell through updateBullets), the player standing next to it is slowed 2 s
     sl = ev(page, """() => { const t = __tank, G = t.G, e = G.boss, p = G.player, kr = e.kr; G.god = true; e.cool = 99; const d = kr.dec[0]; d.x = 10 * 48 + 24; d.y = 5 * 48 + 24; d.goal = null;

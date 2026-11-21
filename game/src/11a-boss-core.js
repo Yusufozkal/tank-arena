@@ -63,7 +63,18 @@ const bossDefAt = w => {
   return BOSS_DEFS[BOSS_ON[k] || 'komutan'] || null;
 };
 const TELE_MIN = { glow: 0.45, heavy: 0.8, line: 1.0, circle: 1.2, ring: 1.2 }; // minimum warning time per telegraph kind (uyarı dili)
-const bossDmg = base => Math.max(1, Math.round(base * G.mods.dmg));
+// 1.5.6: the user found every boss too easy. Per boss fight: gap = attack pause multiplier, speed = boss bullet speed, dmg = direct-hit damage, lead = added share of aim lead (only bosses that lead at all).
+// light: the wave-5 tutorial Komutan; every other boss has its own row (tuned with boss_probe). Telegraph times (TELE_MIN) are untouched.
+const BOSS_TUNE = {
+  light: { gap: 0.85, speed: 1.1, dmg: 1.25, lead: 0.15 },
+  komutan: { gap: 0.7, speed: 1.25, dmg: 1.75, lead: 0.3 },
+  sari: { gap: 0.75, speed: 1.25, dmg: 1.35, lead: 0.3 },
+  demirkok: { gap: 0.6, speed: 1.25, dmg: 2.8, lead: 0.4 }, // its shells were tiny (6 base): the biggest dmg factor
+  kiragi: { gap: 0.65, speed: 1.25, dmg: 1.55, lead: 0.3 }, // speed only matters for its plain shells; the lasers hit by gap and dmg
+  kapatici: { gap: 0.4, speed: 1.4, dmg: 1.7, lead: 0 } // Serbest Mod: meant to be very hard (full cards win about 1 in 4-5)
+};
+const bossTuneFor = (def, w) => (def.id === 'komutan' && w <= 5) ? BOSS_TUNE.light : (BOSS_TUNE[def.id] || BOSS_TUNE.komutan);
+const bossDmg = base => Math.max(1, Math.round(base * G.mods.dmg * (G.boss && G.boss.tune ? G.boss.tune.dmg : 1)));
 
 function spawnBoss(def, x, y, angle) {
   const w = G.wave, e = makeTank('boss', x, y);
@@ -75,6 +86,8 @@ function spawnBoss(def, x, y, angle) {
   e.glow = 0; e.fxT = 0; e.flowT = 0; e.flow = null; e.dt = 0; e.log = []; e.unlock = def.unlocks ? def.unlocks(w) : {};
   initBossParts(e);
   def.setup(e, w);
+  e.tune = bossTuneFor(def, w); e.lead = def.lead ? Math.min(1, def.lead + e.tune.lead) : def.lead; // lead 0 (Kırağı) stays 0
+  e.spec = Object.assign({}, e.spec, { bSpeed: e.spec.bSpeed * e.tune.speed }); // faster shells (the aim lead reads e.spec.bSpeed too)
   G.enemies.push(e); G.boss = e;
   return e;
 }
@@ -167,7 +180,7 @@ function leadAng(x, y, speed, k) {
 const aimAtPlayer = (e, dt, k, lead) => { const p = G.player; if (p.alive) e.turret = turnTo(e.turret, lead ? leadAng(e.x, e.y, e.spec.bSpeed, lead) : Math.atan2(p.y - e.y, p.x - e.x), e.spec.tTurn * (k || 1) * dt); };
 function* glowAim(e, id, dur, fan) { // barrel glow telegraph while the turret keeps aiming; the shot itself is the caller's
   const tl = addTele(e, { kind: 'glow', dur, fan });
-  while (tl.t < tl.dur) { aimAtPlayer(e, e.dt, 1.6, e.def.lead); yield 0; }
+  while (tl.t < tl.dur) { aimAtPlayer(e, e.dt, 1.6, e.lead); yield 0; }
   release(e, id, tl); removeTele(tl);
 }
 
@@ -311,7 +324,7 @@ function startAttack(e) {
 }
 function endAttack(e) {
   e.gen = null; e.atkId = ''; clearTele();
-  e.cool = rand(0.9, 1.6) * e.pace * (e.phase >= 2 ? 0.8 : 1);
+  e.cool = rand(0.9, 1.6) * e.pace * (e.phase >= 2 ? 0.8 : 1) * e.tune.gap;
 }
 
 /* ---- phases ---- */

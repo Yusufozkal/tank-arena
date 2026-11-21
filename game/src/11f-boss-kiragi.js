@@ -322,7 +322,7 @@ BOSS_DEFS.kiragi = {
   id: 'kiragi', name: 'KIRAĞI', arena: 'gol', introSub: 'Donmuş Göl', hold: 9, lead: 0, phases: [66, 33], plates: ['plate', 'fender'], r: KIR_SPEC.r,
   deathText: 'KIRAĞI ERİDİ', loot: 'KIRAĞI GANİMETİ',
   barrels: [{ id: 'm', name: 'Namlu', ang: 0, k: 0.07 }],
-  hp: w => Math.round(1800 + (w - 30) * 45),
+  hp: w => Math.round(2300 + (w - 30) * 55), // 1.5.6: 1800 + 45/wave -> 2300 + 55/wave (harder lasers end the fight sooner; the target is 4-6 min)
   attacks: [
     { id: 'keskin', w: 4, ok: e => e.canSee && e.distP < 15 * T, run: krSharp },
     { id: 'saklan', w: 2.4, ok: e => e.distP > 4 * T, run: krHide, mov: true, cd: 8 },

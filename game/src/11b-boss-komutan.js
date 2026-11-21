@@ -6,7 +6,7 @@ function* komTriple(e) { yield* glowAim(e, 'triple', 0.45, KOM_FAN3); bossVolley
 function* komPenta(e) { yield* glowAim(e, 'penta', 0.45, KOM_FAN5); bossVolley(e, KOM_FAN5); yield 0.5; }
 function* komSalvo(e) { // yaylım: three triple volleys, the fan turning a little each time, each with its own glow
   for (let k = 0; k < 3; k++) {
-    const tl = addTele(e, { kind: 'glow', dur: 0.45, fan: KOM_FAN3 }), p = G.player, base = leadAng(e.x, e.y, e.spec.bSpeed, e.def.lead) + (k - 1) * 0.3;
+    const tl = addTele(e, { kind: 'glow', dur: 0.45, fan: KOM_FAN3 }), p = G.player, base = leadAng(e.x, e.y, e.spec.bSpeed, e.lead) + (k - 1) * 0.3;
     while (tl.t < tl.dur) { e.turret = turnTo(e.turret, base, e.spec.tTurn * 2.2 * e.dt); yield 0; }
     release(e, 'yaylim', tl); removeTele(tl); bossVolley(e, KOM_FAN3); yield 0.15;
   }
