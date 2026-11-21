@@ -60,6 +60,9 @@ with sync_playwright() as p:
         i = page.evaluate(INFO)
         bres[bid] = i
         ck(f'boss_{bid}', i['sandbox'] and i['stage'] == bid and i['boss'] == bid and i['tank'] == 'rayli' and i['up'] == {'armor': 2} and i['state'] == 'play', i)
+        if bid == 'kiragi':  # the Donmuş Göl stage: snow theme, the 5x3 lake (15 water tiles) on the map, Kırağı alive with its stealth state
+            kk = page.evaluate("(() => { const G = __tank.G, e = G.boss; return { theme: G.map.theme && G.map.theme.key, lake: e && e.kr ? e.kr.lake.length : -1, name: e && e.def.arena, water: e && e.kr ? e.kr.lake.filter(q => G.map.t[q.r * G.map.n + q.c] === __tank.WATER).length : -1 }; })()")
+            ck('boss_kiragi_donmus_gol', kk['theme'] == 'snow' and kk['name'] == 'gol' and kk['lake'] == 15 and kk['water'] == 15, kk)
         page.evaluate('__tank.pauseGame()'); page.tap('#btnPauseSbx'); page.wait_for_timeout(200)
     # boss win -> end screen with Tekrar / Kurulum
     bid = bosses[0] if bosses else None
@@ -103,6 +106,15 @@ with sync_playwright() as p:
     page.evaluate("(() => { for (let i = 0; i < 60; i++) document.getElementById('sbxMinus').dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })); document.getElementById('sbxMinus').dispatchEvent(new PointerEvent('pointerup', { bubbles: true })); })()")
     lo = int(page.inner_text('#sbxWaveN'))
     ck('wave_bounds', hi == 40 and lo == 1, [lo, hi])
+    # Ağır Topçu in a chosen Kar wave 23+ (no boss beaten: the region rule has not removed anything)
+    page.evaluate('__tank.toMenu()'); page.tap('#btnSandbox'); page.wait_for_timeout(300)
+    page.tap('#sbxTargets button[data-b=""]'); page.tap('#sbxMaps button[data-m="2"]')
+    page.evaluate("(() => { for (let i = 0; i < 40; i++) document.getElementById('sbxPlus').dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })); document.getElementById('sbxPlus').dispatchEvent(new PointerEvent('pointerup', { bubbles: true })); })()")
+    page.evaluate("(() => { for (let i = 0; i < 14; i++) document.getElementById('sbxMinus').dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })); document.getElementById('sbxMinus').dispatchEvent(new PointerEvent('pointerup', { bubbles: true })); })()")
+    w26 = int(page.inner_text('#sbxWaveN'))
+    page.tap('#btnSbxGo'); page.wait_for_timeout(300)
+    tp = page.evaluate("(() => { const t = __tank, G = t.G; let n = 0; for (let i = 0; i < 60; i++) if (t.buildRoster(G.wave).list.includes('topcu')) n++; return { wave: G.wave, theme: G.map.theme && G.map.theme.key, draws: n, banned: t.typeBanned('topcu') }; })()")
+    ck('sandbox_kar_wave_has_topcu', tp['wave'] == w26 and w26 >= 23 and tp['theme'] == 'snow' and tp['draws'] > 30 and not tp['banned'], {'want': w26, **tp})
     # 6. storage untouched
     after = page.evaluate(STORE)
     changed = {k: [before.get(k), after.get(k)] for k in set(before) | set(after) if before.get(k) != after.get(k)}

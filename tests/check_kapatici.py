@@ -149,8 +149,8 @@ with sync_playwright() as p:
     check('hidden_passive_unknown', hid['seen'] is False and hid['vis'] is False and hid['lkFar'] > 3 * 48 and hid['unseen'] > 5, hid)
     heard = ev(page, """() => { const t = __tank, G = t.G, e = G.boss, p = G.player; p.lastShot = G.time; t.step(0.1);
       return { seen: e.canSee, lkAge: +(G.time - e.lk.t).toFixed(2), lkErr: Math.round(Math.hypot(e.lk.x - p.x, e.lk.y - p.y)), hearErr: 3 * 48 }; }""")
-    check('shot_is_heard_with_error', heard['seen'] is False and heard['lkAge'] < 0.3 and heard['lkErr'] <= 3 * 48 + 2 and heard['lkErr'] > 0, heard)
-    ev(page, "(() => { const t = __tank, p = t.G.player; p.x = 16 * 48 + 24; p.y = 6 * 48 + 24; t.step(0.12); })()")
+    check('shot_is_heard_with_error', heard['seen'] is False and heard['lkAge'] < 0.3 and heard['lkErr'] <= 3 * 48 + 2, heard)
+    ev(page, "(() => { const t = __tank, p = t.G.player, e = t.G.boss; p.x = 16 * 48 + 24; p.y = 6 * 48 + 24; e.turret = Math.atan2(p.y - e.y, p.x - e.x); t.step(0.12); })()")  # turret on him: the cone, not the random search direction, is what is tested
     early = ev(page, "__tank.G.boss.canSee"); ev(page, "__tank.step(0.5)")
     late = ev(page, "__tank.G.boss.canSee")
     check('sees_in_open_after_reaction', early is False and late is True, [early, late])

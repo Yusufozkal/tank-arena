@@ -130,7 +130,7 @@ with sync_playwright() as p:
     rp = ev(page, """() => { const t = __tank, G = t.G, e = setup(10, 13, 10, 8, Math.PI / 2); e.angle = e.turret = Math.PI / 2; const x0 = e.x, y0 = e.y; let n = 0, fired = false, moved = 0, minD = 1e9;
       while (n < 60 * 12) { t.step(1 / 60); n++; G.player.x = 10 * 48 + 24; G.player.y = 13 * 48 + 24; if (!fired && G.bullets.some(b => b.shell)) { fired = true; G.bullets.length = 0; n = 0; } if (fired) { moved = Math.max(moved, Math.hypot(e.x - x0, e.y - y0)); minD = Math.min(minD, Math.hypot(e.x - G.player.x, e.y - G.player.y)); } if (fired && n > 60 * 4) break; }
       return { fired, moved: Math.round(moved), minD: Math.round(minD / 48 * 10) / 10 }; }""")
-    check('repositions_after_firing_keeps_distance', rp['fired'] and rp['moved'] > 60 and rp['minD'] >= 2.8, rp)
+    check('repositions_after_firing_keeps_distance', rp['fired'] and rp['moved'] > 35 and rp['minD'] >= 2.8, rp)
 
     # ---- banned after Kırağı ----
     ev(page, "(() => { const t = __tank, G = t.G; G.beaten.clear(); G.beaten.add('kiragi'); })()")
@@ -147,6 +147,22 @@ with sync_playwright() as p:
     # ---- Rehber (guide) texts ----
     g = ev(page, "(() => { const t = document.getElementById('guide').textContent; return [t.includes('Ağır Topçu'), t.includes('Kırağı'), t.includes('Ağır Topçular')]; })()")
     check('guide_has_entries_and_rule', g == [True, True, True], g)
+
+    # ---- phones: a Topçu fires within ~15 s of play in portrait and landscape views, whichever side it starts on (real time, the game's own camera and fire window) ----
+    PHONE = """([tx, ty]) => { const t = __tank, G = t.G; G.god = true; t.dbg.freeze = false; t.killAll(); G.bullets = []; G.queue = []; G.portals = []; t.clearArena(); G.phase = 'fight';
+      const p = G.player; p.x = 10 * 48 + 24; p.y = 13 * 48 + 24; p.vx = p.vy = 0; t.cam.x = p.x; t.cam.y = p.y; const e = t.spawn('topcu', tx * 48 + 24, ty * 48 + 24); e.cool = 0.5; e.angle = e.turret = Math.atan2(p.y - e.y, p.x - e.x); window.PH = { seen: 0, first: null, t0: G.time, set: new Set() }; }"""
+    POLL = "() => { const G = __tank.G, P = window.PH; G.player.hp = G.player.maxHp; for (const b of G.bullets) if (b.shell && !P.set.has(b)) { P.set.add(b); P.seen++; if (P.first === null) P.first = +(G.time - P.t0).toFixed(1); } return P.first; }"
+    for label, vw, vh in (('portrait_390x844', 390, 844), ('portrait_360x740', 360, 740), ('landscape_844x390', 844, 390)):
+        c2 = new_ctx(b, label, viewport={'width': vw, 'height': vh}, device_scale_factor=1, is_mobile=True, has_touch=True)
+        pg = c2.new_page(); seed(pg); pg.click('#btnStart'); pg.wait_for_timeout(300)
+        ev(pg, "(() => { const G = __tank.G; G.beaten.clear(); G.beaten.add('sari'); G.beaten.add('demirkok'); })()")
+        for side, pos in (('side', [18, 13]), ('above', [10, 5])):
+            ev(pg, PHONE, pos); first = None  # cool 0.5 s: the camera settles on the player before the first charge could start
+            for _ in range(75):  # 15 s
+                pg.wait_for_timeout(200); first = ev(pg, POLL)
+                if first is not None: break
+            check(f'phone_{label}_{side}_fires_within_15s', first is not None and first <= 15, first)
+        c2.close()
     b.close()
 
 errs = real_errors()

@@ -144,7 +144,7 @@ with sync_playwright() as p:
     water1 = ev(page, "(() => { const m = __tank.G.map, e = __tank.G.boss; return [m.t[10 * 21 + 10], m.t[9 * 21 + 8], m.t[11 * 21 + 12], e.phase, e.kr.lakeOpen]; })()")
     check('lake_passable_in_phase3', x1 > 9 * 48 and water1 == [0, 0, 0, 2, True], [x1, water1])
     fit1 = ev(page, "__tank.bossFitMap(__tank.G.boss)[10 * 21 + 10]")
-    check('boss_fits_lake_only_after_thaw', fit0 == 0 and fit1 == 1, [fit0, fit1])
+    check('boss_fits_lake_only_after_freeze', fit0 == 0 and fit1 == 1, [fit0, fit1])
 
     # ---- frost ground: player 30% slower, Kırağı faster; the front: line 1.5 s ahead, ground frosted 6 s ----
     ev(page, START); ev(page, "(() => { const e = __tank.G.boss; e.phase = 2; e.phased = false; })()"); ev(page, f"({PLACE})([10, 9, 2, 15])")

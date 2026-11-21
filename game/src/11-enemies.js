@@ -37,8 +37,8 @@ function buildRoster(w) {
   const D = G.D, list = [];
   if (w % 5 === 0) return { list: ['boss'], maxAlive: 1 }; // boss stage: only the boss on the field, no escorts (startBossStage spawns it)
   const rk = 1 + 0.12 * removedN(), total = clamp(Math.round((3 + w + Math.floor(w / 2)) * D.count * rk), 3, Math.round((20 + Math.floor(Math.max(0, w - 20) / 3)) * rk));
-  const { pf, ph, pu, pt, pa } = typeShares(w);
-  for (let i = 0; i < total; i++) { const r = Math.random(); list.push(r < ph ? 'heavy' : r < ph + pf ? 'fast' : r < ph + pf + pu ? 'hunter' : r < ph + pf + pu + pt ? 'tamirci' : r < ph + pf + pu + pt + pa ? 'topcu' : 'basic'); }
+  const { pf, ph, pu, pt, pa } = typeShares(w); // topcu is drawn first below: Serbest Mod bans nothing, so the shares can add up past 1 there
+  for (let i = 0; i < total; i++) { const r = Math.random(); list.push(r < pa ? 'topcu' : r < pa + ph ? 'heavy' : r < pa + ph + pf ? 'fast' : r < pa + ph + pf + pu ? 'hunter' : r < pa + ph + pf + pu + pt ? 'tamirci' : 'basic'); }
   shuffle(list);
   // a type's first wave: exactly one of it (the roster above has none yet), placed a little way into the wave; never for a type the region rule removed
   const first = w === D.fastFrom ? 'fast' : w === D.heavyFrom ? 'heavy' : w === D.hunterFrom ? 'hunter' : w === D.tamirciFrom ? 'tamirci' : w === D.topcuFrom && themeFor(w).key === 'snow' ? 'topcu' : null;
@@ -346,7 +346,7 @@ function updateHunter(e, dt) {
       const wp = e.path[e.pathI];
       if (dist2(wp.x, wp.y, e.x, e.y) < 30) e.pathI++; else goal = wp;
     }
-  } else if (!(e.canSee && e.distP < s.hold * T)) {
+  } else if (!(e.canSee && e.distP < s.hold * T && onFireView(e.x, e.y, -T * 0.7))) { // hold inside the fire window of the player's real screen (portrait phones are narrow), so the shell can always be fired
     if (!e.wp || dist2(e.wp.x, e.wp.y, e.x, e.y) < 25) { { const f = fieldFor(e, m.sflow); e.wp = f ? nextWaypoint(e, f) : null; } e.wpBest = 1e9; e.stuckT = 0; }
     if (e.wp) {
       const v = m.get(e.wp.c, e.wp.r);
@@ -569,10 +569,11 @@ const TOPCU = { reload: 6, charge: 0.8, lock: 0.25, shellHp: 3, repos: 2.6, boom
 function topcuSpot(e) { // a free tile 4-5.6 tiles from the player with a clear line to it, well away from where the tank stands (a flank, not a retreat into the same lane)
   const m = G.map, p = G.player, cur = Math.atan2(e.y - p.y, e.x - p.x); let best = null, bs = -1e9;
   for (let k = 0; k < 18; k++) {
-    const a = cur + (k % 2 ? 1 : -1) * rand(0.7, 2.2), r = rand(4, 5.6) * T, x = p.x + Math.cos(a) * r, y = p.y + Math.sin(a) * r, c = Math.floor(x / T), rr = Math.floor(y / T);
+    const a = cur + (k % 2 ? 1 : -1) * rand(0.7, 2.2), r = rand(3.6, 5.6) * T, x = p.x + Math.cos(a) * r, y = p.y + Math.sin(a) * r, c = Math.floor(x / T), rr = Math.floor(y / T);
     if (c < 1 || rr < 1 || c > m.n - 2 || rr > m.n - 2 || blocksTank(m.get(c, rr))) continue;
     const cx = c * T + T / 2, cy = rr * T + T / 2; if (!los(cx, cy, p.x, p.y) || Math.hypot(cx - e.x, cy - e.y) < 3 * T) continue;
     let sc = Math.random() * 2 - Math.hypot(cx - e.x, cy - e.y) / T * 0.15;
+    if (!onFireView(cx, cy, -T * 0.8)) sc -= 6; // a spot outside the fire window is the last choice
     for (const o of G.enemies) if (o !== e && !o.dead && dist2(o.x, o.y, cx, cy) < (2.5 * T) * (2.5 * T)) sc -= 3;
     if (sc > bs) { bs = sc; best = { c, r: rr, x: cx, y: cy }; }
   }
@@ -648,7 +649,7 @@ function updateTopcu(e, dt) {
         } else tp.repos = 0;
       } else if (e.canSee && e.distP < TOPCU.near * T) { // too close: back away
         const a = tamFlee(e); if (a !== null) goal = { x: e.x + Math.cos(a) * 60, y: e.y + Math.sin(a) * 60, c: -1, r: -1, free: true };
-      } else if (!(e.canSee && e.distP < s.hold * T)) {
+      } else if (!(e.canSee && e.distP < s.hold * T && onFireView(e.x, e.y, -T * 0.7))) { // hold inside the fire window of the player's real screen (portrait phones are narrow), so the shell can always be fired
         if (!e.wp || dist2(e.wp.x, e.wp.y, e.x, e.y) < 25) { const f = fieldFor(e, m.flow); e.wp = f ? nextWaypoint(e, f) : null; e.wpBest = 1e9; e.stuckT = 0; }
         goal = e.wp;
       }
