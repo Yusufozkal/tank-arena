@@ -108,8 +108,8 @@ function moveTank(t, dx, dy) {
 
 /* tread marks: ring buffer of line segments */
 const TM = 1400;
-const tm = { x1: new Float32Array(TM), y1: new Float32Array(TM), x2: new Float32Array(TM), y2: new Float32Array(TM), t: new Float32Array(TM), n: 0, head: 0 };
-function addTread(x1, y1, x2, y2) { const i = tm.head; tm.x1[i] = x1; tm.y1[i] = y1; tm.x2[i] = x2; tm.y2[i] = y2; tm.t[i] = G.time; tm.head = (i + 1) % TM; if (tm.n < TM) tm.n++; }
+const tm = { x1: new Float32Array(TM), y1: new Float32Array(TM), x2: new Float32Array(TM), y2: new Float32Array(TM), t: new Float32Array(TM), o: new Uint8Array(TM), n: 0, head: 0 }; // o: 1 = laid by the player (the Kapatıcı reads visible tracks)
+function addTread(x1, y1, x2, y2, own) { const i = tm.head; tm.o[i] = own ? 1 : 0; tm.x1[i] = x1; tm.y1[i] = y1; tm.x2[i] = x2; tm.y2[i] = y2; tm.t[i] = G.time; tm.head = (i + 1) % TM; if (tm.n < TM) tm.n++; }
 function trackUpdate(t, moved, dA) {
   const s = t.spec, half = s.wid * 0.5;
   t.treadL += moved + dA * half; t.treadR += moved - dA * half;
@@ -119,7 +119,7 @@ function trackUpdate(t, moved, dA) {
   t.trackAcc = 0;
   const off = half - s.tread * 0.5, nx = -Math.sin(t.angle), ny = Math.cos(t.angle);
   const lx = t.x + nx * off, ly = t.y + ny * off, rx = t.x - nx * off, ry = t.y - ny * off;
-  if (t.pl && dist2(t.pl[0], t.pl[1], lx, ly) < 400) { addTread(t.pl[0], t.pl[1], lx, ly); addTread(t.pr[0], t.pr[1], rx, ry); }
+  if (t.pl && dist2(t.pl[0], t.pl[1], lx, ly) < 400) { addTread(t.pl[0], t.pl[1], lx, ly, t === G.player); addTread(t.pr[0], t.pr[1], rx, ry, t === G.player); }
   t.pl = [lx, ly]; t.pr = [rx, ry];
   if (fxScale === 1 && Math.abs(moved) > 0.5 && Math.random() < 0.35) {
     const bx = t.x - Math.cos(t.angle) * s.len * 0.5, by = t.y - Math.sin(t.angle) * s.len * 0.5;

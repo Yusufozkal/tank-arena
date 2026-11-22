@@ -6,6 +6,9 @@
 // player keeps fleeing to) and learns within the fight: escape direction counts (kp.esc), long- vs short-range play (kp.far / kp.near) -> rushes snipers, backs off from brawlers.
 // Attacks: Kesin Atış, Sekme Atışı, Kesme Hamlesi, Havan (sweeps the bushes around the last-known spot), plus Kapanış (a timer: from 90 s the edge ring of steel moves in every 30 s, 2 s warning).
 // Open window: after each attack the barrel glows for KAP.open s: no side-step and full damage; otherwise the hull deflects half of the damage (def.hullMul).
+// 1.5.6 smarter (all from kapSense, nothing hidden): it reads his dodges (kp.dodges: where he ran in the 0.6 s after each red line; with a pattern the Kesin Atış aims partly at that spot, old samples fade),
+// feints (25% of Kesin Atış, never twice in a row: a line cancelled at 0.35 s, then the real full line), baits Refleks (a cheap, fully telegraphed shell first while it sees the cyan ready dot),
+// tracks treads (the player's visible tread marks, none under bushes, refine e.lk while it does not see him) and uses the closing ring (stands on the inner side of him before a ring closes). It never targets or touches pickups.
 // State in e.kp. Hooks used from 11a: def.sense, def.move, def.flowGoal, def.tick, def.hullMul, def.danger, def.onClear, def.drawGround; bossDefAt `G.forceBoss`; ARENAS.kapanis.theme.
 const KAP_FLOOR = Object.assign({}, THEMES[3], { key: 'city', name: 'Kapanış', bg: '#050506', ground: '#222428', ground2: '#1c1e22', detail: '#16181b', detail2: '#30343a',
   steel: '#6c717a', steelHi: '#9ba1ac', steelDk: '#393d44', shore: '#3a3d42', shadow: 'rgba(0,0,0,.5)', tread: '8,8,9', scorch: '0,0,0', dust: '88,88,94' });
@@ -34,9 +37,9 @@ ARENAS.kapanis = { name: 'Kapanış', theme: KAP_FLOOR, rows: [ // steel blocks 
 
 const KAP_SPEC = { speed: 230, turn: 4.4, tTurn: 4.8, len: 54, wid: 46, r: 27, tread: 10, tR: 15, barrel: 66, bW: 8, cool: 1, bSpeed: 430, dmg: 12, bR: 5.5, mass: 14, score: 4000,
   col: { body: '#2a2b2f', dk: '#0b0b0d', hi: '#4d4f56', acc: '#e02828' } };
-const KAP = { hp: 2400, // 1.5.6: 1600 -> 2400
-  react: 0.25, fov: 3.5, cone: 3.5, open: 1.0, ringT: 90, ringEvery: 30, ringWarn: 2, rings: 4, dodgeP: 0.85, dodgeCd: 0.8,
-  dmgPrecise: 0.4, dmgBounce: 0.3, dmgRam: 0.3, dmgMortar: 0.3, hear: 1.6 }; // damage shares of the player's max HP; hear: hearing range factor against AWARE.hear
+const KAP = { hp: 2100, // 1.5.6: 1600 -> 2400 -> 2100 (smarter boss, so fewer HP)
+  react: 0.25, fov: 3.5, cone: 3.5, open: 1.4, ringT: 90, ringEvery: 30, ringWarn: 2, rings: 4, dodgeP: 0.85, dodgeCd: 0.8,
+  track: true, readOn: true, feintP: 0.25, readBlend: 0.5, baitDmg: 0.07, dmgPrecise: 0.4, dmgBounce: 0.3, dmgRam: 0.3, dmgMortar: 0.3, hear: 1.6 }; // damage shares of the player's max HP; hear: hearing range factor against AWARE.hear
 
 /* ---- helpers ---- */
 const kapDmg = f => Math.max(1, Math.round(f * G.player.maxHp / ((G.mods && G.mods.dmg) || 1))); // bossDmg() multiplies by the wave's mods.dmg again: a share of max HP stays a share
@@ -54,10 +57,29 @@ function kapPredict(e, t) {
 }
 // the spot it aims at: the led player while it sees him, otherwise the last-known spot (no lead)
 function kapTarget(e, t) { return e.canSee ? kapPredict(e, t) : (e.lk ? { x: e.lk.x, y: e.lk.y } : { x: e.x + Math.cos(e.turret) * 200, y: e.y + Math.sin(e.turret) * 200 }); }
-function kapAim(e, speed) {
+function kapAim(e, speed, off) { // off: an extra offset (the read dodge) added to the led spot
   let t = Math.hypot(G.player.x - e.x, G.player.y - e.y) / speed, q = kapTarget(e, t);
   for (let i = 0; i < 3; i++) { q = kapTarget(e, t); t = Math.hypot(q.x - e.x, q.y - e.y) / speed; }
+  if (off) { q = { x: q.x + off.x, y: q.y + off.y }; }
   return Math.atan2(q.y - e.y, q.x - e.x);
+}
+// his read dodge habit: weighted samples (age halves the weight every 18 s); a pattern needs >= 3 live samples and >= 60% of the weight on one move. Returns the offset to add to the aim
+// (the mean displacement of that move in the line's frame, blended KAP.readBlend so a shot still misses a player who dodges differently) or null
+function kapReadOffset(e) {
+  const kp = e.kp, p = G.player; if (!KAP.readOn || !p.alive) return null;
+  let tot = 0, n = 0; const cls = {};
+  for (const s of kp.dodges) { const w = Math.pow(0.5, (G.time - s.t) / 18); if (w < 0.12) continue; tot += w; n++; const c = cls[s.k] || (cls[s.k] = { w: 0, lat: 0, rad: 0 }); c.w += w; c.lat += s.lat * w; c.rad += s.rad * w; }
+  if (n < 3 || tot <= 0) return null;
+  let best = null, bk = ''; for (const k in cls) if (!best || cls[k].w > best.w) { best = cls[k]; bk = k; }
+  if (best.w / tot < 0.6 || bk === 'stay') return null;
+  const ux = p.x - e.x, uy = p.y - e.y, ul = Math.hypot(ux, uy) || 1, nx = -uy / ul, ny = ux / ul, lat = best.lat / best.w, rad = best.rad / best.w, B = KAP.readBlend;
+  return { x: (nx * lat + ux / ul * rad) * B, y: (ny * lat + uy / ul * rad) * B, k: bk };
+}
+function kapSampleDodge(e, tl) { // the player's move in the 0.6 s after a red line appeared, split into sideways (lat, + = to the boss's left of the line) and along the line (rad, + = away from the boss)
+  const kp = e.kp, p = G.player, w = kp.watch; kp.watch = null;
+  const dx = p.x - w.px, dy = p.y - w.py, ux = Math.cos(w.a), uy = Math.sin(w.a), rad = dx * ux + dy * uy, lat = -dx * uy + dy * ux, d = Math.hypot(dx, dy);
+  const k = d < 28 ? 'stay' : Math.abs(lat) >= Math.abs(rad) ? (lat > 0 ? 'R' : 'L') : (rad > 0 ? 'away' : 'toward');
+  kp.dodges.push({ k, t: G.time, lat: clamp(lat, -3 * T, 3 * T), rad: clamp(rad, -3 * T, 3 * T) }); if (kp.dodges.length > 14) kp.dodges.shift();
 }
 const kapRay = (e, a, max) => { const m = G.map, ca = Math.cos(a), sa = Math.sin(a); for (let d = 12; d < max; d += 6) if (isWall(m.at(e.x + ca * d, e.y + sa * d))) return d; return max; };
 function kapEsc(kp) { // the direction the player has been fleeing in (world vector, length = how sure it is 0..1)
@@ -88,7 +110,11 @@ function kapSense(e, dt) {
     if (kp.heard !== p.lastShot && now - p.lastShot < 0.3 && Math.hypot(p.x - e.x, p.y - e.y) < AWARE.hear * KAP.hear * T) { kp.heard = p.lastShot; setLk(e, p.x, p.y, AWARE.hearErr); kp.search = false; } // a shot: a spot with a big error
   }
   e.canSee = vis && kp.seeT >= KAP.react;
-  if (!e.canSee) return;
+  if (!e.canSee) { kp.watch = null; if (KAP.track) kapTrailLk(e, dt); return; }
+  // reading his dodges: a new red line of its own starts a 0.6 s watch of how he moves
+  const wt = kp.watch;
+  if (!wt) { const tl = G.tele.find(q => q.e === e && q.kind === 'line' && !q.kapW); if (tl) { tl.kapW = true; kp.watch = { tl, t0: now, px: p.x, py: p.y, a: tl.a }; } }
+  else if (now - wt.t0 >= 0.58) kapSampleDodge(e); else if (!G.tele.includes(wt.tl) && now - wt.t0 < 0.45) kp.watch = null; // a cancelled line (feint) is no sample
   // learning: where he runs while a warning is up; whether he shoots from far away or close by
   if (G.tele.length && G.tele.some(t => t.e === e && t.t > 0.3)) {
     const sp = Math.hypot(kp.pvx, kp.pvy);
@@ -101,7 +127,34 @@ function kapSense(e, dt) {
   if (p.lastShot !== kp.shotSeen) { kp.shotSeen = p.lastShot; const d = Math.hypot(p.x - e.x, p.y - e.y); if (d > 7 * T) kp.far++; else if (d < 4.5 * T) kp.near++; }
 }
 
+/* ---- tread tracking: the marks on the ground are visible to everyone (drawTreads); the ones under bushes are not ---- */
+function kapTrailScan(e) { // the newest player tread mark it could see from where it stands (within 10 tiles, clear line, not in a bush): { x, y, t, dx, dy } or null
+  const m = G.map; let bi = -1, bt = -1;
+  for (let k = 0; k < tm.n; k++) {
+    if (!tm.o[k]) continue; const age = G.time - tm.t[k]; if (age < 0 || age > 8.5 || tm.t[k] <= bt) continue;
+    const x = tm.x2[k], y = tm.y2[k]; if (m.at(x, y) === BUSH || Math.hypot(x - e.x, y - e.y) > 10 * T || !los(e.x, e.y, x, y)) continue;
+    bt = tm.t[k]; bi = k;
+  }
+  if (bi < 0) return null;
+  const dx = tm.x2[bi] - tm.x1[bi], dy = tm.y2[bi] - tm.y1[bi], l = Math.hypot(dx, dy) || 1;
+  return { x: tm.x2[bi], y: tm.y2[bi], t: bt, dx: dx / l, dy: dy / l };
+}
+function kapTrailLk(e, dt) { // blind: a visible fresh mark newer than the last-known spot moves that spot along his heading (the tank stops where the trail ends)
+  const kp = e.kp; kp.trT = (kp.trT || 0) - dt; if (kp.trT > 0) return; kp.trT = 0.25;
+  const tr = kapTrailScan(e); if (!tr || !e.lk || tr.t <= e.lk.t + 0.05) return;
+  const age = G.time - tr.t, ahead = clamp(age, 0, 2) * 55; // he has gone on a little since the mark was laid
+  let x = tr.x + tr.dx * ahead, y = tr.y + tr.dy * ahead; if (blocksTank(G.map.at(x, y))) { x = tr.x; y = tr.y; }
+  e.lk = { x, y, t: tr.t }; kp.search = false; kp.trail = { x, y, dx: tr.dx, dy: tr.dy, t: G.time };
+}
+
 /* ---- movement and turret (def.move): used whenever it is not in an attack ---- */
+// Kapanış use: while a ring is about to close (the 2 s warning or the 12 s before it) the unit vector from him toward the middle of the arena (else 0): standing and cutting there pushes him toward the edge that closes
+function kapInner(e) {
+  const kp = e.kp; if (kp.closed >= KAP.rings) return { x: 0, y: 0, k: 0 };
+  const next = KAP.ringT + kp.closed * KAP.ringEvery, soon = kp.warn || (kp.t > next - 12 && kp.t < next + 0.1); if (!soon) return { x: 0, y: 0, k: 0 };
+  const p = G.player, mid = G.map.w / 2, dx = mid - p.x, dy = mid - p.y, l = Math.hypot(dx, dy);
+  return l < T ? { x: 0, y: 0, k: 0 } : { x: dx / l, y: dy / l, k: 1 };
+}
 function kapPickGoal(e) {
   const kp = e.kp, p = G.player, m = G.map, n = m.n, now = G.time, fit = bossFitMap(e);
   const c0 = clamp(Math.floor(e.x / T), 0, n - 1), r0 = clamp(Math.floor(e.y / T), 0, n - 1), reach = new Uint8Array(n * n), q = [r0 * n + c0]; reach[q[0]] = 1;
@@ -114,7 +167,7 @@ function kapPickGoal(e) {
     if (!kp.goal || Math.hypot(e.x - kp.goal.x, e.y - kp.goal.y) < 1.1 * T) { const sp = searchSpot(e); if (sp) kp.goal = sp; kp.sn++; }
     return;
   }
-  const style = kapStyle(kp), D = (style === 'sniper' ? 3.6 : style === 'brawler' ? 9 : 6.5) * T, esc = kapEsc(kp), edge = kp.closed + 1 + (kp.warn ? 1 : 0);
+  const inner = kapInner(e), style = kapStyle(kp), D = (style === 'sniper' ? 3.6 : style === 'brawler' ? 9 : 6.5) * T, esc = kapEsc(kp), edge = kp.closed + 1 + (kp.warn ? 1 : 0);
   kp.mode = style;
   let best = null, bs = -1e9, cur = -1e9;
   for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) {
@@ -122,6 +175,7 @@ function kapPickGoal(e) {
     const x = c * T + T / 2, y = r * T + T / 2, d = Math.hypot(x - p.x, y - p.y);
     let sc = -Math.abs(d - D) / T + (los(x, y, p.x, p.y) ? 2.2 : -1.5) - Math.hypot(x - e.x, y - e.y) / T * 0.25 + Math.random() * 0.3;
     if (esc.m > 0.15 && d > 0.5 * T) sc += ((x - p.x) * esc.x + (y - p.y) * esc.y) / d * 1.8 * esc.m; // cut off the route he keeps fleeing along
+    if (inner.k && d > 0.5 * T) sc += ((x - p.x) * inner.x + (y - p.y) * inner.y) / d * 2.4; // before a ring closes: the inner side of him, so the closing edge is behind him
     if (Math.min(c, r, n - 1 - c, n - 1 - r) < edge) sc -= kp.warn ? 12 : 3; // stay off the ring that is about to close
     if (kp.goal && Math.abs(kp.goal.x - x) < 1 && Math.abs(kp.goal.y - y) < 1) cur = sc;
     if (sc > bs) { bs = sc; best = { x, y }; }
@@ -182,12 +236,31 @@ function kapFire(e, ang, o, mut) { // one shell from the long barrel; mut(b) pat
   addPart('fire', mx, my, ca * 80, sa * 80, 0.1, 24, 40, 0); for (let k = 0; k < 3; k++) addPart('smoke', mx, my, ca * 40 + rand(-12, 12), sa * 40 + rand(-12, 12), rand(0.5, 0.8), 14, 28, 3);
   shake(3 * prox(e.x, e.y)); Sound.shoot(false, true, volAt(e.x, e.y));
 }
-function* kapPrecise(e) { // Kesin Atış: 0.6 s red line (the last 0.2 s locked), one very fast shell, ~40% of the player's armour + HP
+// the cyan Refleks ready dot is on the player's hull (drawTank): the boss reads it when it sees him within 10 tiles
+const kapRefleksUp = e => e.canSee && G.up.reflex > 0 && !(G.player.rfCd > 0) && Math.hypot(G.player.x - e.x, G.player.y - e.y) < 10 * T;
+function* kapPrecise(e) { // Kesin Atış: 0.6 s red line (the last 0.2 s locked), one very fast shell, ~40% of the player's armour + HP; 1.5.6: bait / feint / read dodge first
   const kp = e.kp, p = G.player, sp = 2.3;
+  if (KAP.readOn && kapRefleksUp(e) && G.time - kp.baitT > 7) { // bait: a cheap shell (still a full 0.6 s line) to spend Refleks, then the real attack when the dot is gone
+    kp.baitT = G.time; kp.baits++;
+    const bl = addTele(e, { kind: 'line', dur: 0.6, min: 0.6, lock: 0.2, x: e.x, y: e.y, a: e.turret, len: 600, w: 8 });
+    while (bl.t < bl.dur) { if (bl.t < bl.dur - bl.lock) e.turret = turnTo(e.turret, kapAim(e, e.spec.bSpeed * 1.5), e.spec.tTurn * 2 * e.dt); bl.x = e.x; bl.y = e.y; bl.a = e.turret; bl.len = kapRay(e, e.turret, 14 * T); kp.charge = bl.t / bl.dur * 0.6; yield 0; }
+    release(e, 'bait', bl); removeTele(bl); kp.charge = 0;
+    kapFire(e, e.turret, { speed: 1.5 }, b => { b.dmg = bossDmg(kapDmg(KAP.baitDmg)); b.life = 1.6; b.r *= 0.8; b.bait = true; });
+    let w = 0; while (w < 0.7 && !(p.rfCd > 0)) { w += e.dt; if (e.canSee) e.turret = turnTo(e.turret, kapAim(e, e.spec.bSpeed), e.spec.tTurn * e.dt); yield 0; } // wait for the dot to go out (the shell is on its way)
+    yield 0.25;
+  }
+  if (KAP.readOn && !kp.feinted && Math.random() < KAP.feintP && e.canSee) { // feint: the line appears, is cancelled at 0.35 s, he commits, then the real line starts toward where he went
+    kp.feinted = true; kp.feints++;
+    const fl = addTele(e, { kind: 'line', dur: 0.6, min: 0.6, lock: 0.2, x: e.x, y: e.y, a: e.turret, len: 600, w: 12, feint: true });
+    Sound.warnRise(volAt(e.x, e.y) * 0.7);
+    while (fl.t < 0.35) { e.turret = turnTo(e.turret, kapAim(e, e.spec.bSpeed * sp), e.spec.tTurn * 2 * e.dt); fl.x = e.x; fl.y = e.y; fl.a = e.turret; fl.len = kapRay(e, e.turret, 14 * T); kp.charge = fl.t / fl.dur; yield 0; }
+    removeTele(fl); kp.charge = 0; e.log.push({ atk: 'feint', kind: 'line', dur: +fl.t.toFixed(3), min: 0.6 });
+    let w = 0; while (w < 0.3) { w += e.dt; if (e.canSee) e.turret = turnTo(e.turret, kapAim(e, e.spec.bSpeed * sp), e.spec.tTurn * 1.5 * e.dt); yield 0; } // he commits
+  } else kp.feinted = false;
   const tl = addTele(e, { kind: 'line', dur: 0.6, min: 0.6, lock: 0.2, x: e.x, y: e.y, a: e.turret, len: 600, w: 12 });
   Sound.warnRise(volAt(e.x, e.y) * 0.7);
   while (tl.t < tl.dur) {
-    if (tl.t < tl.dur - tl.lock) e.turret = turnTo(e.turret, kapAim(e, e.spec.bSpeed * sp), e.spec.tTurn * 2 * e.dt);
+    if (tl.t < tl.dur - tl.lock) e.turret = turnTo(e.turret, kapAim(e, e.spec.bSpeed * sp, kapReadOffset(e)), e.spec.tTurn * 2 * e.dt);
     tl.x = e.x; tl.y = e.y; tl.a = e.turret; tl.len = kapRay(e, e.turret, 14 * T); kp.charge = tl.t / tl.dur; yield 0;
   }
   release(e, 'kesin', tl); removeTele(tl); kp.charge = 0;
@@ -245,7 +318,7 @@ function* kapCut(e) { // Kesme Hamlesi: a line into the escape path (where he is
   Sound.warnRise(volAt(e.x, e.y));
   while (tl.t < tl.dur) {
     if (tl.t < tl.dur - tl.lock) {
-      const q = kapPredict(e, 0.9), tx = q.x + esc.x * 1.6 * T * esc.m, ty = q.y + esc.y * 1.6 * T * esc.m;
+      const q = kapPredict(e, 0.9), inn = kapInner(e), tx = q.x + esc.x * 1.6 * T * esc.m + inn.x * 1.3 * T, ty = q.y + esc.y * 1.6 * T * esc.m + inn.y * 1.3 * T;
       e.angle = turnTo(e.angle, e.canSee ? Math.atan2(ty - e.y, tx - e.x) : e.angle, 5.5 * e.dt);
     }
     e.turret = turnTo(e.turret, e.angle, 8 * e.dt);
@@ -271,7 +344,7 @@ function kapMortarSpots(e) {
   const m = G.map, n = m.n;
   if (e.canSee) { const q = kapPredict(e, 1.0); return [{ x: q.x, y: q.y }]; }
   const lk = e.lk || { x: e.x, y: e.y }, list = [];
-  for (let r = 1; r < n - 1; r++) for (let c = 1; c < n - 1; c++) if (m.t[r * n + c] === BUSH) { const x = c * T + T / 2, y = r * T + T / 2, d = Math.hypot(x - lk.x, y - lk.y); if (d < 5.5 * T) list.push({ x, y, d }); }
+  for (let r = 1; r < n - 1; r++) for (let c = 1; c < n - 1; c++) if (m.t[r * n + c] === BUSH) { const x = c * T + T / 2, y = r * T + T / 2; let d = Math.hypot(x - lk.x, y - lk.y); const tr = e.kp.trail; if (tr && G.time - tr.t < 8) d -= ((x - lk.x) * tr.dx + (y - lk.y) * tr.dy) * 0.6; /* trail: bushes ahead of where the marks lead first */ if (d < 5.5 * T) list.push({ x, y, d }); }
   list.sort((a, b) => a.d - b.d);
   const out = [];
   for (const s of list) { if (out.every(o => Math.hypot(o.x - s.x, o.y - s.y) > 1.3 * T)) out.push({ x: s.x, y: s.y }); if (out.length === 3) break; }
@@ -346,14 +419,14 @@ BOSS_DEFS.kapatici = {
     const at = (G.map && G.map.playerAt) || G.player;
     e.lk = { x: at.x, y: at.y, t: G.time }; // both watched the intro: it knows where the player entered, nothing more
     e.kp = { t: 0, closed: 0, warn: false, openUntil: 0, charge: 0, vis: false, seeT: 0, unseen: 0, heard: -1, shotSeen: -1, px: undefined, py: 0, pvx: 0, pvy: 0, om: 0, h: 0, hv: false,
-      esc: { L: 0, R: 0, away: 0, toward: 0 }, far: 0, near: 0, goal: null, goalT: 0, mode: 'lk', search: false, sn: 0, patrol: null, dodge: null, dodgeCd: 0, sol: null, boom: false };
+      esc: { L: 0, R: 0, away: 0, toward: 0 }, far: 0, near: 0, goal: null, goalT: 0, mode: 'lk', search: false, sn: 0, patrol: null, dodge: null, dodgeCd: 0, sol: null, boom: false, dodges: [], watch: null, feinted: false, baitT: -99, trail: null, trT: 0, feints: 0, baits: 0 };
   },
   sense: kapSense,
   move: kapMove,
   flowGoal: e => e.kp.goal || { x: e.x, y: e.y }, // never the player's true position
   tick: kapTick,
   watchGoal: e => !!e.kp.goal && !e.kp.dodge && Math.hypot(e.kp.goal.x - e.x, e.kp.goal.y - e.y) > 1.6 * T, // the stuck probe: it is supposed to be walking
-  onClear(e) { e.kp.openUntil = 0; e.kp.charge = 0; e.kp.dodge = null; },
+  onClear(e) { e.kp.watch = null; e.kp.openUntil = 0; e.kp.charge = 0; e.kp.dodge = null; },
   hullMul(e, x, y, dir, direct, quiet) {
     if (!direct && !quiet) return 1; // the nuke is a flat blow
     if (direct && dir !== undefined && !e.canSee && e.kp) setLk(e, e.x + Math.cos(dir) * AWARE.hitBack * T, e.y + Math.sin(dir) * AWARE.hitBack * T, AWARE.hitErr); // a hit tells it the direction the shell came from

@@ -26,6 +26,7 @@ START = "() => { localStorage.setItem('tankArena.seenBossIntro','true'); const t
 PLACE = """([c, r, pc, pr]) => { const t = __tank, G = t.G, e = G.boss, p = G.player, kp = e.kp; e.x = c * 48 + 24; e.y = r * 48 + 24; p.x = pc * 48 + 24; p.y = pr * 48 + 24; p.vx = p.vy = 0;
   e.gen = null; e.atkId = ''; e.cool = 1e9; e.tr[0].t = 1e6; e.treadT = 1e6; e.stunT = 0; e.angle = 0; e.turret = Math.atan2(p.y - e.y, p.x - e.x); G.tele.length = 0; G.bullets.length = 0; G.pickups.length = 0;
   kp.openUntil = 0; kp.dodge = null; kp.dodgeCd = 99; kp.vis = false; kp.seeT = 0; kp.unseen = 0; kp.esc = { L: 0, R: 0, away: 0, toward: 0 }; e.invuln = false; e.log.length = 0; e.hp = e.maxHp; e.canSee = false; }"""
+SETKAP = "(o) => { Object.assign(__tank.KAP, o); }"
 RUN = "(id) => { const t = __tank, e = t.G.boss; e.gen = t.BOSS_DEFS.kapatici.attacks.find(a => a.id === id).run(e); e.atkId = id; e.wait = 0; }"
 # step until the attack ends (or max seconds); returns [seconds used, frames with the open window up]
 DONE = "(max) => { const t = __tank, e = t.G.boss; let n = 0, o = 0; while (e.gen && n < max * 60) { t.step(1 / 60); n++; if (t.G.time < e.kp.openUntil) o++; } return [n / 60, o]; }"
@@ -73,6 +74,7 @@ with sync_playwright() as p:
     ev(page, START)
 
     # ---- attacks: telegraph first, then the strike ----
+    ev(page, SETKAP, {'feintP': 0})  # the old checks look at plain Kesin Atış; feints are tested below
     ev(page, PLACE, [10, 4, 13, 12]); ev(page, "__tank.step(0.8)")
     check('sees_player_in_open', ev(page, "__tank.G.boss.canSee") is True)
     # Kesin Atış
@@ -115,7 +117,7 @@ with sync_playwright() as p:
     check('open_window_full_damage', abs(d_full - 10) < 0.01, d_full)
     # the open window after an attack lasts about a second and the barrel glow field is set
     ev(page, PLACE, [10, 4, 13, 12]); ev(page, "__tank.step(0.8)"); ev(page, RUN, 'kesin'); od = ev(page, DONE, 5)
-    check('open_window_about_1s_after_attack', 0.85 <= od[1] / 60 <= 1.15, od)
+    check('open_window_about_1_4s_after_attack', 1.25 <= od[1] / 60 <= 1.55, od)
     # no side-step while attacking: a shell aimed at the boss during an attack does not move it sideways
     ev(page, PLACE, [10, 4, 13, 12]); ev(page, "__tank.step(0.8)"); ev(page, "(() => { const e = __tank.G.boss; e.kp.dodgeCd = 0; })()")
     ev(page, RUN, 'kesin')
@@ -154,6 +156,81 @@ with sync_playwright() as p:
     early = ev(page, "__tank.G.boss.canSee"); ev(page, "__tank.step(0.5)")
     late = ev(page, "__tank.G.boss.canSee")
     check('sees_in_open_after_reaction', early is False and late is True, [early, late])
+
+    # ---- 1.5.6 smarter: reads dodges, feints, baits Refleks, follows treads, never touches pickups ----
+    ev(page, START)
+    AIMAT = """(m) => { const t = __tank, e = t.G.boss, p = t.G.player; let a = null; e.gen = e.def.attacks.find(x => x.id === 'kesin').run(e); e.atkId = 'kesin'; e.wait = 0; let n = 0;
+      while (e.gen && n < 400) { t.step(1 / 60); n++; const tl = t.G.tele.find(q => q.e === e && q.kind === 'line' && !q.feint); if (tl && tl.t >= 0.45 && a === null) a = e.turret; }
+      return { a, to: Math.atan2(p.y - e.y, p.x - e.x) }; }"""
+    ev(page, SETKAP, {'feintP': 0})
+    ev(page, PLACE, [10, 4, 13, 12]); ev(page, "(() => { const e = __tank.G.boss; e.kp.dodges = []; __tank.step(0.8); })()")
+    base = ev(page, AIMAT, 0)
+    ev(page, PLACE, [10, 4, 13, 12]); ev(page, "(() => { const t = __tank, e = t.G.boss; e.kp.dodges = []; for (let i = 0; i < 5; i++) e.kp.dodges.push({ k: 'R', t: t.G.time - i, lat: 120, rad: 0 }); t.step(0.8); })()")
+    shifted = ev(page, AIMAT, 0)
+    dsh = (shifted['a'] - base['a'] + 3.14159) % 6.28318 - 3.14159
+    off = ev(page, "(() => { const t = __tank, e = t.G.boss; return t.kapReadOffset(e); })()")
+    check('dodge_read_shifts_aim', dsh > 0.02 and off and 0 < (off['x'] ** 2 + off['y'] ** 2) ** 0.5 < 120, {'dsh': dsh, 'off': off})
+    mix = ev(page, """() => { const t = __tank, e = t.G.boss, now = t.G.time, d = []; for (let i = 0; i < 3; i++) d.push({ k: 'R', t: now, lat: 100, rad: 0 }, { k: 'L', t: now, lat: -100, rad: 0 }); e.kp.dodges = d; const a = t.kapReadOffset(e);
+      e.kp.dodges = [1, 2, 3, 4].map(i => ({ k: 'R', t: now - 90, lat: 100, rad: 0 })); const b = t.kapReadOffset(e); return { mixed: a, old: b }; }""")
+    check('dodge_read_needs_pattern_and_fades', mix['mixed'] is None and mix['old'] is None, mix)
+    # a scripted player who always runs the same way after the line appears: the samples fill in
+    ev(page, "(() => { const e = __tank.G.boss; e.kp.dodges = []; })()")
+    for _ in range(4):
+        ev(page, PLACE, [10, 4, 13, 12]); ev(page, "__tank.step(0.8)")
+        ev(page, """() => { const t = __tank, e = t.G.boss, p = t.G.player; e.gen = e.def.attacks.find(x => x.id === 'kesin').run(e); e.atkId = 'kesin'; e.wait = 0; let n = 0;
+          while (e.gen && n < 300) { t.step(1 / 60); n++; if (t.G.tele.length) { const dx = p.x - e.x, dy = p.y - e.y, u = Math.hypot(dx, dy); p.x += (dy / u) * 140 / 60; p.y += (-dx / u) * 140 / 60; } } }""")
+    pat = ev(page, "(() => { const t = __tank, e = t.G.boss; const c = {}; for (const s of e.kp.dodges) c[s.k] = (c[s.k] || 0) + 1; return { c, off: !!t.kapReadOffset(e) }; })()")
+    check('dodge_samples_recorded', max(pat['c'].values() or [0]) >= 3 and pat['off'], pat)
+
+    # feint: the line is cancelled at ~0.35 s, then a real full line; never twice in a row; every shell had a full line
+    ev(page, SETKAP, {'feintP': 1})
+    ev(page, "(() => { const e = __tank.G.boss; e.kp.feinted = false; e.kp.baitT = 1e9; })()")
+    FE = """() => { const t = __tank, e = t.G.boss; const out = []; for (let r = 0; r < 3; r++) { e.log.length = 0; let sh = 0, n = 0; e.gen = e.def.attacks.find(x => x.id === 'kesin').run(e); e.atkId = 'kesin'; e.wait = 0; const seen = new Set();
+      while (e.gen && n < 900) { t.step(1 / 60); n++; for (const b of t.G.bullets) if (b.boss && !seen.has(b)) { seen.add(b); sh++; } }
+      out.push({ log: e.log.map(l => [l.atk, l.dur]), shells: sh }); t.G.bullets.length = 0; e.cool = 1e9; } return out; }"""
+    ev(page, PLACE, [10, 4, 13, 12]); ev(page, "__tank.step(0.8)")
+    fe = ev(page, FE)
+    pattern = [[l[0] for l in r['log']] for r in fe]
+    fine = all(r['shells'] == sum(1 for l in r['log'] if l[0] in ('kesin', 'bait') and l[1] >= 0.58) for r in fe) and all(l[1] >= 0.58 for r in fe for l in r['log'] if l[0] == 'kesin')
+    check('feint_then_real_full_line', pattern[0] == ['feint', 'kesin'] and pattern[1] == ['kesin'] and pattern[2] == ['feint', 'kesin'] and 0.3 <= fe[0]['log'][0][1] <= 0.42 and fine, fe)
+    ev(page, SETKAP, {'feintP': 0})
+
+    # Refleks bait: with the ready dot visible a cheap shell comes first (full line too), then the real shot; without Refleks nothing changes
+    BA = """(rf) => { const t = __tank, G = t.G, e = G.boss, p = G.player; G.up.reflex = rf; p.rfCd = 0; e.kp.baitT = -99; e.kp.feinted = false; e.log.length = 0; G.bullets.length = 0; const dm = []; const seen = new Set(); let n = 0;
+      e.gen = e.def.attacks.find(x => x.id === 'kesin').run(e); e.atkId = 'kesin'; e.wait = 0;
+      while (e.gen && n < 900) { t.step(1 / 60); n++; p.hp = p.maxHp; for (const b of G.bullets) if (b.boss && !seen.has(b)) { seen.add(b); dm.push(+b.dmg.toFixed(2)); } }
+      G.up.reflex = 0; return { dm, log: e.log.map(l => [l.atk, l.dur]) }; }"""
+    ev(page, PLACE, [10, 4, 13, 12]); ev(page, "__tank.step(0.8)")
+    ba = ev(page, BA, 1)
+    check('refleks_bait_cheap_shot_first', len(ba['dm']) == 2 and ba['dm'][0] < 0.5 * ba['dm'][1] and ba['log'][0][0] == 'bait' and ba['log'][0][1] >= 0.58 and ba['log'][1][0] == 'kesin', ba)
+    ev(page, PLACE, [10, 4, 13, 12]); ev(page, "__tank.step(0.8)")
+    nb = ev(page, BA, 0)
+    check('no_bait_without_refleks', len(nb['dm']) == 1 and nb['log'][0][0] == 'kesin', nb)
+
+    # tread tracking: hidden player, last-known spot stale; the visible tread marks (laid east along row 14, ending at the bush) pull the search point close to him; with tracking off it stays stale
+    TR = """(on) => { const t = __tank, G = t.G, e = G.boss, p = G.player, tm = t.tm; t.KAP.track = on; e.kp.vis = false; e.canSee = false; e.kp.search = false;
+      e.lk = { x: 4 * 48 + 24, y: 10 * 48 + 24, t: G.time - 3 }; e.kp.trail = null; e.kp.trT = 0; tm.n = 0; tm.head = 0;
+      for (let k = 0; k < 6; k++) { const i = tm.head; const x = (8 + k) * 48 + 24; tm.x1[i] = x; tm.y1[i] = 14 * 48 + 20; tm.x2[i] = x + 30; tm.y2[i] = 14 * 48 + 20; tm.t[i] = G.time - 2 + k * 0.25; tm.o[i] = 1; tm.head = (i + 1) % 1400; tm.n++; }
+      e.turret = Math.PI; t.step(0.5); return { d: Math.round(Math.hypot(e.lk.x - p.x, e.lk.y - p.y)), seen: e.canSee }; }"""
+    ev(page, PLACE, [8, 13, 15, 14]); ev(page, "(() => { const t = __tank; t.step(0.1); })()")
+    t_on = ev(page, TR, True)
+    ev(page, PLACE, [8, 13, 15, 14]); ev(page, "__tank.step(0.1)")
+    t_off = ev(page, TR, False)
+    ev(page, SETKAP, {'track': True})
+    check('tread_tracking_closer_than_blind', not t_on['seen'] and not t_off['seen'] and t_on['d'] < t_off['d'] - 200, {'on': t_on, 'off': t_off})
+
+    # no pickups: a repair kit and a power-up lie around, the boss fights; no shell is ever aimed at them, they stay; the source touches pickups only to push them in when a ring closes
+    ev(page, START); ev(page, PLACE, [10, 2, 10, 18])
+    pk = ev(page, """() => { const t = __tank, G = t.G, e = G.boss, p = G.player; e.tr[0].t = 0; e.treadT = 0; e.cool = 0.5; e.gen = null; e.kp.dodgeCd = 0;
+      G.pickups.push({ x: 3 * 48 + 24, y: 6 * 48 + 24, kind: 'repair', life: 1e6, t: 0, seed: 1 }, { x: 17 * 48 + 24, y: 6 * 48 + 24, kind: 'shield', life: 1e6, t: 0, seed: 2 }); const P = G.pickups.map(q => [q.x, q.y]);
+      let shots = 0, bad = 0, goalNear = 0; const seen = new Set();
+      for (let i = 0; i < 60 * 25; i++) { t.step(1 / 60); p.hp = p.maxHp; e.kp.t = Math.min(e.kp.t, 80); for (const q of G.pickups) q.life = 1e6;
+        for (const b of G.bullets) if (b.boss && !seen.has(b)) { seen.add(b); shots++; const a = Math.atan2(b.vy, b.vx); for (const q of P) { const d = Math.atan2(q[1] - b.y, q[0] - b.x); if (Math.abs(((a - d + 9.42478) % 6.28318) - 3.14159) < 0.12) bad++; } }
+        const g = e.kp.goal; if (g) for (const q of P) if (Math.hypot(g.x - q[0], g.y - q[1]) < 1.2 * 48 && Math.hypot(p.x - q[0], p.y - q[1]) > 4 * 48) goalNear++; }
+      return { shots, bad, goalNear, left: G.pickups.length, same: G.pickups.every((q, i) => q.x === P[i][0] && q.y === P[i][1]) }; }""")
+    src = (Path(__file__).resolve().parent.parent / 'game' / 'src' / '11e-boss-kapatici.js').read_text().replace('\r', '')
+    uses = [ln for ln in src.splitlines() if 'pickups' in ln and not ln.lstrip().startswith('//')]
+    check('never_touches_pickups', pk['shots'] >= 2 and pk['bad'] == 0 and pk['left'] == 2 and pk['same'] and len(uses) == 1 and src[:src.index(uses[0])].rsplit('function', 1)[1].startswith(' kapClose'), {'pk': pk, 'uses': len(uses)})
 
     # ---- phone screenshot mid-fight, then the death title ----
     page.close()
