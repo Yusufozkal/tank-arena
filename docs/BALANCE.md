@@ -407,3 +407,17 @@ Setler yeni kartları içerir (orta: Antitank, Eğimli zırh, Refleks; tam: yeni
 | 15. dalgada biten | 9/40 | 5/40 |
 
 Kapatıcı tam 3/16 (~%19). Kırağı orta ~%75, savaş ~245 sn. Üçlü bot bossta `bossRange` 230 kullanır (yalnız Demirkök ve Kırağı).
+
+## 1.5.5.3: Kapatıcı daha zeki (boss_probe, 40. dalga)
+
+| Can | tam | orta |
+|---|---|---|
+| 2400, açık an 1,0 sn (yeni davranışlarla) | 3/16 | 2/16 |
+| 1800 | 7/16 | 7/16 |
+| 1950 | 10/20 | 5/20 |
+| 2150 | 6/20 | 6/20 |
+| 2100, açık an 1,4 sn (son) | 9/20 | 5/20 |
+
+Bot gürültülü; beklenen tam set ~%30–45.
+
+Not: `check_ai` `blind_enemies_do_not_home_in` 1.5.5.3 hazırlığında bir kez kaldı (meanCos 0,431), tekrarında geçti; rastgele haritaya bağlı, kararsız sayılır.

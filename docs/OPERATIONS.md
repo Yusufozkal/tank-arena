@@ -34,7 +34,7 @@ Notlar: kalıcı engelleme (persistent actions) Hobby'de yok, engel pencere bite
 - Paket adı `com.tankarena.oyun`, minSdk 24, targetSdk 35, v2+v3 imza.
 - Sertifika SHA-256: `7fcc78e948478b3714e69d93cc8522500e0fdf00740990c329bd41f6e6c05833`.
 - Anahtar (`tankarena.jks`, takma ad `tankarena`) ve şifresi **repoda yok**, kullanıcıda yedekli. `android/build.sh` onu `android/keystore/tankarena.jks` + `android/keystore/password.txt` yolunda ya da `TANK_KEYSTORE` / `TANK_KEYSTORE_PASS_FILE` ortam değişkenlerinde arar (`android/keystore/` git'e girmez).
-- Yeni oturumda anahtar ve şifre kullanıcıdan dosya olarak gelir. 21 Kasım 2026 oturumundan beri repo dışında tutuluyor (`/home/claude/keys/tankarena.jks`, `/home/claude/keys/password.txt`, izin 600); `build.sh` ortam değişkenleriyle çağrılır. SDK `ANDROID_HOME=/root/android-sdk` (cmdline-tools ile `build-tools;35.0.1` ve `platforms;android-35`).
+- Yeni oturumda anahtar (`tankarena.jks`) ve şifre (`password.txt`) kullanıcıdan dosya olarak gelir; repo dışında bir klasöre konur (önceki oturumlarda `/home/claude/keys/` ya da `/home/claude/apk/keystore/`, izinler 600). `build.sh` yolu `TANK_KEYSTORE` ve `TANK_KEYSTORE_PASS_FILE` ile alır.
 - Anahtar kaybolursa güncelleme çıkarılamaz; oyuncuların eski uygulamayı silip yenisini kurması gerekir. Yeni anahtar üretme.
 
 ## Android sarmalayıcı
@@ -56,6 +56,7 @@ Notlar: kalıcı engelleme (persistent actions) Hobby'de yok, engel pencere bite
 | 1.4.1 | 7 | Hızlı, Ağır ve Avcı kademeli gelir (4., 7., 12. dalga; ilk gelişte "Yeni düşman" yazısı), sahada aynı anda en fazla 8 düşman, harita 25×25, yeni denge |
 | 1.5 | 8 | Boss etabı (sahada yalnızca boss, kendi arenası, evreler, uyarılar, hasar görünümü), yeni Komutan, Sarı Fırtına, 10 dalgalık bölgeler, parça hasarı, bütün haritayı vuran nükleer bomba |
 | 1.5.1 | 9 | Demirkök (20. dalga, Orman Kalesi), Tamirci, bölge kuralı (yenilen boss'un türü bir daha gelmez) |
+| 1.5.5.3 | 16 | Kapatıcı daha zeki (kaçış okuma, yanıltma, Refleks tuzağı, iz sürme, kapanış), can 2100, açık an 1,4 sn |
 | 1.5.5.2 | 15 | Refleks seyrek (6/4 sn), boss dengesi geri ayarlandı, Kırağı sertleşti, Android yuvarlak köşede üst gösterge içeri |
 | 1.5.4 | 12 | Serbest Mod (tank, güç, boss ya da dalga, harita; kayıt tutmaz), Kapatıcı (yalnızca Serbest Mod) |
 | 1.5.5 | 13 | Kar bölgesi: Kırağı (30. dalga, Donmuş Göl), Ağır Topçu (23. dalgadan); Demirkök kale oldu; kartlar Antitank mermisi, Eğimli zırh, Refleks (nadir); boss etabında nükleer savaş ortasında, tek dolum |
