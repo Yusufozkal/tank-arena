@@ -111,6 +111,9 @@ button:focus-visible{outline:2px solid var(--bone);outline-offset:2px}
   #hud .buffs{padding-top:4px}
   #hud .col.right{flex-direction:row-reverse;align-items:flex-start}
 }
+/* Short phones: a smaller minimap keeps the top HUD within ~13% (portrait) / ~18% (landscape) */
+@media (max-aspect-ratio:1/1) and (max-width:520px) and (max-height:780px){#mini{width:54px;height:54px}}
+@media (min-aspect-ratio:1/1) and (max-height:380px){#mini{width:56px;height:56px}}
 
 /* banner + hint */
 #banner{position:fixed;left:16px;right:16px;top:27%;z-index:6;text-align:center;pointer-events:none;opacity:0;transform:translateY(10px) scale(.98);transition:opacity .25s ease,transform .5s cubic-bezier(.2,.9,.2,1)}
@@ -457,7 +460,7 @@ button:focus-visible{outline:2px solid var(--bone);outline-offset:2px}
       </div>
     </div>
     <button type="button" class="btn primary" id="btnSettingsBack">TAMAM</button>
-    <p class="version">Tank Arena 1.5.5.3</p>
+    <p class="version">Tank Arena 1.5.5.4</p>
   </section>
 </div>
 

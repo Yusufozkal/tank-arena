@@ -420,4 +420,4 @@ Kapatıcı tam 3/16 (~%19). Kırağı orta ~%75, savaş ~245 sn. Üçlü bot bos
 
 Bot gürültülü; beklenen tam set ~%30–45.
 
-Not: `check_ai` `blind_enemies_do_not_home_in` 1.5.5.3 hazırlığında bir kez kaldı (meanCos 0,431), tekrarında geçti; rastgele haritaya bağlı, kararsız sayılır.
+Not: `check_ai` `blind_enemies_do_not_home_in` 1.5.5.3 hazırlığında bir kez kaldı (meanCos 0,431), tekrarında geçti; rastgele haritaya bağlı; 1.5.5.4'te ölçü 6 dalgaya çıkarıldı, 4 koşuda kararlı geçti.

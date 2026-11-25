@@ -1,6 +1,6 @@
 # Yol haritası
 
-Durum (21 Kasım 2026): **1.5.5.3 yayında** (Kapatıcı daha zeki; 1.5.5.2: Refleks seyrek, boss dengesi geri ayarlandı, Kırağı sertleşti, Android'de köşe düğmeleri yuvarlak ekranda içeri alındı). İmza anahtarı yeni oturuma kullanıcıdan ek olarak gelir; repoya değil repo dışına konur (`docs/OPERATIONS.md`, İmza anahtarı). Sıra: 1.5.6 Şehir (Son Hisar) + Dikenli zırh kartı; sonra 1.6 (çevrimiçi). Kullanıcı onaylamadan yeni işe başlama.
+Durum (21 Kasım 2026): **1.5.5.4 yayında** (dar telefonda üst gösterge sınır içinde; 1.5.5.3: Kapatıcı daha zeki; 1.5.5.2: Refleks seyrek, boss dengesi geri ayarlandı, Kırağı sertleşti, Android'de köşe düğmeleri yuvarlak ekranda içeri alındı). İmza anahtarı yeni oturuma kullanıcıdan ek olarak gelir; repoya değil repo dışına konur (`docs/OPERATIONS.md`, İmza anahtarı). Sıra: 1.5.6 Şehir (Son Hisar) + Dikenli zırh kartı; sonra 1.6 (çevrimiçi). Kullanıcı onaylamadan yeni işe başlama.
 
 ## Kullanıcının koyduğu ilkeler
 
@@ -225,7 +225,7 @@ Oyun başında tank seçimi (yerine evrim), aktif yetenek, elit düşmanlar, zor
 ## Bekleyen küçük işler
 
 - Yayın sürümünden hata ayıklama modunu kaldırmak (1.6'dan önce şart).
-- Kısa telefonlarda yatay ekranda üst gösterge 740×360'ta %19,4 (hedef ~%18; 844×390'da %17,9 geçiyor). 1.4'ten beri böyle. Dar telefonda dikeyde de 360×740'ta %14,3, boss çubuğuyla %17,0 (390×844'te %12,6 ve %14,9 geçiyor); 1.5'te de aynı.
+- Kısa telefonlarda üst gösterge (1.5.5.4'te düzeldi): mini harita dar dikeyde 54 px, kısa yatayda 56 px. 360×740 %13,2 (boss %13,9), 740×360 %17,2 (boss %19,7, boss payı içinde).
 - Tank dengesi: 1.5 ölçümünde Üçlü ve Raylı Top baskın çıkıyor (`docs/BALANCE.md`).
 - `/.well-known/security.txt` eklemek (kullanıcı "şimdilik dursun" dedi).
 - Alan adı alınmadı; kullanıcı "almak istersek ayarlarız" dedi.

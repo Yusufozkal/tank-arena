@@ -31,7 +31,10 @@ SHELL = """(o) => { const mk = (e, fromT, nowT, dmg) => { const T = 48, a = 0.3;
 with sync_playwright() as p:
     b = p.chromium.launch()
     ctx = new_ctx(b, 'desktop', viewport={'width': 1000, 'height': 760})
-    page = ctx.new_page(); seed(page)
+    page = ctx.new_page()
+    # Deterministic randomness: the homing metric depends on the random map and spawns, which made it flaky.
+    page.add_init_script("(() => { let s = 20261125 >>> 0; Math.random = () => { s = (s + 0x6D2B79F5) >>> 0; let t = s; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; })()")
+    seed(page)
     page.click('#btnStart'); page.wait_for_timeout(300)
     ev(page, SHELL, 0)
 
@@ -99,7 +102,7 @@ with sync_playwright() as p:
           const px = P0.x - x, py = P0.y - y, pl = Math.hypot(px, py) || 1, c = (dx * px + dy * py) / (l * pl);
           const age = e.lk ? G.time - e.lk.t : 1e9, k = age < 6 ? 'fresh' : e.lk ? 'old' : 'none'; const mx = 2 * G.map.n * 24 - P0.x, my = 2 * G.map.n * 24 - P0.y, dc = Math.hypot(mx - x, my - y) || 1; o.dec += (dx * (mx - x) + dy * (my - y)) / (l * dc); o.by[k][0]++; o.by[k][1] += c; o.n++; o.cos += c; if (c > 0) o.toward++; if (c > 0.7) o.homing++; } }
       return { moveSamples: o.n, decoyCos: +(o.dec / Math.max(1, o.n)).toFixed(3), meanCos: +(o.cos / Math.max(1, o.n)).toFixed(3), towardShare: +(o.toward / Math.max(1, o.n)).toFixed(3), homingShare: +(o.homing / Math.max(1, o.n)).toFixed(3), blindShare: +(o.blindSec / Math.max(1, o.allSec)).toFixed(3), by: Object.fromEntries(Object.entries(o.by).map(([k, v]) => [k, [v[0], +(v[1] / Math.max(1, v[0])).toFixed(2)]])) }; }"""
-    runs = [ev(page, HOME, [w, 70]) for w in (8, 12, 16)]
+    runs = [ev(page, HOME, [w, 70]) for w in (8, 10, 12, 14, 16, 18)]  # more samples: the metric varies run to run
     tot = sum(r['moveSamples'] for r in runs) or 1
     homing = {k: round(sum(r[k] * r['moveSamples'] for r in runs) / tot, 3) for k in ('meanCos', 'decoyCos', 'towardShare', 'homingShare')}
     homing['blindShare'] = round(sum(r['blindShare'] for r in runs) / len(runs), 3)
