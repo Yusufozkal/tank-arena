@@ -65,6 +65,7 @@ if (DEBUG) {
     bossStart(key, w) { G.forceBoss = key; G.wave = (w || 25) - 1; nextWave(); G.forceBoss = null; return this.bossInfo(); },
     bossSkip() { G.introSeen = true; G.phaseT = Math.max(G.phaseT, 0.3); bossIntroTap(); },
     UPS, UP_KEYS, BOSS_TUNE, blocksTank, damagePlayer, bossBlast, nukeWaveWeight, NUKE_WAVES, NUKE_WEIGHT, nukeOnKill, KIR, KIR_SPEC, WATER, SLOPE, REFLEX, slopeChance, slopeRoll, reflexTry, reflexRoom, NUKE_BOSS_FILL, nukeOnBossDamage, bossFitMap, playerSlowK, krDecoyHit, krDecoyBreak, krBeam, TOPCU, topcuBoom, topcuFire, shellHit, updateTopcu,
+    SH, SH_SPEC, bossRound, ROUND_K, shAlive, shShockBlast, shDebris,
     KAP, tm, kapReadOffset, kapTrailScan, bossDanger, bossClearHazards, BOSS_DEFS, BOSS_ON, startBossStage, loadArena, ARENAS, parseArena, themeFor, bossDefAt,
     // one boss fight for the probe: wave w, workshop cards (object), tank id; the bot plays until the boss falls, the tank dies or maxSec passes
     bossFight(w, cards, tank, maxSec, key, nuke) { // nuke: the bot may use the bomb; the result lists when the meter became ready (s)
