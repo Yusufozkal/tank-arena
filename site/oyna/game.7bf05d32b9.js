@@ -84,7 +84,10 @@ const SPECS = {
     col: { body: '#6f8a3a', dk: '#46591f', hi: '#9fbf5a', acc: '#f2c14e' } },
   // Ağır Topçu (Kar): short wide hull, one very thick barrel, a huge slow shell that can be shot down (11-enemies updateTopcu, 10 shell bullets)
   topcu: { hp: 5, speed: 40, turn: 1.7, tTurn: 1.6, r: 22, mass: 2.5, len: 38, wid: 48, tread: 11, tR: 17, barrel: 40, bW: 15, cool: 6, bSpeed: 150, dmg: 28, bR: 11, score: 350, hold: 5, drop: 0.4, artillery: true, shape: 'howitzer',
-    col: { body: '#4a3a33', dk: '#241a16', hi: '#86695a', acc: '#ffa52e' } }
+    col: { body: '#4a3a33', dk: '#241a16', hi: '#86695a', acc: '#ffa52e' } },
+  // Mayıncı (Şehir): unarmed mine layer; drops mines where it passes, avoids the player (11m-mayinci updateMayinci)
+  mayinci: { hp: 3, speed: 98, turn: 3.4, tTurn: 3, r: 16, mass: 1, len: 38, wid: 34, tread: 8, tR: 10, barrel: 20, bW: 5, cool: 99, bSpeed: 0, dmg: 0, bR: 0, score: 220, hold: 0, drop: 0.3, miner: true,
+    col: { body: '#8a8a3e', dk: '#4f4f22', hi: '#bdbd6c', acc: '#ffd23f' } }
 };
 
 // Komutan HP per boss wave, tuned with tests/boss_probe.py so that a medium card set (and the bot) takes about 3-4 minutes from wave 15 on; the wave-5 Komutan is the easy one
@@ -173,6 +176,9 @@ const UPS = {
   slope: { name: 'Eğimli zırh', max: 3, brief: 'Bazı mermiler zırhtan seker',
     svg: '<path d="M4 20L20 6M4 20h16M9 15l3 4M14.5 10.5l3 4"/>',
     desc: L => `Mermiler seker: önden %${30 + 10 * L}, yandan %${15 + 5 * L}, arkadan %0. Ağır mermi, lazer ve patlamada, bosslarda işlemez` },
+  thorns: { name: 'Dikenli zırh', max: 3, brief: 'Sana çarpan tank hasar alır, çarpma hasarın azalır',
+    svg: '<path d="M12 6l2 3 3-2 1 4 4 1-3 3 2 3-4 0-1 4-4-2-4 2-1-4-4 0 2-3-3-3 4-1 1-4 3 2z"/><circle cx="12" cy="12" r="2.4"/>',
+    desc: L => `Sana çarpan tank her dokunuşta ${L} isabet hasar alır; çarpma hasarın %${[20, 35, 50][L - 1]} azalır. Bosslarda: boss küçük sabit hasar alır, azalma yarı değerde işler` },
   reflex: { name: 'Refleks', max: 2, rare: true, brief: 'Gelen mermiden yana kayar',
     svg: '<path d="M3 12h9M8 8l-4 4 4 4M15 5l6 7-6 7M17 12h4"/>',
     desc: L => `Mermi gelirken tank yana kayar, bekleme ${L === 1 ? 6 : 4} sn (bosslarda iki kat). Lazer, patlama ve boss ağır mermisinde işlemez. Hazırken tankta ışık yanar` },
@@ -349,7 +355,7 @@ function synChipsHTML() { return synList().map(sy => `<div class="syn-row"><b>${
 function renderSynList(wrap, list) { const h = synChipsHTML(); $(list).innerHTML = h; $(wrap).classList.toggle('hidden', !h); }
 
 /* ================= rules, settings, records ================= */
-const RULES = { dmg: 1, cool: 1, err: 1, count: 1.25, alive: 0, fastFrom: 4, heavyFrom: 7, hunterFrom: 12, tamirciFrom: 13, topcuFrom: 23, maxAlive: 6, maxHunters: 3, maxTopcu: 2, dodge: 0.65, score: 1, heal: 25, hpGrow: 0.04 };
+const RULES = { dmg: 1, cool: 1, err: 1, count: 1.25, alive: 0, fastFrom: 4, heavyFrom: 7, hunterFrom: 12, tamirciFrom: 13, topcuFrom: 23, mayinciFrom: 34, maxAlive: 6, maxHunters: 3, maxTopcu: 2, maxMayinci: 2, dodge: 0.65, score: 1, heal: 25, hpGrow: 0.04 };
 const SET_DEFAULTS = { volume: 80, lastVolume: 80, vibration: true, shake: true, aimAssist: true, minimap: true, stickSize: 'm', swapSticks: false, effects: 'high', orientation: 'auto' };
 const SET = (() => {
   const saved = store.get('tankArena.settings', null);
@@ -506,7 +512,7 @@ const G = {
   wave: 0, score: 0, kills: 0, shots: 0, hits: 0, hurt: 0, fade: 0, god: false,
   buffs: freshBuffs(), buffMax: freshBuffs(), bushHint: false, beaten: new Set(), resume: null, overFree: null,
   D: RULES, dodges: 0, covers: 0,
-  up: {}, strikes: [], jet: null, airQ: 0, stage: null, tele: [], pieces: [], introGate: false, introSeen: false,
+  up: {}, strikes: [], jet: null, airQ: 0, stage: null, tele: [], pieces: [], mines: [], introGate: false, introSeen: false,
   tank: 'std', upMode: 'cards', evoWait: 0, noEvo: false, sandbox: false, sbx: null, sbxWin: false
 };
 const upL = k => G.up[k] | 0;
@@ -1274,11 +1280,31 @@ function damageSmoke(t, dt) {
   t.smokeT -= dt;
   if (t.smokeT <= 0) { t.smokeT = 0.12; addPart('smoke', t.x + rand(-6, 6), t.y + rand(-6, 6), rand(-10, 10), rand(-10, 10), rand(0.8, 1.3), rand(10, 16), 22, 1.5); }
 }
+/* ===== 1.5.6 Dikenli zırh (thorns): a tank that touches the player is hurt, and the player takes less contact damage ===== */
+// Ordinary tanks never ram: the touch just hurts them (L hits per touch, 0.7 s per enemy). Boss rams (damagePlayer without a bullet, next to a boss) are cut by RED[L-1], by half against a boss, and the boss takes a small fixed
+// hit per touch (BOSS[L-1], 2.2 s cooldown) so its charges stay dangerous. damagePlayer reads contactK(b); boss rams and charges pass ram:true; everything else is not contact.
+const THORN = { red: [0.2, 0.35, 0.5], bossK: 0.5, cd: 0.7, bossCd: 2.2, boss: [2, 4, 6], touch: 3 };
+function thornHit(e) {
+  const L = upL('thorns'), p = G.player; if (!L || e.dead || G.time < (e.thT || 0)) return;
+  const boss = e.isBoss || e.type === 'boss'; e.thT = G.time + (boss ? THORN.bossCd : THORN.cd);
+  const x = p.x + (e.x - p.x) * p.r / (p.r + e.r), y = p.y + (e.y - p.y) * p.r / (p.r + e.r);
+  sparks(x, y, 6, '#ffe9a8', 200); Sound.metal(volAt(x, y));
+  hurtEnemy(e, boss ? THORN.boss[L - 1] : L, x, y, Math.atan2(e.y - p.y, e.x - p.x));
+}
+function contactK(b) { // damage multiplier for a contact hit on the player (1 = none)
+  const L = upL('thorns'), p = G.player; if (!L || !p || b.owner !== 1 || b.ram === false || b.mine) return 1;
+  let near = null;
+  for (const e of G.enemies) if (!e.dead && dist2(e.x, e.y, p.x, p.y) < (e.r + p.r + THORN.touch + 1) * (e.r + p.r + THORN.touch + 1)) { near = e; if (e.isBoss || e.type === 'boss') break; }
+  if (!near) return 1;
+  if (b.ram !== true) return 1; // only hits flagged ram:true (boss rams / charges) count as contact; blasts, shocks, mines and bullets never do
+  return 1 - THORN.red[L - 1] * (near.isBoss || near.type === 'boss' ? THORN.bossK : 1);
+}
 function separateTanks() {
   const list = G.player && G.player.alive ? [G.player, ...G.enemies] : G.enemies;
   for (let i = 0; i < list.length; i++) for (let j = i + 1; j < list.length; j++) {
     const a = list[i], b = list[j]; if (a.dead || b.dead) continue;
     const dx = b.x - a.x, dy = b.y - a.y, rr = a.r + b.r, dd = dx * dx + dy * dy;
+    if ((a === G.player || b === G.player) && dd < (rr + THORN.touch) * (rr + THORN.touch) && G.state === 'play' && upL('thorns')) thornHit(a === G.player ? b : a);
     if (dd >= rr * rr) continue;
     const d = Math.sqrt(dd), push = rr - d, ma = a.spec.mass, mb = b.spec.mass, tot = ma + mb;
     const nx = d > 1e-4 ? dx / d : 1, ny = d > 1e-4 ? dy / d : 0;
@@ -1410,7 +1436,7 @@ function damagePlayer(b) {
     for (let k = 0; k < 6; k++) { const a = rand(0, TAU); addPart('glow', b.x, b.y, Math.cos(a) * 90, Math.sin(a) * 90, 0.3, 12, 0, 4, 'blue'); }
     Sound.shield(); return;
   }
-  p.hp -= b.dmg * synTaken(b); p.flash = 0.12; p.hurtT = G.time; G.hurt = 0.45; shake(7); Sound.hurt(); vibrate(35);
+  p.hp -= b.dmg * synTaken(b) * contactK(b); p.flash = 0.12; p.hurtT = G.time; G.hurt = 0.45; shake(7); Sound.hurt(); vibrate(35);
   sparks(b.x, b.y, 6, '#ffb08a', 200);
   if (p.hp <= 0) { p.hp = 0; killPlayer(); }
 }
@@ -1782,18 +1808,19 @@ function typeShares(w) {
     ph: ok('heavy') && w > D.heavyFrom ? Math.min(0.45, 0.04 + 0.02 * (w - D.heavyFrom)) : 0,
     pu: ok('hunter') && w > D.hunterFrom ? Math.min(0.5, 0.04 + 0.03 * (w - D.hunterFrom)) : 0,
     pt: ok('tamirci') && w > D.tamirciFrom ? Math.min(0.15, 0.03 + 0.015 * (w - D.tamirciFrom)) : 0,
-    pa: ok('topcu') && w > D.topcuFrom && themeFor(w).key === 'snow' ? Math.min(0.12, 0.03 + 0.01 * (w - D.topcuFrom)) : 0 }; // Ağır Topçu: the Kar roster only (waves 24-29; 23 has exactly one)
+    pa: ok('topcu') && w > D.topcuFrom && themeFor(w).key === 'snow' ? Math.min(0.12, 0.03 + 0.01 * (w - D.topcuFrom)) : 0, // Ağır Topçu: the Kar roster only (waves 24-29; 23 has exactly one)
+    pm: w > D.mayinciFrom && themeFor(w).key === 'city' ? Math.min(0.1, 0.03 + 0.012 * (w - D.mayinciFrom)) : 0 }; // Mayıncı (1.5.6): the Şehir roster only (wave 34 has exactly one, 36-39 rise to 10%); in no REGION_BAN
 }
 function buildRoster(w) {
   const D = G.D, list = [];
   if (w % 5 === 0) return { list: ['boss'], maxAlive: 1 }; // boss stage: only the boss on the field, no escorts (startBossStage spawns it)
   const rk = 1 + 0.12 * removedN(), total = clamp(Math.round((3 + w + Math.floor(w / 2)) * D.count * rk), 3, Math.round((20 + Math.floor(Math.max(0, w - 20) / 3)) * rk));
-  const { pf, ph, pu, pt, pa } = typeShares(w); // topcu is drawn first below: Serbest Mod bans nothing, so the shares can add up past 1 there
-  for (let i = 0; i < total; i++) { const r = Math.random(); list.push(r < pa ? 'topcu' : r < pa + ph ? 'heavy' : r < pa + ph + pf ? 'fast' : r < pa + ph + pf + pu ? 'hunter' : r < pa + ph + pf + pu + pt ? 'tamirci' : 'basic'); }
+  const { pf, ph, pu, pt, pa, pm } = typeShares(w); // topcu is drawn first below: Serbest Mod bans nothing, so the shares can add up past 1 there
+  for (let i = 0; i < total; i++) { const r = Math.random(); list.push(r < pa ? 'topcu' : r < pa + ph ? 'heavy' : r < pa + ph + pf ? 'fast' : r < pa + ph + pf + pu ? 'hunter' : r < pa + ph + pf + pu + pt ? 'tamirci' : r < pa + ph + pf + pu + pt + pm ? 'mayinci' : 'basic'); }
   shuffle(list);
   // a type's first wave: exactly one of it (the roster above has none yet), placed a little way into the wave; never for a type the region rule removed
-  const first = w === D.fastFrom ? 'fast' : w === D.heavyFrom ? 'heavy' : w === D.hunterFrom ? 'hunter' : w === D.tamirciFrom ? 'tamirci' : w === D.topcuFrom && themeFor(w).key === 'snow' ? 'topcu' : null;
-  if (first && !typeBanned(first)) list[Math.min(list.length - 1, first === 'tamirci' || first === 'topcu' ? 3 : 1 + Math.floor(Math.random() * 2))] = first;
+  const first = w === D.fastFrom ? 'fast' : w === D.heavyFrom ? 'heavy' : w === D.hunterFrom ? 'hunter' : w === D.tamirciFrom ? 'tamirci' : w === D.topcuFrom && themeFor(w).key === 'snow' ? 'topcu' : w === D.mayinciFrom && themeFor(w).key === 'city' ? 'mayinci' : null;
+  if (first && !typeBanned(first)) list[Math.min(list.length - 1, first === 'tamirci' || first === 'topcu' || first === 'mayinci' ? 3 : 1 + Math.floor(Math.random() * 2))] = first;
   const alive = Math.min(6, 3 + Math.ceil(w / 2)) + (w > 12 ? Math.min(6, 1 + Math.floor((w - 13) / 5)) : 0) + D.alive;
   return { list, maxAlive: Math.min(D.maxAlive, alive) };
 }
@@ -1904,7 +1931,8 @@ const NEW_FOE = {
   heavy: ['tankArena.seenHeavy', 'Yeni düşman: Ağır. Yavaş ama çok sağlam, çift namlu ateş eder.'],
   hunter: ['tankArena.seenHunter', 'Yeni düşman: Avcı. Yakından gelen mermiden kaçar, uzaktan vurulunca siper alır; ateş etmeden önce yeşil hedef ışığı yakar.'],
   tamirci: ['tankArena.seenTamirci', 'Yeni düşman: Tamirci. Silahı yok; yanındaki tankları onarır. Önce onu vur.'],
-  topcu: ['tankArena.seenTopcu', 'Yeni düşman: Ağır Topçu. Namlusu parlayınca dev bir mermi atar; mermiye 3 isabet ettirirsen havada patlar. İkinci mermisi geç gelir.'] };
+  topcu: ['tankArena.seenTopcu', 'Yeni düşman: Ağır Topçu. Namlusu parlayınca dev bir mermi atar; mermiye 3 isabet ettirirsen havada patlar. İkinci mermisi geç gelir.'],
+  mayinci: ['tankArena.seenMayinci', 'Yeni düşman: Mayıncı. Geçtiği yere mayın bırakır; mayınları vurarak patlatabilirsin.'] };
 function spawnEnemy(type, x, y) {
   if (type === 'boss') { // debug / old paths: a boss in an ordinary wave (no phases, no stage)
     const a = Math.atan2(G.player.y - y, G.player.x - x), e = spawnBoss(bossDefAt(G.wave) || BOSS_DEFS.komutan, x, y, a);
@@ -1913,7 +1941,7 @@ function spawnEnemy(type, x, y) {
   const e = makeTank(type, x, y), p = G.player;
   const a = Math.atan2(G.map.n * T / 2 - y, G.map.n * T / 2 - x); // a new tank faces the map centre (it knows nothing of the player)
   e.angle = Math.round(a / (Math.PI / 2)) * (Math.PI / 2); e.turret = e.angle;
-  e.cool = type === 'topcu' ? rand(2.5, 4) : rand(0.9, 1.7) * G.mods.cool; e.speedMul = G.mods.speed; e.coolMul = G.mods.cool; e.aimErr = rand(-G.mods.err, G.mods.err);
+  e.cool = type === 'topcu' ? rand(2.5, 4) : type === 'mayinci' ? 99 : rand(0.9, 1.7) * G.mods.cool; e.speedMul = G.mods.speed; e.coolMul = G.mods.cool; e.aimErr = rand(-G.mods.err, G.mods.err);
   if (G.mods.hp > 1) e.hp = e.maxHp = Math.max(1, Math.round(e.spec.hp * G.mods.hp)); // later waves bring tougher tanks
   if (!(G.contactT <= G.time)) G.contactT = G.time; // no hint: a new tank patrols until it sees or hears something
   G.enemies.push(e);
@@ -1930,6 +1958,7 @@ function updateSpawns(dt) {
       let ty = G.queue.shift();
       if (ty === 'tamirci' && G.enemies.filter(o => o.type === 'tamirci').length + G.portals.filter(q => q.type === 'tamirci').length >= 2) ty = 'basic'; // at most two Tamirci on the field
       if (ty === 'topcu' && G.enemies.filter(o => o.type === 'topcu').length + G.portals.filter(q => q.type === 'topcu').length >= RULES.maxTopcu) ty = 'basic'; // at most two Ağır Topçu on the field
+      if (ty === 'mayinci' && G.enemies.filter(o => o.type === 'mayinci').length + G.portals.filter(q => q.type === 'mayinci').length >= RULES.maxMayinci) ty = 'basic'; // at most two Mayıncı (six mines) on the field
       if (ty === 'hunter' && G.enemies.filter(o => o.type === 'hunter').length + G.portals.filter(q => q.type === 'hunter').length >= RULES.maxHunters) ty = 'basic'; // and a few Avcı at once
       G.portals.push({ x: sp.x, y: sp.y, t: 0, dur: 1.15, type: ty, done: false }); G.spawnTimer = rand(0.7, 1.5) * G.mods.pace; Sound.spawn(volAt(sp.x, sp.y));
     } else G.spawnTimer = 0.25;
@@ -1951,6 +1980,7 @@ function updateEnemy(e, dt) {
   if (s.smart) { updateHunter(e, dt); return; }
   if (s.medic) { updateTamirci(e, dt); return; }
   if (s.artillery) { updateTopcu(e, dt); return; }
+  if (s.miner) { updateMayinci(e, dt); return; }
   e.cool -= dt; e.flash = Math.max(0, e.flash - dt); e.recoil = Math.max(0, e.recoil - dt * 6);
   e.hidden = m.at(e.x, e.y) === BUSH;
   e.senseT -= dt;
@@ -2354,7 +2384,7 @@ function topcuBoom(b, x, y) { // impact: a small blast; bricks inside are destro
     const c = c0 + dc, r = r0 + dr; if (c < 0 || r < 0 || c >= m.n || r >= m.n || m.t[r * m.n + c] !== BRICK) continue;
     const cx = c * T + T / 2, cy = r * T + T / 2; if (dist2(cx, cy, x, y) < (R + T * 0.4) * (R + T * 0.4)) destroyBrick(m, c, r, volAt(cx, cy));
   }
-  if (p.alive && !b.hitP && dist2(x, y, p.x, p.y) < (R + p.r * 0.5) * (R + p.r * 0.5)) damagePlayer({ x: p.x, y: p.y, dmg: Math.max(1, Math.round(b.dmg * TOPCU.splash)), owner: 1, vx: 0, vy: 0 });
+  if (p.alive && !b.hitP && dist2(x, y, p.x, p.y) < (R + p.r * 0.5) * (R + p.r * 0.5)) damagePlayer({ x: p.x, y: p.y, dmg: Math.max(1, Math.round(b.dmg * TOPCU.splash)), owner: 1, vx: 0, vy: 0, ram: false });
 }
 function shellHit(c, a) { // a player shell touched an Ağır Topçu shell: one "hit point" whatever the damage; the third pops it
   c.sh--; c.shT = 0.18;
@@ -2501,22 +2531,27 @@ const BOSS_TUNE = {
   sari: { gap: 0.78, speed: 1.2, dmg: 1.2, lead: 0.25 },
   demirkok: { gap: 0.65, speed: 1.2, dmg: 2.5, lead: 0.35 }, // its shells were tiny (6 base): the biggest dmg factor
   kiragi: { gap: 0.68, speed: 1.2, dmg: 1.3, lead: 0.3 }, // speed only matters for its plain shells; the lasers hit by gap and dmg
+  sonhisar: { gap: 0.95, speed: 1.15, dmg: 1.3, lead: 0.2 }, // the last boss (wave 40): slow hull, so the attacks come a little faster than Kırağı's; direct shells hit hard
   kapatici: { gap: 0.6, speed: 1.4, dmg: 1.3, lead: 0 } // Serbest Mod: meant to be very hard (full cards win about 1 in 4-5)
 };
 const bossTuneFor = (def, w) => def.id === 'komutan' ? (w <= 5 ? BOSS_TUNE.light : w <= 15 ? BOSS_TUNE.early : BOSS_TUNE.komutan) : (BOSS_TUNE[def.id] || BOSS_TUNE.komutan);
+const ROUND_K = 1.3, bossRound = w => Math.max(0, Math.floor((w - 1) / 40)); // 0 = first round (waves 1-40), 1 = İkinci Tur (41-80) ...
 const bossDmg = base => Math.max(1, Math.round(base * G.mods.dmg * (G.boss && G.boss.tune ? G.boss.tune.dmg : 1)));
 
 function spawnBoss(def, x, y, angle) {
   const w = G.wave, e = makeTank('boss', x, y);
   e.isBoss = true; e.def = def; e.name = def.name; e.stage = !!G.stage; e.phased = e.stage;
-  e.maxHp = e.hp = def.hp(w); e.r = def.r || e.spec.r;
+  e.round = bossRound(w); // İkinci Tur (1.5.6): after Son Hisar the 40 waves repeat; every boss of round n has ROUND_K^n times the HP and damage
+  e.maxHp = e.hp = Math.round(def.hp(def.id === 'komutan' ? w : w - 40 * e.round) * Math.pow(ROUND_K, e.round)); e.r = def.r || e.spec.r; // the region bosses' HP formulas count from their own wave (30 -> 70), the Komutan's keep growing
   e.angle = e.turret = angle; e.visit = Math.max(1, Math.floor(w / 5));
   e.phase = 0; e.trans = 0; e.invuln = false; e.dying = false; e.parts = []; e.gen = null; e.wait = 0; e.atkId = ''; e.lastAtk = ''; e.acd = {};
   e.cool = 1.5; e.pace = 1 + 0.6 / e.visit; e.scorch = []; e.lost = {}; e.broke = [false, false, false, false]; e.hitSide = [0, 0, 0, 0];
   e.glow = 0; e.fxT = 0; e.flowT = 0; e.flow = null; e.dt = 0; e.log = []; e.unlock = def.unlocks ? def.unlocks(w) : {};
   initBossParts(e);
   def.setup(e, w);
-  e.tune = bossTuneFor(def, w); e.lead = def.lead ? Math.min(1, def.lead + e.tune.lead) : def.lead; // lead 0 (Kırağı) stays 0
+  e.tune = bossTuneFor(def, w);
+  if (e.round) e.tune = Object.assign({}, e.tune, { dmg: e.tune.dmg * Math.pow(ROUND_K, e.round), gap: e.tune.gap * Math.pow(0.93, e.round) }); // a copy: BOSS_TUNE itself stays untouched
+  e.lead = def.lead ? Math.min(1, def.lead + e.tune.lead) : def.lead; // lead 0 (Kırağı) stays 0
   e.spec = Object.assign({}, e.spec, { bSpeed: e.spec.bSpeed * e.tune.speed }); // faster shells (the aim lead reads e.spec.bSpeed too)
   G.enemies.push(e); G.boss = e;
   return e;
@@ -2760,7 +2795,7 @@ function endAttack(e) {
 /* ---- phases ---- */
 function bossPhaseCheck(e) {
   const th = e.def.phases;
-  if (e.phase < th.length && e.hp / e.maxHp * 100 <= th[e.phase]) startTransition(e);
+  if (e.phase < th.length && (e.def.phaseAt ? e.def.phaseAt(e, e.phase) : e.hp / e.maxHp * 100 <= th[e.phase])) startTransition(e); // def.phaseAt: a phase that ends on something else than HP (Son Hisar: both modules down)
 }
 function startTransition(e) {
   e.phase++; e.trans = 1.5; e.invuln = true;
@@ -2883,6 +2918,7 @@ function bossHurt(e, dmg, x, y, dir, quiet) {
     return;
   }
   if (direct && dir !== undefined && !quiet) bossPartHit(e, dmg * k * (G.partK || 1), x, y, dir); // treads and barrels: own HP / accumulated hits (the hull takes the damage too)
+  if (!direct && e.def.areaHit && !(G.nuke && G.nuke.firing)) e.def.areaHit(e, dmg * k, quiet); // hook: flame, blasts and lobbed shells have no impact point, so a part would never be hurt (Son Hisar's modules take them whole)
   if (e.def.hullMul) dmg *= e.def.hullMul(e, x, y, dir, direct, quiet); // hook: damage multiplier of the hull itself (Demirkök: turret shield, rear weak point)
   const applied = Math.min(dmg * k, e.hp);
   e.hp -= dmg * k; e.flash = 0.1;
@@ -2934,22 +2970,25 @@ function bossFx(e, dt) {
 function bossBeginDeath(e) {
   e.dying = true; e.invuln = true; e.deathT = 0; e.chainT = 0; e.hp = 0.001; e.gen = null; e.glow = 0;
   bossClearHazards();
-  showBanner(e.def.deathText || 'BOSS DÜŞTÜ', '', 2.4);
+  showBanner(e.def.deathText || 'BOSS DÜŞTÜ', '', e.def.deathLen ? e.def.deathLen + 1 : 2.4);
+  if (e.def.onDeath) e.def.onDeath(e);
   spawnPiece(e, 'flag', true); // the standard topples
   Sound.metal(1); shake(10); vibrate([40, 30, 80]);
 }
 function bossDeathTick(e, dt) {
   e.deathT += dt; e.chainT -= dt; e.flash = 0.04;
-  if (e.chainT <= 0 && e.deathT < 2.2) {
+  const D = e.def.deathLen || 2.4; // def.deathLen: a longer death scene (Son Hisar)
+  if (e.chainT <= 0 && e.deathT < D - 0.2) {
     e.chainT = 0.17;
     const a = e.angle, lx = rand(-e.spec.len * 0.45, e.spec.len * 0.45), ly = rand(-e.spec.wid * 0.4, e.spec.wid * 0.4);
     const x = e.x + Math.cos(a) * lx - Math.sin(a) * ly, y = e.y + Math.sin(a) * lx + Math.cos(a) * ly;
     explode(x, y, rand(0.45, 0.85)); sparks(x, y, 8, '#ffd27a', 280);
   }
-  if (e.deathT >= 2.4) killEnemy(e);
+  if (e.deathT >= D) killEnemy(e);
 }
 // called from killEnemy for a boss: armour back to full
 function bossDefeated(e) {
+  if (G.phase !== 'dying') G.timeScale = 1; // the slow-motion of a long death scene ends with the boss
   const p = G.player; if (p && p.alive) { p.hp = p.maxHp; addText(p.x, p.y - 30, 'Zırh tam', '#6fd46b', 18); addPart('ring', p.x, p.y, 0, 0, 0.6, 12, 200, 0, '111,212,107'); }
   bossClearHazards();
 }
@@ -3035,7 +3074,7 @@ function* komCharge(e) { // ezme hücumu: red line (last 0.3 s locked), then a 6
     trackUpdate(e, moved, 0); trav += moved;
     if (fxScale === 1 && Math.random() < 0.6) addPart('dust', e.x - ca * e.r, e.y - sa * e.r + rand(-14, 14), rand(-30, 30), rand(-30, 30), rand(0.4, 0.8), rand(14, 24), 26, 2);
     if (!hurt && p.alive && dist2(e.x, e.y, p.x, p.y) < (e.r + p.r + 2) * (e.r + p.r + 2)) {
-      hurt = true; damagePlayer({ x: p.x, y: p.y, dmg: bossDmg(RAM_DMG), owner: 1, vx: 0, vy: 0 });
+      hurt = true; damagePlayer({ x: p.x, y: p.y, dmg: bossDmg(RAM_DMG), owner: 1, vx: 0, vy: 0, ram: true });
       moveTank(p, -sa * 36, ca * 36 * (Math.random() < 0.5 ? 1 : -1)); shake(8);
     }
     if (moved < step * 0.35) break; // jammed against something
@@ -3212,7 +3251,7 @@ function* sariRush(e) {
     if (strip) { strip.x2 = e.x - ca * e.r * 0.6; strip.y2 = e.y - sa * e.r * 0.6; }
     if (fxScale === 1) for (let k = 0; k < 2; k++) addPart('dust', e.x - ca * e.r + rand(-6, 6), e.y - sa * e.r + rand(-18, 18), -ca * rand(40, 120) + rand(-30, 30), -sa * rand(40, 120) + rand(-30, 30), rand(0.4, 0.8), rand(14, 24), 26, 2);
     if (!hurt && p.alive && dist2(e.x, e.y, p.x, p.y) < (e.r + p.r + 2) * (e.r + p.r + 2)) { // ağır hasar + geri itme
-      hurt = true; damagePlayer({ x: p.x, y: p.y, dmg: bossDmg(SARI_RAM_DMG), owner: 1, vx: 0, vy: 0 });
+      hurt = true; damagePlayer({ x: p.x, y: p.y, dmg: bossDmg(SARI_RAM_DMG), owner: 1, vx: 0, vy: 0, ram: true });
       const side = (p.x - e.x) * -sa + (p.y - e.y) * ca < 0 ? -1 : 1;
       moveTank(p, -sa * 64 * side + ca * 30, ca * 64 * side + sa * 30); shake(9); vibrate(40);
     }
@@ -4064,7 +4103,7 @@ function* kapCut(e) { // Kesme Hamlesi: a line into the escape path (where he is
     moveTank(e, ca * step, sa * step); const moved = Math.hypot(e.x - ox, e.y - oy); trackUpdate(e, moved, 0); trav += moved;
     if (fxScale === 1 && Math.random() < 0.8) addPart('dust', e.x - ca * e.r, e.y - sa * e.r + rand(-10, 10), rand(-30, 30), rand(-30, 30), rand(0.3, 0.6), rand(10, 18), 24, 2);
     if (!hurt && p.alive && dist2(e.x, e.y, p.x, p.y) < (e.r + p.r + 2) * (e.r + p.r + 2)) {
-      hurt = true; damagePlayer({ x: p.x, y: p.y, dmg: bossDmg(kapDmg(KAP.dmgRam)), owner: 1, vx: 0, vy: 0 });
+      hurt = true; damagePlayer({ x: p.x, y: p.y, dmg: bossDmg(kapDmg(KAP.dmgRam)), owner: 1, vx: 0, vy: 0, ram: true });
       const side = (p.x - e.x) * -sa + (p.y - e.y) * ca < 0 ? -1 : 1; moveTank(p, -sa * 56 * side + ca * 24, ca * 56 * side + sa * 24); shake(8); vibrate(30);
     }
     if (moved < step * 0.35) break;
@@ -4536,6 +4575,411 @@ BOSS_DEFS.kiragi = {
   drawTop: (e, g) => drawKiragiTop(e, g)
 };
 BOSS_ON[30] = 'kiragi';
+/* ================= Son Hisar (docs/BOSSES.md section 7) ================= */
+// The last boss (wave 40, Şehir): a huge dark-grey fortress tank (120 x 110, r 52, speed 30) with twin long main guns, an amber core and two side cooling modules (each ~10% of the HP, own parts in e.parts).
+// While both modules live the hull takes 30% of the damage (hullMul) and cannot drop below 62% (tick), so phase 1 always ends by breaking them (def.phaseAt). Per-boss state lives in e.sh.
+// Phase 1 "Kuşatma" (until both modules are broken): Ağır top (two slow shells, glow 0.8 s), Havan yağmuru (6 circles).
+// Phase 2 "Nişancı" (to 60%): Çift lazer (two amber lines 1 s, last 0.3 s locked), Üçlü yelpaze; the phase-1 attacks stay.
+// Phase 3 "Hücum" (60-30%): Sokak hücumu (red line 1.2 s, flattens barricades; steel = 2 s stun and 3 temporary brick heaps) and a 3.5-tile Şok dalgası after every charge.
+// Phase 4 "Son direniş" (30-0%): it walks to the square (tile 10, 8) and stays; the core opens (double damage), Döner ateş (the twin guns sweep 360 degrees), a Şok dalgası + Havan every 8 s; the attack pauses are 25% shorter.
+// Death: a long chain of explosions in slow motion, "SON HİSAR DÜŞTÜ". After it the game goes on in İkinci Tur (13 nextWave): bosses of the next round have ROUND_K times HP and damage (11a spawnBoss).
+// Hooks used from 11a: def.phaseAt, def.tick, def.move, def.flowGoal, def.hullMul, def.danger, def.onPhase, def.onPartBreak, def.onClear, def.onDeath, def.deathLen, def.drawGround.
+ARENAS.sehir = { name: 'Şehir Meydanı', rows: [ // steel blocks are 0 or >= 3 tiles apart and from the edge; the middle is the open square (with a brick barricade) where phase 4 is fought; a barricade anywhere in the edge streets would wall off a pocket the hull cannot enter
+  'SSS...SSS...SSS...SSS',
+  'SSS...SSS...SSS...SSS',
+  'SSS...SSS...SSS...SSS',
+  '.....................',
+  '..........X..........',
+  '.....................',
+  'SSS...SS.....SS...SSS',
+  'SSS...SS.....SS...SSS',
+  'SSS...............SSS',
+  '.....................',
+  '.........BBB.........',
+  '.....................',
+  'SSS...............SSS',
+  'SSS...SS.....SS...SSS',
+  'SSS...SS.....SS...SSS',
+  '.....................',
+  '..........P..........',
+  '.....................',
+  'SSS...SSS...SSS...SSS',
+  'SSS...SSS...SSS...SSS',
+  'SSS...SSS...SSS...SSS'] };
+
+const SH_SPEC = { speed: 30, turn: 1.3, tTurn: 2.3, len: 120, wid: 110, r: 52, tread: 16, tR: 30, barrel: 86, bW: 12, cool: 1, bSpeed: 380, dmg: 5, bR: 7, mass: 20, score: 8000,
+  col: { body: '#4a4e55', dk: '#2c2f34', hi: '#7a808a', acc: '#f2a530' } };
+const SH_AMBER = '242,165,48';
+const SH = { gun: 14, modHp: 0.08, hullK: 0.3, floor: 0.62, coreK: 2, ramDmg: 30, charge: 7 * T, chargeSpd: 360, shockR: 3.5 * T, shockDmg: 14, mortarDmg: 7, laser: 5.5, beamW: 14, spin: 2.2, spinT: 2.9, spinEvery: 0.16,
+  debLife: 14, debN: 3, fast: 0.75, hullFloor: 0.7 };
+
+/* ---- helpers ---- */
+const shAlive = e => e.parts.filter(q => q.alive).length;
+const shMuz = (e, side, ang) => { const a = ang === undefined ? e.turret : ang; return { x: e.x - Math.sin(a) * side * SH.gun, y: e.y + Math.cos(a) * side * SH.gun }; };
+function shFire(e, side, ang, o) { const q = shMuz(e, side); bossShell(e, ang, Object.assign({ x: q.x, y: q.y, len: e.spec.barrel }, o)); }
+function shRecoil(e, k) {
+  e.recoil = 1; const ca = Math.cos(e.turret), sa = Math.sin(e.turret);
+  for (const side of [-1, 1]) { const q = shMuz(e, side), mx = q.x + ca * (e.spec.barrel + 4), my = q.y + sa * (e.spec.barrel + 4); addPart('fire', mx, my, ca * 70, sa * 70, 0.1, 24, 40, 0); addPart('smoke', mx, my, ca * 40 + rand(-10, 10), sa * 40 + rand(-10, 10), rand(0.5, 0.9), 16, 30, 3); }
+  moveTank(e, -ca * 0.8, -sa * 0.8); shake((k || 3) * prox(e.x, e.y)); Sound.shoot(false, true, volAt(e.x, e.y));
+}
+function shRay(x, y, a, max) { const m = G.map, ca = Math.cos(a), sa = Math.sin(a); for (let d = 8; d < max; d += 8) if (isWall(m.at(x + ca * d, y + sa * d))) return d; return max; }
+function shAimLine(tl, e, side, a) { const q = shMuz(e, side, e.turret), mx = q.x + Math.cos(e.turret) * e.spec.barrel, my = q.y + Math.sin(e.turret) * e.spec.barrel; tl.x = mx; tl.y = my; tl.a = a; tl.len = shRay(mx, my, a, 17 * T); }
+function shBeam(e, tl, dmg) { // the strike behind an amber line: an instant beam along the locked line
+  const p = G.player, ca = Math.cos(tl.a), sa = Math.sin(tl.a), len = tl.len;
+  e.sh.beams.push({ x: tl.x, y: tl.y, a: tl.a, len, t: 0.26 });
+  sparks(tl.x, tl.y, 6, '#ffd89a', 220, tl.a, 0.6); sparks(tl.x + ca * len, tl.y + sa * len, 8, '#ffd89a', 220);
+  if (p.alive) {
+    const dx = p.x - tl.x, dy = p.y - tl.y, al = dx * ca + dy * sa, pr = -dx * sa + dy * ca;
+    if (al > -10 && al < len + p.r && Math.abs(pr) < SH.beamW / 2 + p.r * 0.75) damagePlayer({ x: p.x, y: p.y, dmg: bossDmg(dmg), owner: 1, vx: ca * 400, vy: sa * 400 });
+  }
+}
+function shShockBlast(e) { // the ring hits everything inside it that no steel shields
+  const p = G.player, R = e.sh.shockRadius || SH.shockR;
+  addPart('ring', e.x, e.y, 0, 0, 0.55, 24, R * 2.1, 0, '255,200,120'); addPart('flash', e.x, e.y, 0, 0, 0.22, 170, 0, 0); shake(14); Sound.boom(1.3, volAt(e.x, e.y));
+  if (p.alive && dist2(e.x, e.y, p.x, p.y) < (R + p.r) * (R + p.r) && !steelBetween(e.x, e.y, p.x, p.y)) {
+    damagePlayer({ x: p.x, y: p.y, dmg: bossDmg(SH.shockDmg), owner: 1, vx: 0, vy: 0 });
+    const a = Math.atan2(p.y - e.y, p.x - e.x); moveTank(p, Math.cos(a) * 48, Math.sin(a) * 48);
+  }
+}
+// temporary brick heaps (after a charge into steel): empty tiles near the impact, away from the hull and the player; they crumble after SH.debLife s (or when shot)
+function shDebris(e, ix, iy) {
+  const m = G.map, n = m.n, p = G.player, cand = [];
+  for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) {
+    if (m.t[r * n + c] !== EMPTY) continue;
+    const x = c * T + T / 2, y = r * T + T / 2, di = Math.hypot(x - ix, y - iy);
+    if (di > 3.2 * T || Math.hypot(x - e.x, y - e.y) < e.r + T * 0.9 || Math.hypot(x - p.x, y - p.y) < 1.8 * T) continue;
+    if (e.sh.deb.some(q => q.c === c && q.r === r)) continue;
+    cand.push({ c, r, s: di + Math.random() * T });
+  }
+  cand.sort((a, b) => a.s - b.s);
+  for (const q of cand.slice(0, SH.debN)) {
+    const i = q.r * n + q.c; m.t[i] = BRICK; m.hp[i] = BRICK_HP; m.flowDirty = true; miniTile(m, q.c, q.r); paintRegion(m, q.c - 1, q.r - 1, q.c + 1, q.r + 1);
+    e.sh.deb.push({ c: q.c, r: q.r, t: 0 });
+    const x = q.c * T + T / 2, y = q.r * T + T / 2;
+    for (let k = 0, nk = Math.max(3, Math.round(8 * fxScale)); k < nk; k++) { const a = rand(0, TAU), v = rand(60, 180); addPart('debris', x, y, Math.cos(a) * v, Math.sin(a) * v, rand(0.5, 0.9), rand(3, 6), 0, 3.5, k & 1 ? m.theme.brick : m.theme.brickDk); }
+  }
+}
+function shTick(e, dt) {
+  const sh = e.sh, m = G.map;
+  for (const b of sh.beams) b.t -= dt;
+  if (sh.beams.length && sh.beams[0].t <= 0) sh.beams = sh.beams.filter(b => b.t > 0);
+  for (let i = sh.deb.length - 1; i >= 0; i--) { // brick heaps expire
+    const q = sh.deb[i]; q.t += dt;
+    if (m.t[q.r * m.n + q.c] !== BRICK) { sh.deb.splice(i, 1); continue; }
+    if (q.t > SH.debLife) { destroyBrick(m, q.c, q.r, volAt(q.c * T, q.r * T)); sh.deb.splice(i, 1); }
+  }
+  if (G.phase === 'bossIntro') return;
+  if (e.gen && e.phase < 3 && e.atkId !== 'hucum' && G.phase === 'fight' && e.trans <= 0 && !e.dying && !(e.stunT > 0) && !e.invuln) bossMove(e, dt, e.def.hold); // the hull is slow and the attacks long: it keeps walking while it shoots (not during a charge)
+  sh.fan = (sh.fan + dt * (sh.spin ? 14 : 3)) % TAU; // the cooling fans of the modules spin (fast during the sweep), stop once a module is broken
+  if (e.phase >= 3 && !e.dying) sh.core = Math.min(1, sh.core + dt * 1.2); // the core hatch slides open
+  if (!e.dying && shAlive(e) > 0 && e.hp < e.maxHp * SH.floor) e.hp = e.maxHp * SH.floor; // the hull cannot fall below the phase-2 mark while a module lives
+  if (e.dying) { // a long chain of blasts in slow motion, one huge blast at the end
+    if (G.phase !== 'dying') G.timeScale = e.deathT < 1.7 ? 0.4 : 1; sh.core = 1;
+    sh.boomT -= dt;
+    if (sh.boomT <= 0 && e.deathT < SH.deathLen - 0.3) {
+      sh.boomT = 0.11; const a = e.angle, lx = rand(-60, 60), ly = rand(-55, 55), x = e.x + Math.cos(a) * lx - Math.sin(a) * ly, y = e.y + Math.sin(a) * lx + Math.cos(a) * ly;
+      explode(x, y, rand(0.6, 1.1)); sparks(x, y, 10, '#ffd27a', 300); if (Math.random() < 0.4) { addPart('flash', x, y, 0, 0, 0.14, 80, 0, 0); shake(6); Sound.boom(0.8, volAt(x, y)); }
+    }
+    if (!sh.big && e.deathT >= SH.deathLen - 0.35) { sh.big = true; explode(e.x, e.y, 2.4); addPart('flash', e.x, e.y, 0, 0, 0.4, 300, 0, 0); addPart('ring', e.x, e.y, 0, 0, 0.9, 20, 480, 0, '255,200,120'); sparks(e.x, e.y, 40, '#ffd27a', 480); shake(22); Sound.boom(2, volAt(e.x, e.y)); vibrate([60, 30, 100]); }
+  }
+}
+const shCenter = () => { const m = G.map; return { x: m.n * T / 2, y: m.n * T / 2 - 2 * T }; }; // the square's open ground north of the barricade (tile 10, 8)
+
+/* ---- attacks ---- */
+function* shHeavy(e) { // ağır top: both guns glow 0.8 s, then two big slow shells (never leave the aim: it follows the player)
+  yield* glowAim(e, 'agir', 0.8, [0]);
+  for (const side of [-1, 1]) shFire(e, side, e.turret, { dmgK: 1.5, speed: 0.65 });
+  shRecoil(e, 6); yield 0.9;
+}
+function* shMortar(e) { // havan yağmuru: six circles over and around the player (fall over walls)
+  const p = G.player, m = G.map, circ = [];
+  Sound.warnRise(volAt(e.x, e.y)); addText(e.x, e.y - e.r - 26, 'HAVAN', '#f2a530', 18);
+  for (let i = 0; i < 6; i++) {
+    const a = i * TAU / 6 + rand(-0.4, 0.4), d = i < 2 ? rand(0, 50) : rand(90, 190);
+    circ.push(addTele(e, { kind: 'circle', r: 56, x: clamp(p.x + Math.cos(a) * d, T, m.w - T), y: clamp(p.y + Math.sin(a) * d, T, m.h - T) }));
+  }
+  while (circ[0].t < circ[0].dur) { aimAtPlayer(e, e.dt, 0.5); yield 0; }
+  for (const tl of circ) { release(e, 'havan', tl); removeTele(tl); bossBlast(tl.x, tl.y, 56, SH.mortarDmg); yield 0.05; }
+  yield 0.5;
+}
+function* shLasers(e) { // çift lazer: two amber lines (one per gun, slightly apart), 1 s, the last 0.3 s locked; then two instant beams
+  const a = addTele(e, { kind: 'line', dur: 1.0, lock: 0.3, x: e.x, y: e.y, a: e.turret, len: 0, w: SH.beamW, rgb: SH_AMBER }), b = addTele(e, { kind: 'line', dur: 1.0, lock: 0.3, x: e.x, y: e.y, a: e.turret, len: 0, w: SH.beamW, rgb: SH_AMBER });
+  const gl = addTele(e, { kind: 'glow', dur: 1.0 }); let base = e.turret;
+  Sound.warnRise(volAt(e.x, e.y));
+  while (a.t < a.dur) {
+    if (a.t < a.dur - a.lock) { aimAtPlayer(e, e.dt, 1.2, e.lead); base = e.turret; }
+    shAimLine(a, e, -1, base - 0.05); shAimLine(b, e, 1, base + 0.05); yield 0;
+  }
+  release(e, 'lazer', a); release(e, 'lazer', b); removeTele(gl); removeTele(a); removeTele(b);
+  shBeam(e, a, SH.laser); shBeam(e, b, SH.laser); shRecoil(e, 5); yield 0.6;
+}
+const SH_FAN = [-0.26, 0, 0.26];
+function* shFan(e) { // üçlü yelpaze: three shells from the middle at once, then again
+  for (let k = 0; k < 2; k++) { yield* glowAim(e, 'yelpaze', 0.55, SH_FAN); bossVolley(e, SH_FAN, { dmgK: 1.1 }); yield 0.35; }
+  yield 0.3;
+}
+function* shShock(e) { // şok dalgası: ring of 3.5 tiles, 1.2 s; steel in between protects
+  const tl = addTele(e, { kind: 'ring', dur: 1.2, r: SH.shockR }); e.sh.shockRadius = SH.shockR;
+  Sound.warnRise(volAt(e.x, e.y));
+  while (tl.t < tl.dur) yield 0;
+  release(e, 'sok', tl); removeTele(tl); shShockBlast(e); yield 0.3;
+}
+function* shCharge(e) { // sokak hücumu: red line 1.2 s (last 0.3 s locked), then a 7-tile rush that breaks barricades; steel = 2 s stun + brick heaps; a shock ring follows every charge
+  const p = G.player, m = G.map, margin = e.r + 4;
+  const tl = addTele(e, { kind: 'line', dur: 1.2, lock: 0.3, x: e.x, y: e.y, a: e.angle, len: SH.charge, w: 2 * (e.r + 10) });
+  Sound.warnRise(volAt(e.x, e.y)); addText(e.x, e.y - e.r - 26, 'HÜCUM', '#ff7a5c', 20);
+  while (tl.t < tl.dur) {
+    if (tl.t < tl.dur - tl.lock) e.angle = turnTo(e.angle, Math.atan2(p.y - e.y, p.x - e.x), 2.2 * e.dt);
+    aimAtPlayer(e, e.dt);
+    tl.x = e.x; tl.y = e.y; tl.a = e.angle; tl.len = rayClip(e.x, e.y, e.angle, SH.charge, margin);
+    yield 0;
+  }
+  release(e, 'hucum', tl);
+  const ca = Math.cos(e.angle), sa = Math.sin(e.angle), plan = tl.len, clipped = plan < SH.charge - 1;
+  let trav = 0, hurt = false;
+  while (trav < plan) {
+    const step = Math.min(SH.chargeSpd * e.dt, plan - trav);
+    for (const [fa, lat] of [[e.r + 10, 0], [e.r + 8, e.r * 0.6], [e.r + 8, -e.r * 0.6], [e.r + 4, e.r * 0.95], [e.r + 4, -e.r * 0.95]]) { // barricades in front fall
+      const bx = e.x + ca * fa - sa * lat, by = e.y + sa * fa + ca * lat;
+      if (m.at(bx, by) === BRICK) { destroyBrick(m, Math.floor(bx / T), Math.floor(by / T), volAt(bx, by)); shake(5); }
+    }
+    const ox = e.x, oy = e.y; moveTank(e, ca * step, sa * step);
+    const moved = Math.hypot(e.x - ox, e.y - oy); trackUpdate(e, moved, 0); trav += moved;
+    if (fxScale === 1 && Math.random() < 0.7) addPart('dust', e.x - ca * e.r, e.y - sa * e.r + rand(-20, 20), rand(-30, 30), rand(-30, 30), rand(0.4, 0.9), rand(16, 26), 28, 2);
+    if (!hurt && p.alive && dist2(e.x, e.y, p.x, p.y) < (e.r + p.r + 2) * (e.r + p.r + 2)) {
+      hurt = true; damagePlayer({ x: p.x, y: p.y, dmg: bossDmg(SH.ramDmg), owner: 1, vx: 0, vy: 0, ram: true });
+      moveTank(p, -sa * 40, ca * 40 * (Math.random() < 0.5 ? 1 : -1)); shake(9);
+    }
+    if (moved < step * 0.35) break; // jammed against something
+    yield 0;
+  }
+  removeTele(tl);
+  if (clipped || trav < plan - 6) { // slammed into steel: stunned for 2 s, rubble falls
+    e.stunT = 2; shake(16); const ix = e.x + ca * e.r, iy = e.y + sa * e.r; explode(ix, iy, 0.9); sparks(ix, iy, 16, '#ffe3a1', 320); Sound.metal(volAt(e.x, e.y)); vibrate(40);
+    addText(e.x, e.y - e.r - 14, 'SERSEMLEDİ', '#bfeaff', 18);
+    shDebris(e, ix, iy);
+  }
+  while (e.stunT > 0) yield 0;
+  yield* shShock(e);
+}
+function* shSpin(e) { // döner ateş: the twin guns sweep through 360 degrees firing a shell pair every 0.16 s; the first line shows where the sweep starts and which way it turns
+  const sh = e.sh, p = G.player, dir = Math.random() < 0.5 ? 1 : -1;
+  const tl = addTele(e, { kind: 'line', dur: 1.1, lock: 0.3, x: e.x, y: e.y, a: e.turret, len: 9 * T, w: 30 }), gl = addTele(e, { kind: 'glow', dur: 1.1 });
+  Sound.warnRise(volAt(e.x, e.y)); addText(e.x, e.y - e.r - 26, 'DÖNER ATEŞ', '#ff7a5c', 20);
+  while (tl.t < tl.dur) { if (tl.t < tl.dur - tl.lock) aimAtPlayer(e, e.dt, 1.6, 0); tl.x = e.x; tl.y = e.y; tl.a = e.turret; tl.len = shRay(e.x, e.y, e.turret, 9 * T); yield 0; }
+  release(e, 'doner', tl); removeTele(tl); removeTele(gl);
+  sh.spin = dir; let fire = 0;
+  for (let t = 0; t < SH.spinT; t += e.dt) {
+    e.turret += dir * SH.spin * e.dt; fire -= e.dt;
+    if (fire <= 0) { fire = SH.spinEvery; for (const side of [-1, 1]) shFire(e, side, e.turret, { dmgK: 1, speed: 0.95 }); shRecoil(e, 2); }
+    yield 0;
+  }
+  sh.spin = 0; yield 0.6;
+}
+function* shShockMortar(e) { // şok dalgası + havan together (every 8 s in the last phase): the ring and the circles fill side by side
+  const p = G.player, m = G.map, circ = [], tl = addTele(e, { kind: 'ring', dur: 1.2, r: SH.shockR }); e.sh.shockRadius = SH.shockR;
+  Sound.warnRise(volAt(e.x, e.y)); addText(e.x, e.y - e.r - 26, 'ŞOK + HAVAN', '#ff7a5c', 20);
+  for (let i = 0; i < 5; i++) { const a = i * TAU / 5 + rand(-0.4, 0.4), d = i < 2 ? rand(0, 50) : rand(100, 200); circ.push(addTele(e, { kind: 'circle', r: 56, x: clamp(p.x + Math.cos(a) * d, T, m.w - T), y: clamp(p.y + Math.sin(a) * d, T, m.h - T) })); }
+  while (tl.t < tl.dur) { aimAtPlayer(e, e.dt, 0.5); yield 0; }
+  release(e, 'sok', tl); removeTele(tl); shShockBlast(e);
+  for (const c of circ) { release(e, 'havan', c); removeTele(c); bossBlast(c.x, c.y, 56, SH.mortarDmg); }
+  yield 0.5;
+}
+
+/* ---- definition ---- */
+BOSS_DEFS.sonhisar = {
+  id: 'sonhisar', name: 'SON HİSAR', arena: 'sehir', introSub: 'Şehir Meydanı', hold: 5.5, lead: 0.3, phases: [0, 60, 30], plates: ['plate', 'shoulder', 'fender'], r: SH_SPEC.r,
+  deathText: 'SON HİSAR DÜŞTÜ', loot: 'SON HİSAR GANİMETİ', deathLen: 4.2,
+  hp: w => Math.round(1700 + (w - 40) * 30),
+  attacks: [
+    { id: 'agir', w: 3, ok: e => e.phase < 3 || e.canSee, run: shHeavy },
+    { id: 'havan', w: 2.6, ok: e => e.phase < 3, run: shMortar, arc: true, cd: 6 },
+    { id: 'lazer', w: 3.2, ok: e => e.phase >= 1 && e.canSee && e.distP < 16 * T, run: shLasers },
+    { id: 'yelpaze', w: 2.6, ok: e => e.phase >= 1 && e.canSee, run: shFan },
+    { id: 'hucum', w: 7, ok: e => e.phase === 2 && e.distP > 2.5 * T, run: shCharge, mov: true, cd: 5 },
+    { id: 'doner', w: 3, ok: e => e.phase >= 3, run: shSpin, cd: 11 },
+    { id: 'sokhavan', w: 100, ok: e => e.phase >= 3, run: shShockMortar, arc: true, cd: 8 }
+  ],
+  setup(e, w) {
+    e.spec = Object.assign({}, SPECS.boss, SH_SPEC); e.r = SH_SPEC.r; e.pace = 1.1;
+    const hp = Math.max(2, Math.round(e.maxHp * SH.modHp));
+    for (const [id, oy] of [['ml', -36], ['mr', 36]]) e.parts.push({ id, name: 'Soğutma modülü', atk: '', ox: -8, oy, r: 19, maxHp: hp, hp, alive: true, flash: 0 });
+    e.sh = { beams: [], deb: [], fan: 0, core: 0, spin: 0, boomT: 0, big: false, shockRadius: SH.shockR };
+  },
+  phaseAt(e, i) { return i === 0 ? shAlive(e) === 0 : e.hp / e.maxHp * 100 <= e.def.phases[i]; },
+  onPhase(e, i) {
+    if (i === 1) addText(e.x, e.y - e.r - 54, 'NİŞANCI', '#f2a530', 20);
+    if (i === 2) addText(e.x, e.y - e.r - 54, 'HÜCUM', '#ff7a5c', 20);
+    if (i === 3) { // Son direniş: it stops in the square, the core opens, everything comes 25% faster
+      e.tune = Object.assign({}, e.tune, { gap: e.tune.gap * SH.fast }); e.cool = clamp(Math.hypot(e.x - shCenter().x, e.y - shCenter().y) / (SH_SPEC.speed * 3.5) + 0.5, 1, 6);
+      addText(e.x, e.y - e.r - 54, 'SON DİRENİŞ', '#ff5a3c', 22); addText(e.x, e.y - e.r - 30, 'ÇEKİRDEK AÇILDI', '#f2a530', 16);
+    }
+  },
+  onPartBreak(e, pt) { spawnPiece(e, 'shoulder', false); if (shAlive(e) === 1) addText(e.x, e.y - e.r - 40, 'BİR MODÜL DAHA', '#ffd27a', 15); },
+  tick: shTick,
+  onClear(e) { e.sh.spin = 0; },
+  onDeath(e) { e.sh.spin = 0; e.sh.boomT = 0; },
+  areaHit(e, dmg, quiet) { // flame, splash and lobbed shells: every living module takes the damage whole (the hull takes its share below)
+    for (const q of e.parts) { if (!q.alive) continue; q.hp -= dmg; q.flash = 0.1; if (q.hp <= 0) breakPart(e, q); }
+  },
+  hullMul(e, x, y, dir, direct, quiet) {
+    if (!direct && !quiet) return 1; // the nuke is a flat blow
+    let k = shAlive(e) === 2 ? SH.hullK : 1; // both cooling modules alive: the hull takes 30%
+    if (e.phase >= 3 && e.sh.core > 0.7) k *= SH.coreK; // the open core: double damage
+    return k;
+  },
+  watchGoal: e => e.phase < 3, // the stuck watch of the probes: in the last phase it walks to the centre once and then stands
+  flowGoal: e => (e.phase >= 3 ? shCenter() : null),
+  move(e, dt) {
+    const p = G.player;
+    if (e.phase >= 3) { // Son direniş: it walks to the middle of the square and stays there
+      const c = shCenter(), far = Math.hypot(e.x - c.x, e.y - c.y) > 0.5 * T;
+      e.speedMul = far ? 4 : 1; // the hull is slow (30): the walk to the square is a quick one (the attacks wait for it, onPhase)
+      if (far) bossMove(e, dt, 0); else e.avx = e.avy = 0;
+    } else bossMove(e, dt, e.def.hold);
+    if (p.alive && e.canSee) aimAtPlayer(e, dt, 1, e.lead); else e.turret = turnTo(e.turret, e.angle, e.spec.tTurn * 0.6 * dt);
+  },
+  danger(e, x, y, pad) { // the sweep: the wedge just ahead of the guns is dangerous where the shells reach
+    const sw = e.sh.spin; if (!sw) return false;
+    const dx = x - e.x, dy = y - e.y, d = Math.hypot(dx, dy); if (d > 17 * T) return false;
+    const rel = angDiff(e.turret, Math.atan2(dy, dx)) * sw, pa = Math.atan2(pad + 14, Math.max(d, 1));
+    if (!(rel > -pa - 0.2 && rel < 0.9 + pa)) return false;
+    return d < e.r + 10 || los(e.x, e.y, x, y);
+  },
+  draw: (e, g, alpha) => drawSonhisar(e, g, alpha),
+  drawGround: (e, g) => drawSonhisarGround(e, g)
+};
+SH.deathLen = BOSS_DEFS.sonhisar.deathLen;
+BOSS_ON[40] = 'sonhisar';
+/* ================= Mayıncı (Şehir, 1.5.6) ================= */
+// An unarmed light tank that lays mines. It only knows what it saw or heard (updateAware fills e.lk): it walks to choke points (corridors) 5-9 tiles around the last-known player position,
+// drops a mine behind it every MAYIN.drop seconds (max 3 live per Mayıncı, 6 on the map) and runs from a player who sees it within MAYIN.flee tiles.
+// A mine (G.mines) arms after MAYIN.arm s (blinking red light; amber and steady before), blows when the player comes within MAYIN.trigger px, and can be shot (any player shell, one hit) to blow it harmlessly from afar.
+// Enemies never trigger a mine and are not hurt by it. Mines are removed when the wave leaves the fight phase (updateMines, called from updatePlay before the workshop freeze).
+NUKE_WEIGHT.mayinci = 1;
+const MAYIN = { drop: [4, 6], perMax: 3, mapMax: 6, arm: 1, trigger: 26, r: 11, blast: 52, dmg: 12, flee: 4.5, first: [1.5, 2.8], chain: true };
+function mineTileOk(x, y) { const v = G.map.at(x, y); return !blocksTank(v) && v !== BUSH; }
+function mineChoke(x, y) { // a corridor tile: walls on both sides of one axis, open along the other
+  const m = G.map, c = Math.floor(x / T), r = Math.floor(y / T), w = d => blocksTank(m.get(c + d[0], r + d[1]));
+  return (w([-1, 0]) && w([1, 0]) && !w([0, -1]) && !w([0, 1])) || (w([0, -1]) && w([0, 1]) && !w([-1, 0]) && !w([1, 0]));
+}
+function mineSpot(e) { // a free tile 5-9 tiles around the last-known position, corridors preferred
+  const m = G.map, n = m.n, lk = e.lk; let best = null, bs = -1e9;
+  for (let k = 0; k < 22; k++) {
+    const a = rand(0, TAU), r = rand(5, 9) * T, x = lk.x + Math.cos(a) * r, y = lk.y + Math.sin(a) * r, c = Math.floor(x / T), rr = Math.floor(y / T);
+    if (c < 2 || rr < 2 || c > n - 3 || rr > n - 3 || !mineTileOk(x, y)) continue;
+    const cx = c * T + T / 2, cy = rr * T + T / 2;
+    let sc = Math.random() * 1.6 - Math.hypot(cx - e.x, cy - e.y) / T * 0.08 + (mineChoke(cx, cy) ? 3 : 0);
+    for (const o of G.enemies) if (o !== e && o.type === 'mayinci' && !o.dead && o.my && o.my.g && dist2(o.my.g.x, o.my.g.y, cx, cy) < (4 * T) * (4 * T)) sc -= 3; // two Mayıncı do not share a corner
+    if (sc > bs) { bs = sc; best = { c, r: rr, x: cx, y: cy }; }
+  }
+  return best;
+}
+function mineDrop(e) {
+  const mines = G.mines || (G.mines = []), mine = e.mineN || 0;
+  if (mine >= MAYIN.perMax || mines.length >= MAYIN.mapMax) return false;
+  const x = e.x - Math.cos(e.angle) * e.r * 0.8, y = e.y - Math.sin(e.angle) * e.r * 0.8;
+  if (!mineTileOk(x, y)) return false;
+  for (const q of mines) if (dist2(q.x, q.y, x, y) < (1.6 * T) * (1.6 * T)) return false;
+  if (G.portals.some(q => dist2(q.x, q.y, x, y) < (1.5 * T) * (1.5 * T))) return false;
+  mines.push({ x, y, age: 0, armed: false, dead: false, own: e.id, w: G.wave, ph: rand(0, TAU) });
+  for (let k = 0; k < 4; k++) addPart('dust', x, y, rand(-24, 24), rand(-24, 24), rand(0.3, 0.5), rand(8, 12), 14, 2);
+  return true;
+}
+function updateMayinci(e, dt) {
+  const s = e.spec, p = G.player, m = G.map, my = e.my || (e.my = { t: rand(MAYIN.first[0], MAYIN.first[1]), g: null, tf: null, gT: 0 });
+  e.cool = 99; e.flash = Math.max(0, e.flash - dt); e.recoil = 0; e.hidden = m.at(e.x, e.y) === BUSH;
+  e.senseT -= dt;
+  if (e.senseT <= 0) {
+    e.senseT = 0.1 + Math.random() * 0.08;
+    if (p.alive) { e.distP = Math.hypot(p.x - e.x, p.y - e.y); e.canSee = sees(e, p, 0); } else { e.canSee = false; e.distP = 1e9; }
+  }
+  updateAware(e, dt); // fills e.lk (seen / heard / hinted position); its own goals are not used here
+  const now = G.time, trB = !!e.pt && e.pt.tread > 0, pk = e.pt && e.pt.engine > 0 ? 0.5 : 1, before = e.angle, ox = e.x, oy = e.y;
+  // goal: a choke point near the last-known position (or an ordinary patrol spot while it knows nothing)
+  const reached = my.g && dist2(my.g.x, my.g.y, e.x, e.y) < (AWARE.reach * T) * (AWARE.reach * T);
+  if (!my.g || reached || now - my.gT > 12 || (e.lk && e.lk.t > my.gT && dist2(e.lk.x, e.lk.y, my.g.x, my.g.y) > (11 * T) * (11 * T))) {
+    const g = e.lk ? mineSpot(e) : patrolSpot(e);
+    if (g) { my.g = g; my.gT = now; const n = m.n; if (!my.tf || my.tf.length !== n * n) my.tf = new Float32Array(n * n); dijkstra(m, g.r * n + g.c, my.tf, null); e.wp = null; } else { my.g = null; my.gT = now - 11; }
+  }
+  let goal = null;
+  if (!trB) {
+    my.fleeT = (my.fleeT || 0) - dt; if (e.canSee && e.distP < MAYIN.flee * T) my.fleeT = 1.3;
+    if (my.fleeT > 0 && e.canSee) { // it does not fight: run from a player who sees it (and keep running a moment)
+      const a = tamFlee(e); if (a !== null) goal = { x: e.x + Math.cos(a) * 60, y: e.y + Math.sin(a) * 60, c: -1, r: -1, free: true };
+    } else if (my.g && my.tf) {
+      if (!e.wp || dist2(e.wp.x, e.wp.y, e.x, e.y) < 25) { e.wp = nextWaypoint(e, my.tf); e.wpBest = 1e9; e.stuckT = 0; }
+      goal = e.wp;
+    }
+  }
+  if (goal && !goal.free && blocksTank(m.get(goal.c, goal.r))) { e.wp = randomNeighbor(e); goal = null; }
+  if (goal) {
+    const desired = Math.atan2(goal.y - e.y, goal.x - e.x);
+    e.angle = turnTo(e.angle, desired, s.turn * dt);
+    const diff = Math.abs(angDiff(e.angle, desired)), spd = diff < 0.55 ? s.speed * e.speedMul * pk * (1 - diff * 0.9) : 0;
+    moveTank(e, Math.cos(e.angle) * spd * dt, Math.sin(e.angle) * spd * dt);
+    if (!goal.free) {
+      const dw = Math.hypot(goal.x - e.x, goal.y - e.y);
+      if (dw < e.wpBest - 0.5) { e.wpBest = dw; e.stuckT = 0; } else e.stuckT += dt;
+      if (e.stuckT > 1.2) { e.wp = randomNeighbor(e); e.wpBest = 1e9; e.stuckT = 0; }
+    }
+  }
+  if (dt > 0) { e.avx = (e.x - ox) / dt; e.avy = (e.y - oy) / dt; }
+  e.turret = turnTo(e.turret, e.canSee && p.alive ? Math.atan2(p.y - e.y, p.x - e.x) : e.lookT > 0 ? e.lookA : e.angle, s.tTurn * 0.6 * dt); // the stub follows the player it watches
+  trackUpdate(e, (e.x - ox) * Math.cos(e.angle) + (e.y - oy) * Math.sin(e.angle), angDiff(before, e.angle));
+  // mines: only while it is actually moving; a corridor tile is preferred for 1.5 s after the timer is up
+  if (Math.hypot(e.avx, e.avy) > 20) my.t -= dt;
+  if (my.t <= 0 && (mineChoke(e.x, e.y) || my.t < -1.5) && mineDrop(e)) { e.mineN = (e.mineN || 0) + 1; my.t = rand(MAYIN.drop[0], MAYIN.drop[1]); }
+  damageSmoke(e, dt);
+}
+const mineCount = id => (G.mines || []).filter(q => !q.dead && q.own === id).length;
+function mineBoom(q, shot) {
+  if (q.dead) return; q.dead = true;
+  const p = G.player, R = MAYIN.blast, x = q.x, y = q.y;
+  explode(x, y, 0.75); addDecals(G.map, [{ k: 'scorch', x, y, r: R * 0.7 }]); addPart('ring', x, y, 0, 0, 0.3, 8, R * 2, 0, '255,190,90'); sparks(x, y, 10, '#ffd27a', 260);
+  shake(5 * prox(x, y)); Sound.pop(volAt(x, y));
+  if (p.alive && dist2(x, y, p.x, p.y) < (R + p.r * 0.5) * (R + p.r * 0.5)) {
+    damagePlayer({ x: p.x, y: p.y, dmg: Math.max(1, Math.round(MAYIN.dmg * G.mods.dmg)), owner: 1, vx: 0, vy: 0, ram: false, mine: true });
+    if (!shot) addText(p.x, p.y - 28, 'Mayın!', '#ffd27a', 16);
+  }
+  if (MAYIN.chain) for (const o of G.mines) if (!o.dead && dist2(x, y, o.x, o.y) < (R * 0.9) * (R * 0.9)) mineBoom(o, true); // neighbours go off with it
+}
+function updateMines(dt) {
+  const ms = G.mines; if (!ms || !ms.length) return;
+  if (G.phase !== 'fight' || ms.some(q => q.w !== G.wave)) { // the wave is over (or another one began): the mines go quietly
+    for (const q of ms) if (!q.dead && onScreen(q.x, q.y, 40)) addPart('dust', q.x, q.y, rand(-16, 16), rand(-16, 16), 0.5, 10, 16, 1);
+    G.mines = []; return;
+  }
+  const p = G.player;
+  for (const q of ms) {
+    if (q.dead) continue;
+    q.age += dt; if (!q.armed && q.age >= MAYIN.arm) q.armed = true;
+    for (const b of G.bullets) { // a player shell that passes over a mine sets it off (armed or not)
+      if (b.dead || b.owner !== 0 || q.dead) continue;
+      const x1 = b.x - b.vx * dt, y1 = b.y - b.vy * dt, dx = b.x - x1, dy = b.y - y1, l2 = dx * dx + dy * dy, t = l2 ? clamp(((q.x - x1) * dx + (q.y - y1) * dy) / l2, 0, 1) : 0, rr = MAYIN.r + (b.r || 3);
+      if (dist2(q.x, q.y, x1 + dx * t, y1 + dy * t) < rr * rr) { if (!b.pierce) b.dead = true; mineBoom(q, true); }
+    }
+    if (!q.dead && q.armed && p.alive && dist2(q.x, q.y, p.x, p.y) < MAYIN.trigger * MAYIN.trigger) mineBoom(q, false);
+  }
+  if (ms.some(q => q.dead)) G.mines = ms.filter(q => !q.dead);
+}
+function drawMines() {
+  const ms = G.mines; if (!ms || !ms.length || G.state === 'menu') return;
+  for (const q of ms) {
+    if (q.dead || !onScreen(q.x, q.y, 30)) continue;
+    const R = MAYIN.r, on = q.armed ? Math.sin(G.time * 9 + q.ph) > -0.15 : true;
+    ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.beginPath(); ctx.ellipse(q.x + 2, q.y + 3, R + 1, R * 0.8, 0, 0, TAU); ctx.fill();
+    ctx.fillStyle = '#1b1c1e'; ctx.beginPath(); ctx.arc(q.x, q.y, R, 0, TAU); ctx.fill();
+    ctx.strokeStyle = '#ffd23f'; ctx.lineWidth = 2.4; ctx.setLineDash([4.2, 3.4]); ctx.beginPath(); ctx.arc(q.x, q.y, R - 1.6, 0, TAU); ctx.stroke(); ctx.setLineDash([]); // hazard ring
+    ctx.fillStyle = '#3a3c40'; ctx.beginPath(); ctx.arc(q.x, q.y, R * 0.55, 0, TAU); ctx.fill();
+    const col = q.armed ? '#ff3a2a' : '#ffb02a';
+    if (on) {
+      if (fxScale === 1 && q.armed) { ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.7; const gs = 34; ctx.drawImage(SPR.fire, q.x - gs / 2, q.y - gs / 2, gs, gs); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over'; }
+      ctx.fillStyle = col; ctx.beginPath(); ctx.arc(q.x, q.y, 3.4, 0, TAU); ctx.fill();
+      ctx.fillStyle = '#fff4d0'; ctx.beginPath(); ctx.arc(q.x - 0.8, q.y - 0.8, 1.2, 0, TAU); ctx.fill();
+    }
+  }
+}
 /* ================= input ================= */
 let STICK_R = 56; // set from the joystick size setting
 const mkStick = () => ({ id: null, ox: 0, oy: 0, vx: 0, vy: 0, t0: 0, max: 0 });
@@ -4742,6 +5186,7 @@ function startGame(resume, sbx) { // sbx: Serbest Mod setup {tank, ups, boss, wa
 const prevBoss = w => { const bd = bossDefAt(w - 1); return bd && G.beaten.has(bd.id) ? bd.id : ''; }; // the boss of the wave before w, if it was a boss wave and is beaten
 function nextWave(forceBd) { // forceBd: Serbest Mod starts a chosen boss stage
   G.wave++;
+  if (!G.sandbox && G.wave > 1 && (G.wave - 1) % 40 === 0) G.beaten.clear(); // İkinci Tur (and later rounds): the regions start again and every enemy type returns (region rule reset)
   const w = G.wave, bd = forceBd || bossDefAt(w), theme = G.sandbox && G.sbx && !bd ? THEMES[G.sbx.theme] || themeFor(w) : themeFor(w); // theme: 10-wave regions; boss waves get a fixed arena (11a)
   G.map = bd ? loadArena(bd.arena, theme) : makeArena(generate(), theme);
   G.stage = null; G.tele = []; G.pieces = [];
@@ -4753,6 +5198,7 @@ function nextWave(forceBd) { // forceBd: Serbest Mod starts a chosen boss stage
   G.phase = 'intro'; G.phaseT = 0; G.fade = 1;
   cam.x = p.x; cam.y = p.y; cam.shake = 0; clampCam(); computeView();
   if (bd) { startBossStage(bd); return; } // fade-in, siren, name title, boss breaks out of the gate
+  if (!G.sandbox && w > 1 && (w - 1) % 40 === 0) { const rd = bossRound(w); Sound.wave(false); showBanner(rd === 1 ? 'İKİNCİ TUR' : (rd + 1) + '. TUR', theme.name + ' · bosslar daha güçlü', 3.2); return; } // a new round: the regions start again
   if (!G.sandbox && w > 1 && w % 10 === 1 && regionGone(prevBoss(w)).length) showBanner(theme.name.toLocaleUpperCase('tr-TR'), regionGone(prevBoss(w)).join(' ve ') + ' artık gelmiyor', 3); // first wave of a new region: who no longer comes
   else showBanner('DALGA ' + w, theme.name, 2.2);
   Sound.wave(false);
@@ -5022,6 +5468,11 @@ function renderGuideSprites() {
     cv.width = cv.height = px;
     const g = cv.getContext('2d');
     g.setTransform(k, 0, 0, k, px / 2, px / 2 + 3 * k); // one scale for every tank, so the Komutan really looks bigger
+    if (type === 'sonhisar') { // the last boss: its own drawing (15f), scaled down to fit
+      const mod = oy => ({ ox: -8, oy, hp: 1, maxHp: 1, alive: true, flash: 0 });
+      g.scale(0.4, 0.4); drawSonhisar({ x: 0, y: 8, angle: -Math.PI / 2, turret: -Math.PI / 2, treadL: 0, treadR: 0, recoil: 0, glow: 0, flash: 0, scorch: [], lost: {}, sh: { fan: 0.6, core: 0 }, spec: Object.assign({}, SPECS.boss, SH_SPEC), parts: [mod(-36), mod(36)] }, g, 1);
+      return;
+    }
     drawTank({ id: 0, type, spec: SPECS[type], x: 0, y: 0, angle: -Math.PI / 2, turret: -Math.PI / 2, treadL: 0, treadR: 0, recoil: 0, flash: 0 }, 1, g);
   });
 }
@@ -5236,6 +5687,7 @@ function updatePlay(rdt) {
   G.hurt = Math.max(0, G.hurt - rdt);
   updatePhase(rdt);
   if (G.state !== 'play') return;
+  if (G.mines && G.mines.length && G.phase !== 'fight') updateMines(0); // 11m: the mines of a finished wave go
   if (G.phase === 'upgrade') { // world waits behind the workshop
     TT.frozenTick(rdt);
     if (G.evoWait > 0 && (G.evoWait -= rdt) <= 0) { G.evoWait = 0; hideBanner(); showUpgrades(); }
@@ -5257,6 +5709,7 @@ function updatePlay(rdt) {
   nukeUpdate(dt); // hook (C)
   separateTanks();
   updateBullets(dt);
+  updateMines(dt); // 11m: Mayıncı mines arm, blow under the player, are shot off
   updateStrikes(dt);
   updatePieces(dt);
   updatePickups(dt);
@@ -5345,6 +5798,7 @@ function render() {
   if (m.frame) { ctx.strokeStyle = m.theme.steelDk; ctx.lineWidth = 12; ctx.strokeRect(-6, -6, m.w + 12, m.h + 12); ctx.strokeStyle = m.theme.steel; ctx.lineWidth = 3; ctx.strokeRect(-1.5, -1.5, m.w + 3, m.h + 3); }
   drawTreads();
   drawPieces();
+  drawMines(); // 11m
   drawTele();
   drawPortals();
   const p = G.player, pAlive = !!(p && p.alive), cloak = G.buffs.stealth > 0;
@@ -5593,6 +6047,17 @@ function drawTank(t, alpha, g) {
     for (let k = -2; k < 5; k++) { g.beginPath(); g.moveTo(-L / 2 + 3 + k * 5, hy + hh); g.lineTo(-L / 2 + 6 + k * 5, hy + hh); g.lineTo(-L / 2 + 6 + k * 5 + hh, hy); g.lineTo(-L / 2 + 3 + k * 5 + hh, hy); g.closePath(); g.globalAlpha = alpha * 0.75; g.fill(); }
     g.restore(); g.globalAlpha = alpha;
   }
+  if (s.miner) { // Mayıncı: a rear rack holding three mines (hazard rim, one amber light each) and a dark dropper chute at the very back
+    g.fillStyle = '#26271a'; rrect(g, -L / 2 - 1.5, -W / 2 + tw - 1, 11, W - 2 * tw + 2, 2); g.fill();
+    for (let k = 0; k < 3; k++) {
+      const yy = -(W - 2 * tw) / 2 + (W - 2 * tw) * (k + 0.5) / 3, cx = -L / 2 + 4.2;
+      g.fillStyle = '#17171a'; g.beginPath(); g.arc(cx, yy, 3.5, 0, TAU); g.fill();
+      g.strokeStyle = c.acc; g.lineWidth = 1; g.beginPath(); g.arc(cx, yy, 3.5, 0, TAU); g.stroke();
+      g.fillStyle = Math.sin(G.time * 5 + (t.id | 0) + k * 2.1) > 0 ? '#ff5a3a' : '#7a2a1c'; g.beginPath(); g.arc(cx, yy, 1.1, 0, TAU); g.fill();
+    }
+    g.fillStyle = c.acc; for (let k = 0; k < 3; k++) { g.beginPath(); g.moveTo(-L / 2 + 11 + k * 4.2, hy + 1); g.lineTo(-L / 2 + 13.6 + k * 4.2, hy + 1); g.lineTo(-L / 2 + 11 + k * 4.2 + hh * 0.5 + 2.6, hy + hh - 1); g.lineTo(-L / 2 + 8.4 + k * 4.2 + hh * 0.5 + 2.6, hy + hh - 1); g.closePath(); g.fill(); } // hazard chevrons
+    g.globalAlpha = alpha;
+  }
   if (U.armor) { // Zırh plakası: one skirt plate per level along each track, front first
     const sw = (L - 6) / 5, ph = tw * 0.8;
     for (let k = 0; k < U.armor; k++) {
@@ -5603,6 +6068,12 @@ function drawTank(t, alpha, g) {
         g.fillStyle = 'rgba(0,0,0,.4)'; g.fillRect((x0 + x1) / 2 - 0.75, y0 + ph / 2 - 0.4, 1.5, 1.5);
       }
     }
+  }
+  if (U.thorns) { // Dikenli zırh: steel spikes on the front bumper and along the track skirts, two more per level
+    const nF = 2 + U.thorns, step = (W - 4) / (nF + 1);
+    g.fillStyle = '#d7dadd'; g.strokeStyle = 'rgba(0,0,0,.55)'; g.lineWidth = 0.8;
+    for (let k = 1; k <= nF; k++) { const yy = -W / 2 + 2 + k * step; g.beginPath(); g.moveTo(L / 2 - 1.5, yy - 2.4); g.lineTo(L / 2 + 4.6, yy); g.lineTo(L / 2 - 1.5, yy + 2.4); g.closePath(); g.fill(); g.stroke(); }
+    for (let k = 0; k < U.thorns; k++) for (const sgn of [-1, 1]) { const xx = L / 2 - 9 - k * 7; g.beginPath(); g.moveTo(xx - 2, sgn * (W / 2 + 0.2)); g.lineTo(xx, sgn * (W / 2 + 4.2)); g.lineTo(xx + 2, sgn * (W / 2 + 0.2)); g.closePath(); g.fill(); g.stroke(); }
   }
   if (U.repair) { // Onarım robotu: drone dock on the front deck
     const bx = L / 2 - 8.8, by = W / 2 - tw - 3.6;
@@ -5635,6 +6106,14 @@ function drawTank(t, alpha, g) {
     g.fillStyle = '#c7ccd1'; g.beginPath(); g.arc(ln - 2, 0, 4.2, 0, TAU); g.fill(); // wrench head: open jaw at the tip
     g.fillStyle = '#2b2823'; g.fillRect(ln - 1.6, -1.6, 4.4, 3.2); g.lineWidth = 0.9; g.strokeStyle = '#2b2823'; g.beginPath(); g.arc(ln - 2, 0, 4.2, 0, TAU); g.stroke();
     if (on) { g.fillStyle = '#9dff90'; g.globalAlpha = alpha * (0.6 + 0.4 * Math.sin(G.time * 16)); g.beginPath(); g.arc(ln + 1, 0, 2.2, 0, TAU); g.fill(); g.globalAlpha = alpha; }
+  }
+  else if (s.miner) { // Mayıncı: no gun; a short sensor stub with a round mine-detector dish
+    g.strokeStyle = '#17171a'; g.lineWidth = 5; g.lineCap = 'round'; g.beginPath(); g.moveTo(2, 0); g.lineTo(s.barrel - 6, 0); g.stroke();
+    g.strokeStyle = c.dk; g.lineWidth = 3; g.beginPath(); g.moveTo(2, 0); g.lineTo(s.barrel - 6, 0); g.stroke();
+    g.fillStyle = '#17171a'; g.beginPath(); g.arc(s.barrel - 3, 0, 7, 0, TAU); g.fill();
+    g.fillStyle = c.hi; g.beginPath(); g.arc(s.barrel - 3, 0, 5.4, 0, TAU); g.fill();
+    g.strokeStyle = c.dk; g.lineWidth = 1; g.beginPath(); g.arc(s.barrel - 3, 0, 3.2, 0, TAU); g.moveTo(s.barrel - 8.4, 0); g.lineTo(s.barrel + 2.4, 0); g.moveTo(s.barrel - 3, -5.4); g.lineTo(s.barrel - 3, 5.4); g.stroke();
+    g.fillStyle = c.acc; g.beginPath(); g.arc(s.barrel - 3, 0, 1.6, 0, TAU); g.fill();
   }
   else if (t.pt && t.pt.barrel > 0) { // jammed barrel: bent upward with a scorched tip
     g.save(); g.rotate(-0.2); barrel(s, rec, c, g); g.fillStyle = '#17110f'; g.fillRect(s.barrel - 7, -s.bW * 0.7, 7, s.bW * 1.4); g.restore();
@@ -6357,6 +6836,94 @@ function drawKiragiTop(e, g) {
     g.restore();
   }
 }
+/* ================= Son Hisar drawing (docs/BOSSES.md section 7; logic 11g) ================= */
+// Seen from above like the concept art: a wide dark-grey hull in two-tone plates, wide treads, a central turret block with the amber core ring, twin long main guns with amber bands, a rear vent,
+// amber lights at the front corners and two side cooling modules (a riveted box with a three-blade fan). A broken module is a black, scorched, sparking socket; a hurt one cracks. Phase 4: the core hatch slides open and glows.
+function drawSonhisar(e, g, alpha) {
+  const s = e.spec, c = s.col, L = s.len, W = s.wid, tw = s.tread, sh = e.sh || { fan: 0, core: 0 }, lost = e.lost;
+  g.save(); g.translate(e.x, e.y); g.rotate(e.angle); g.globalAlpha = alpha;
+  // treads
+  g.fillStyle = '#1b1c1f'; rrect(g, -L / 2, -W / 2, L, tw, 5); g.fill(); rrect(g, -L / 2, W / 2 - tw, L, tw, 5); g.fill();
+  g.fillStyle = '#4d4f55'; const st = 7;
+  let o = ((e.treadL % st) + st) % st; for (let x = -L / 2 + o; x < L / 2 - 2; x += st) g.fillRect(x, -W / 2 + 2, 2.4, tw - 4);
+  o = ((e.treadR % st) + st) % st; for (let x = -L / 2 + o; x < L / 2 - 2; x += st) g.fillRect(x, W / 2 - tw + 2, 2.4, tw - 4);
+  // hull
+  const hx = -L / 2 + 3, hw = L - 6, hy = -W / 2 + tw - 2, hh = W - 2 * tw + 4;
+  g.fillStyle = c.dk; rrect(g, hx, hy, hw, hh, 8); g.fill();
+  g.fillStyle = c.body; rrect(g, hx + 2.5, hy + 2.5, hw - 5, hh - 5, 6); g.fill();
+  g.fillStyle = c.hi; g.globalAlpha = alpha * 0.45; rrect(g, hx + 6, hy + 5, hw - 12, 7, 3); g.fill(); g.globalAlpha = alpha; // top light edge
+  g.fillStyle = c.dk; g.fillRect(-L / 2 + 8, -16, 12, 32); g.fillStyle = '#17181b'; for (let k = 0; k < 4; k++) g.fillRect(-L / 2 + 10, -13 + k * 7, 8, 3.5); // rear vent
+  g.fillStyle = c.acc; for (const sy of [-1, 1]) { g.fillRect(L / 2 - 20, sy * (hh / 2 - 8) - 2, 14, 4); g.beginPath(); g.moveTo(-L / 2 + 14, sy * (hh / 2 - 4)); g.lineTo(-L / 2 + 26, sy * (hh / 2 - 4)); g.lineTo(-L / 2 + 22, sy * (hh / 2 - 10)); g.closePath(); g.fill(); } // front lights, rear corner lamps
+  if (!lost.plate) { g.fillStyle = c.dk; rrect(g, 24, -hh / 2 + 3, 20, hh - 6, 3); g.fill(); g.fillStyle = c.hi; g.globalAlpha = alpha * 0.4; g.fillRect(26, -hh / 2 + 6, 3, hh - 12); g.globalAlpha = alpha; } // front glacis plate (falls in phase 2)
+  g.strokeStyle = 'rgba(0,0,0,.65)'; g.lineWidth = 1.6; rrect(g, -L / 2, -W / 2, L, W, 6); g.stroke();
+  if (e.scorch) { g.fillStyle = 'rgba(15,10,8,.55)'; for (const q of e.scorch) { g.save(); g.translate(q.x, q.y); g.rotate(q.a); g.beginPath(); g.ellipse(0, 0, q.r * 1.4, q.r * 0.9, 0, 0, TAU); g.fill(); g.restore(); } }
+  // cooling modules
+  for (const pt of e.parts) {
+    const x = pt.ox, y = pt.oy, w = 36, h = 24, f = clamp(pt.hp / pt.maxHp, 0, 1);
+    if (!pt.alive) { g.fillStyle = '#0d0d0f'; rrect(g, x - w / 2, y - h / 2, w, h, 4); g.fill(); g.strokeStyle = '#3a2410'; g.lineWidth = 2; g.stroke(); g.fillStyle = '#2a1708'; g.fillRect(x - 12, y - 7, 24, 14); g.strokeStyle = '#ffb04a'; g.globalAlpha = alpha * (0.4 + 0.4 * Math.sin(G.time * 14 + y)); g.beginPath(); g.moveTo(x - 10, y + 5); g.lineTo(x - 3, y - 3); g.lineTo(x + 3, y + 3); g.lineTo(x + 10, y - 5); g.stroke(); g.globalAlpha = alpha; continue; }
+    g.fillStyle = c.dk; rrect(g, x - w / 2 - 2, y - h / 2 - 2, w + 4, h + 4, 5); g.fill();
+    g.fillStyle = '#585d66'; rrect(g, x - w / 2, y - h / 2, w, h, 4); g.fill();
+    g.fillStyle = '#16171a'; rrect(g, x - 15, y - 9, 30, 18, 3); g.fill(); // the vent window
+    g.fillStyle = '#9aa0aa'; for (const [rx, ry] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) { g.beginPath(); g.arc(x + rx * (w / 2 - 3), y + ry * (h / 2 - 3), 1.4, 0, TAU); g.fill(); } // rivets
+    g.save(); g.translate(x, y); g.rotate(sh.fan * (pt.oy < 0 ? 1 : -1)); g.fillStyle = f > 0.35 ? c.acc : '#b9772a';
+    for (let k = 0; k < 3; k++) { g.rotate(TAU / 3); g.beginPath(); g.moveTo(0, 0); g.quadraticCurveTo(7, -3, 8, 2); g.quadraticCurveTo(4, 4, 0, 0); g.fill(); }
+    g.fillStyle = '#111'; g.beginPath(); g.arc(0, 0, 2.2, 0, TAU); g.fill(); g.restore();
+    if (f < 0.6) { g.strokeStyle = 'rgba(0,0,0,.75)'; g.lineWidth = 1.2; g.beginPath(); g.moveTo(x - w / 2 + 3, y - 6); g.lineTo(x - 4, y - 1); g.lineTo(x - 8, y + 8); g.moveTo(x + 4, y - h / 2 + 3); g.lineTo(x + 8, y + 2); g.stroke(); }
+    if (f < 0.3 && fxScale === 1) { g.fillStyle = `rgba(255,150,40,${(0.25 + 0.2 * Math.sin(G.time * 16)).toFixed(2)})`; rrect(g, x - w / 2, y - h / 2, w, h, 4); g.fill(); }
+    if (pt.flash > 0) { g.globalAlpha = alpha * 0.8; g.fillStyle = '#fff'; rrect(g, x - w / 2, y - h / 2, w, h, 4); g.fill(); g.globalAlpha = alpha; }
+  }
+  const fl = e.flash > 0 ? Math.min(1, e.flash * 10) * 0.7 : 0;
+  if (fl) { g.globalAlpha = alpha * fl; g.fillStyle = '#fff'; rrect(g, hx, hy, hw, hh, 8); g.fill(); g.globalAlpha = alpha; }
+  // turret: block, core ring and the twin barrels
+  g.rotate(e.turret - e.angle);
+  const rec = (e.recoil || 0) * 6, gk = clamp(e.glow || 0, 0, 1), bl = s.barrel, bw = s.bW, gy = SH.gun, tr = s.tR;
+  for (const side of [-1, 1]) {
+    const y = side * gy;
+    g.fillStyle = '#17181b'; g.fillRect(tr * 0.3 - rec - 1, y - bw / 2 - 1, bl - tr * 0.3 + 2, bw + 2);
+    g.fillStyle = c.dk; g.fillRect(tr * 0.3 - rec, y - bw / 2, bl - tr * 0.3, bw);
+    g.fillStyle = 'rgba(255,255,255,.2)'; g.fillRect(tr * 0.3 - rec, y - bw / 2 + 1, bl - tr * 0.3, 1.4);
+    g.fillStyle = c.acc; g.fillRect(bl * 0.62 - rec, y - bw / 2 - 0.8, 6, bw + 1.6); g.fillRect(bl * 0.74 - rec, y - bw / 2 - 0.8, 6, bw + 1.6);
+    g.fillStyle = '#1b1c1f'; g.fillRect(bl - 9 - rec, y - bw / 2 - 2, 10, bw + 4); g.fillStyle = c.hi; g.fillRect(bl - 9 - rec, y - bw / 2 - 2, 10, 1.6);
+    if (gk > 0) {
+      const x = bl - rec + 3;
+      g.fillStyle = `rgba(40,20,4,${(0.65 * gk).toFixed(2)})`; g.beginPath(); g.arc(x, y, 6 + 3 * gk, 0, TAU); g.fill();
+      if (fxScale === 1) { g.globalCompositeOperation = 'lighter'; const gs = 24 + 44 * gk; g.globalAlpha = alpha * (0.4 + 0.6 * gk); g.drawImage(SPR.fire, x - gs / 2, y - gs / 2, gs, gs); g.globalCompositeOperation = 'source-over'; }
+      g.globalAlpha = alpha * (0.55 + 0.45 * gk); g.fillStyle = gk < 1 ? '#f2a530' : '#fff4d0'; g.beginPath(); g.arc(x, y, 3.6 + 2.6 * gk, 0, TAU); g.fill(); g.globalAlpha = alpha;
+    }
+  }
+  g.fillStyle = c.dk; rrect(g, -tr * 1.5 - 2, -tr * 0.9 - 2, tr * 3 + 4, tr * 1.8 + 4, tr * 0.6); g.fill();
+  g.fillStyle = c.body; rrect(g, -tr * 1.5, -tr * 0.9, tr * 3, tr * 1.8, tr * 0.55); g.fill();
+  g.globalAlpha = alpha * 0.45; g.fillStyle = c.hi; rrect(g, -tr * 1.25, -tr * 0.78, tr * 2.2, tr * 0.4, tr * 0.2); g.fill(); g.globalAlpha = alpha;
+  g.fillStyle = c.acc; g.fillRect(tr * 0.7, -3, tr * 0.5, 6); // amber tab on the front of the turret
+  const cx = -tr * 0.15, cr = tr * 0.5, k = sh.core || 0; // the core
+  if (k > 0 && fxScale === 1) { g.globalCompositeOperation = 'lighter'; const gs = cr * (5 + 2 * Math.sin(G.time * 8)); g.globalAlpha = alpha * (0.5 + 0.4 * k); g.drawImage(SPR.fire, cx - gs / 2, -gs / 2, gs, gs); g.globalCompositeOperation = 'source-over'; g.globalAlpha = alpha; }
+  g.fillStyle = k > 0 ? '#ffd27a' : '#2a1708'; g.beginPath(); g.arc(cx, 0, cr, 0, TAU); g.fill();
+  g.strokeStyle = c.acc; g.lineWidth = 3; g.beginPath(); g.arc(cx, 0, cr, 0, TAU); g.stroke();
+  if (k > 0) { g.fillStyle = `rgba(255,250,220,${(0.6 + 0.3 * Math.sin(G.time * 10)).toFixed(2)})`; g.beginPath(); g.arc(cx, 0, cr * 0.55, 0, TAU); g.fill(); }
+  g.fillStyle = c.dk; const sl = k * (cr + 3); // the hatch: two half plates slide apart
+  g.save(); g.beginPath(); g.arc(cx, 0, cr - 0.5, 0, TAU); g.clip(); g.fillRect(cx - cr, -cr - sl, cr * 2, cr); g.fillRect(cx - cr, sl, cr * 2, cr); g.restore();
+  g.fillStyle = c.acc; g.fillRect(cx - cr, -0.8 - sl, cr * 2, 1.6); g.fillRect(cx - cr, -0.8 + sl, cr * 2, 1.6);
+  if (fl) { g.globalAlpha = alpha * fl; g.fillStyle = '#fff'; rrect(g, -tr * 1.5, -tr * 0.9, tr * 3, tr * 1.8, tr * 0.55); g.fill(); }
+  g.restore();
+}
+// ground layer: instant laser beams, the sweep wedge in the last phase
+function drawSonhisarGround(e, g) {
+  const sh = e.sh; if (!sh) return;
+  if (sh.spin && !e.dying) { // the warning wedge ahead of the guns (matches def.danger)
+    g.save(); g.translate(e.x, e.y); const a0 = e.turret, a1 = e.turret + sh.spin * 0.9;
+    g.fillStyle = 'rgba(224,60,40,.16)'; g.beginPath(); g.moveTo(0, 0); g.arc(0, 0, 12 * T, Math.min(a0, a1), Math.max(a0, a1)); g.closePath(); g.fill();
+    g.strokeStyle = 'rgba(255,110,70,.8)'; g.lineWidth = 2; g.beginPath(); g.moveTo(0, 0); g.lineTo(Math.cos(a1) * 12 * T, Math.sin(a1) * 12 * T); g.stroke(); g.restore();
+  }
+  if (sh.beams.length) {
+    g.save(); g.lineCap = 'round';
+    for (const b of sh.beams) {
+      const k2 = clamp(b.t / 0.26, 0, 1), x2 = b.x + Math.cos(b.a) * b.len, y2 = b.y + Math.sin(b.a) * b.len;
+      g.strokeStyle = `rgba(${SH_AMBER},${(0.55 * k2).toFixed(3)})`; g.lineWidth = 12 * (0.6 + k2); g.beginPath(); g.moveTo(b.x, b.y); g.lineTo(x2, y2); g.stroke();
+      g.strokeStyle = `rgba(255,250,225,${(0.95 * k2).toFixed(3)})`; g.lineWidth = 4 * (0.6 + k2); g.beginPath(); g.moveTo(b.x, b.y); g.lineTo(x2, y2); g.stroke();
+    }
+    g.restore();
+  }
+}
 function drawStrikes() {
   if (!G.strikes.length) return;
   const blink = ((G.time * 12) | 0) % 2;
@@ -6743,7 +7310,7 @@ function bossAutopilot(dt) {
     const k = G.pickups.find(q => q.kind === 'repair' && !botDanger(q.x, q.y, 20));
     if (k) { const kc = Math.floor(k.x / T), kr = Math.floor(k.y / T), d = botBfs((c, r) => c === kc && r === kr, 14); if (d) { bot.mx = d.x; bot.my = d.y; return; } }
   }
-  const want = Math.max(((e.def.id === 'demirkok' || e.def.id === 'kiragi') && TANKS[G.tank].bossRange) || TANKS[G.tank].botRange || 290, 150); // bossRange: Üçlü's fan misses a distant boss, so the bot closes in on Demirkök and Kırağı (the fortress and the ambusher; on the Komutan the rams punish it)
+  const want = Math.max(((e.def.id === 'demirkok' || e.def.id === 'kiragi' || e.def.id === 'sonhisar') && TANKS[G.tank].bossRange) || TANKS[G.tank].botRange || 290, 150); // bossRange: Üçlü's fan misses a distant boss, so the bot closes in on Demirkök and Kırağı (the fortress and the ambusher; on the Komutan the rams punish it)
   const lineWarn = e.treadT <= 0 && G.tele.some(t => t.kind === 'line' && t.t < t.dur && !t.nodanger), brk = e.treadT > 0; // part damage: a charge line is up (shoot the tread from the side) / a tread is broken (get behind)
   let best = null, bs = -1e9;
   for (let i = 0; i < 8; i++) {
@@ -6764,6 +7331,9 @@ function autopilot(dt) {
   for (const e of G.enemies) { const dd = dist2(e.x, e.y, p.x, p.y); if (dd < best) { best = dd; target = e; } }
   let tamB = 1e18; // a visible Tamirci comes first
   for (const e of G.enemies) if (e.type === 'tamirci' && !e.dead && !e.hidden && !G.boss) { const dd = dist2(e.x, e.y, p.x, p.y); if (dd < tamB && dd < (T * 13) * (T * 13) && los(p.x, p.y, e.x, e.y)) { tamB = dd; target = e; best = dd; } }
+  let mineB = (T * 5) * (T * 5), mineT = null; // 1.5.6: a Mayıncı mine 1.5-5 tiles away in plain sight is shot first (a careful player does the same)
+  for (const q of G.mines || []) { const dd = dist2(q.x, q.y, p.x, p.y); if (!q.dead && dd < mineB && dd > (T * 1.5) * (T * 1.5) && los(p.x, p.y, q.x, q.y)) { mineB = dd; mineT = q; } }
+  if (mineT) { target = mineT; best = mineB; }
   bot.t -= dt;
   if (target) {
     bot.aim = Math.atan2(target.y - p.y, target.x - p.x); bot.fire = !bot.hold;
@@ -6857,7 +7427,9 @@ if (DEBUG) {
     // start any BOSS_DEFS key (also sandboxOnly ones) at wave w with its own arena; the intro runs (bossSkip ends it)
     bossStart(key, w) { G.forceBoss = key; G.wave = (w || 25) - 1; nextWave(); G.forceBoss = null; return this.bossInfo(); },
     bossSkip() { G.introSeen = true; G.phaseT = Math.max(G.phaseT, 0.3); bossIntroTap(); },
-    UPS, UP_KEYS, BOSS_TUNE, blocksTank, damagePlayer, bossBlast, nukeWaveWeight, NUKE_WAVES, NUKE_WEIGHT, nukeOnKill, KIR, KIR_SPEC, WATER, SLOPE, REFLEX, slopeChance, slopeRoll, reflexTry, reflexRoom, NUKE_BOSS_FILL, nukeOnBossDamage, bossFitMap, playerSlowK, krDecoyHit, krDecoyBreak, krBeam, TOPCU, topcuBoom, topcuFire, shellHit, updateTopcu,
+    MAYIN, THORN, updateMines, mineBoom, mineDrop, mineSpot, mineChoke, contactK, thornHit, updateMayinci, mineCount,
+    UPS, UP_KEYS, BOSS_TUNE, blocksTank, damagePlayer, bossBlast, nukeWaveWeight, NUKE_WAVES, NUKE_WEIGHT, nukeOnKill, KIR, KIR_SPEC, WATER, SLOPE, REFLEX, slopeChance, slopeRoll, reflexTry, reflexRoom, NUKE_BOSS_FILL, nukeOnBossDamage, bossFitMap, playerSlowK, krDecoyHit, krDecoyBreak, krBeam, TOPCU, REGION_BAN, topcuBoom, topcuFire, shellHit, updateTopcu,
+    SH, SH_SPEC, bossRound, ROUND_K, shAlive, shShockBlast, shDebris,
     KAP, tm, kapReadOffset, kapTrailScan, bossDanger, bossClearHazards, BOSS_DEFS, BOSS_ON, startBossStage, loadArena, ARENAS, parseArena, themeFor, bossDefAt,
     // one boss fight for the probe: wave w, workshop cards (object), tank id; the bot plays until the boss falls, the tank dies or maxSec passes
     bossFight(w, cards, tank, maxSec, key, nuke) { // nuke: the bot may use the bomb; the result lists when the meter became ready (s)

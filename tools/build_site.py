@@ -14,7 +14,7 @@ import paths as P  # noqa: E402
 SITE = str(P.SITE)
 D = json.load(open(P.TOOLS / 'gamedata.json', encoding='utf-8'))
 VERSION = P.app_version()  # android/AndroidManifest.xml versionName
-OLD_APKS = ['TankArena-1.2.apk', 'TankArena-1.2.1.apk', 'TankArena-1.3.apk', 'TankArena-1.4.apk', 'TankArena-1.4.1.apk', 'TankArena-1.5.apk', 'TankArena-1.5.1.apk', 'TankArena-1.5.2.apk', 'TankArena-1.5.3.apk', 'TankArena-1.5.4.apk', 'TankArena-1.5.5.apk', 'TankArena-1.5.5.1.apk', 'TankArena-1.5.5.2.apk', 'TankArena-1.5.5.3.apk']  # earlier file names; their links on this site now lead to the newest APK
+OLD_APKS = ['TankArena-1.2.apk', 'TankArena-1.2.1.apk', 'TankArena-1.3.apk', 'TankArena-1.4.apk', 'TankArena-1.4.1.apk', 'TankArena-1.5.apk', 'TankArena-1.5.1.apk', 'TankArena-1.5.2.apk', 'TankArena-1.5.3.apk', 'TankArena-1.5.4.apk', 'TankArena-1.5.5.apk', 'TankArena-1.5.5.1.apk', 'TankArena-1.5.5.2.apk', 'TankArena-1.5.5.3.apk', 'TankArena-1.5.5.4.apk']  # earlier file names; their links on this site now lead to the newest APK
 APK = f'TankArena-{VERSION}.apk'
 BASE = os.environ.get('SITE_URL', '').rstrip('/')  # absolute origin for link previews, filled in once the address is known
 REPO = 'https://github.com/Yusufozkal/tank-arena'
@@ -92,7 +92,9 @@ FOES = [
     ('boss-sari', 'Sarı Fırtına', 'boss', 'Keşif tankının boss\'u, 10. dalgada. Kırmızı çizgi boyunca hücum eder; çeliğe çarparsa sersemler.'),
     ('boss-demirkok', 'Demirkök', 'boss', 'Ağır tankın boss\'u, 20. dalgada Orman Kalesi\'nde. Üç mevziye kök salıp kale gibi savaşır; kök fışkırtarak geçici kök duvarları örer.'),
     ('boss-kiragi', 'Kırağı', 'boss', 'Donmuş Göl\'de saklanan, suretler bırakıp ayazla yeri donduran Kar bölgesi bossu. 30. dalgada gelir.'),
+    ('boss-sonhisar', 'Son Hisar', 'boss', '40. dalganın son bossu, Şehir Meydanı\'nda. İki soğutma modülü kırılmadan gövdesi zor yaralanır, son direnişte çekirdeği açılır. Yenilince İkinci Tur başlar: bölgeler baştan, bosslar daha güçlü.'),
     ('topcu', 'Ağır Topçu', 'topcu', 'Namlusu parlayınca yavaş, dev bir mermi atan; mermisi 3 isabetle havada patlatılabilen Kar topçusu. 23. dalgadan sonra gelir.'),
+    ('mayinci', 'Mayıncı', 'mayinci', 'Geçtiği yere mayın bırakan Şehir düşmanı; mayınları vurarak güvenle patlatabilirsin. 34. dalgadan sonra gelir.'),
     ('boss-kapatici', 'Kapatıcı', 'boss', 'Yalnızca Serbest Mod\'da. Çok zeki ama hile yapmaz: gördüğünü ve duyduğunu bilir, kaçış yolunu keser, savaşta alışkanlığını öğrenir. Her saldırıdan sonra bir saniye tam hasar alır; 90. saniyeden sonra arena kapanır.'),
 ]
 foes = '\n'.join(f'<li class="foe-{c.split()[-1]}"><img src="/img/{k if k.startswith("boss-") else "tank-" + k}.png" width="128" height="128" alt="" loading="lazy"><b>{n}</b><span>{t}</span></li>' for k, n, c, t in FOES)
