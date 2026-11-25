@@ -1,4 +1,4 @@
-"""Mayıncı (Şehir, wave 34+; 1.5.6): roster (first at 34, Şehir only, shares to 10%, at most 2 alive), mines (cap 3 each / 6 on the map, arm after 1 s, hurt the player, ignore enemies,
+"""Mayıncı (Şehir, wave 31+): roster (first at 31, Şehir only, shares 15% to 20%, at most 2 alive), mines (cap 3 each / 6 on the map, arm after 1 s, hurt the player, ignore enemies,
 shot off by a player shell, gone when the wave ends), knowledge (only seen / heard positions), the one-time tip, no page errors.
 Usage: TANK_TEST_PORT=8820 python3 tests/check_mayinci.py"""
 from common import *  # noqa: F401,F403
@@ -38,10 +38,10 @@ with sync_playwright() as p:
     # ---- roster ----
     sp = ev(page, "t.SPECS.mayinci")
     check('spec', sp['hp'] == 3 and sp['miner'] and sp['dmg'] == 0, sp)
-    pm = ev(page, "[24, 30, 33, 34, 36, 37, 38, 39, 40, 41, 45].map(w => +t.typeShares(w).pm.toFixed(4))")
-    check('share_curve', pm == [0, 0, 0, 0, 0.054, 0.066, 0.078, 0.09, 0.1, 0, 0], pm)
-    r34, r33, r37 = ev(page, ROSTER, [34, 200]), ev(page, ROSTER, [33, 200]), ev(page, ROSTER, [37, 200])
-    check('first_wave_34_exactly_one', r34['mn'] == 1 and r34['mx'] == 1 and r33['any'] == 0, [r34, r33])
+    pm = ev(page, "[24, 30, 31, 33, 34, 36, 37, 38, 39, 40, 41, 45].map(w => +t.typeShares(w).pm.toFixed(4))")
+    check('share_curve', pm == [0, 0, 0.15, 0.1625, 0.1688, 0.1812, 0.1875, 0.1938, 0.2, 0.2, 0, 0], pm)
+    r34, r33, r37 = ev(page, ROSTER, [31, 200]), ev(page, ROSTER, [30, 200]), ev(page, ROSTER, [37, 200])
+    check('first_wave_31_has_some', r34['mn'] >= 1 and r33['any'] == 0, [r34, r33])
     check('comes_in_city_waves', r37['any'] > 150, r37)
     check('boss_waves_clean', ev(page, "[35, 40].map(w => t.buildRoster(w).list)") == [['boss'], ['boss']])
     check('not_in_other_regions', ev(page, "[11, 22, 26, 29].every(w => cnt(t.buildRoster(w).list, 'mayinci') === 0)"))

@@ -135,14 +135,17 @@ with sync_playwright() as p:
     # ---- banned after Kırağı ----
     ev(page, "(() => { const t = __tank, G = t.G; G.beaten.clear(); G.beaten.add('kiragi'); })()")
     ban = ev(page, "[__tank.typeBanned('topcu'), __tank.typeBanned('hunter'), __tank.typeShares(26).pa, __tank.typeShares(26).pu]")
-    sc = ev(page, ROSTER_SCAN, [26, 100, 'topcu'])
-    check('topcu_banned_after_kiragi', ban[0] and ban[1] and ban[2] == 0 and ban[3] == 0 and sc['any'] == 0, [ban, sc])
+    ev(page, "(() => { __tank.G.beaten.clear(); })()")
+    full = ev(page, "[__tank.typeShares(26).pa, __tank.typeShares(26).pu]")
+    ev(page, "(() => { __tank.G.beaten.add('kiragi'); })()")
+    sc = ev(page, ROSTER_SCAN, [26, 200, 'topcu'])
+    check('topcu_faded_after_kiragi', ban[0] and ban[1] and abs(ban[2] - 0.25 * full[0]) < 1e-9 and abs(ban[3] - 0.25 * full[1]) < 1e-9 and ban[2] > 0 and sc['any'] > 0, [ban, full, sc])
     ev(page, "(() => { __tank.G.beaten.clear(); })()")
     ev(page, "(() => { const t = __tank, G = t.G, ms = []; G.beaten.clear(); G.beaten.add('kiragi'); window.__rm = t.waveMods(31).cool; G.beaten.clear(); window.__r0 = t.waveMods(31).cool; })()")
     check('region_compensation_includes_topcu', ev(page, "window.__rm < window.__r0"))
     ev(page, "(() => { __tank.G.beaten.clear(); __tank.G.beaten.add('kiragi'); __tank.G.wave = 30; __tank.nextWave(); })()")
     bt, bs = ev(page, "document.getElementById('bTitle').textContent"), ev(page, "document.getElementById('bSub').textContent")
-    check('wave31_banner_names_both', bt == 'ŞEHİR BÖLGESİ' and bs == 'Avcılar ve Ağır Topçular artık gelmiyor', [bt, bs])
+    check('wave31_banner_names_both', bt == 'ŞEHİR BÖLGESİ' and bs == 'Avcılar ve Ağır Topçular artık seyrek geliyor', [bt, bs])
 
     # ---- Rehber (guide) texts ----
     g = ev(page, "(() => { const t = document.getElementById('guide').textContent; return [t.includes('Ağır Topçu'), t.includes('Kırağı'), t.includes('Ağır Topçular')]; })()")

@@ -48,7 +48,7 @@ function nextWave(forceBd) { // forceBd: Serbest Mod starts a chosen boss stage
   cam.x = p.x; cam.y = p.y; cam.shake = 0; clampCam(); computeView();
   if (bd) { startBossStage(bd); return; } // fade-in, siren, name title, boss breaks out of the gate
   if (!G.sandbox && w > 1 && (w - 1) % 40 === 0) { const rd = bossRound(w); Sound.wave(false); showBanner(rd === 1 ? 'İKİNCİ TUR' : (rd + 1) + '. TUR', theme.name + ' · bosslar daha güçlü', 3.2); return; } // a new round: the regions start again
-  if (!G.sandbox && w > 1 && w % 10 === 1 && regionGone(prevBoss(w)).length) showBanner(theme.name.toLocaleUpperCase('tr-TR'), regionGone(prevBoss(w)).join(' ve ') + ' artık gelmiyor', 3); // first wave of a new region: who no longer comes
+  if (!G.sandbox && w > 1 && w % 10 === 1 && regionGone(prevBoss(w)).length) showBanner(theme.name.toLocaleUpperCase('tr-TR'), regionGone(prevBoss(w)).join(' ve ') + ' artık seyrek geliyor', 3); // first wave of a new region: who now comes rarely
   else showBanner('DALGA ' + w, theme.name, 2.2);
   Sound.wave(false);
 }

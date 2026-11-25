@@ -339,7 +339,7 @@ footer a{{text-underline-offset:3px}}
   <div class="wrap">
     <h2>Karşına çıkacaklar</h2>
     <p class="lead">Harita 35×35, sahada aynı anda en fazla 6 düşman olur. Düşman türleri sırayla gelir: önce Standart tank, sonra Keşif, Ağır, Avcı ve 13. dalgadan Tamirci. Çalıya saklanırsan seni kaybederler ve son gördükleri yeri ararlar. Düşman mermileri seninkilerden farklı renktedir, kolay ayırt edersin.</p>
-    <p class="lead">Düşmanı yeterince vurursan parçaları bozulur: yandan vurursan paleti, önden vurursan namlusu, arkadan vurursan motoru. Kısa süre sonra onarır. Bir boss'u yenince onun türü bir daha gelmez: Sarı Fırtına'dan sonra Keşif tankları, Demirkök'ten sonra Ağır tanklar ve Tamirciler, Kırağı'dan sonra Avcılar ve Ağır Topçular.</p>
+    <p class="lead">Düşmanı yeterince vurursan parçaları bozulur: yandan vurursan paleti, önden vurursan namlusu, arkadan vurursan motoru. Kısa süre sonra onarır. Bir boss'u yenince onun türü artık seyrek gelir: Sarı Fırtına'dan sonra Keşif tankları, Demirkök'ten sonra Ağır tanklar ve Tamirciler, Kırağı'dan sonra Avcılar ve Ağır Topçular.</p>
     <ul class="foes">
 {foes}
     </ul>

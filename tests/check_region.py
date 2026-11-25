@@ -51,9 +51,12 @@ with sync_playwright() as p:
     check('boss10_recorded', ev(page, "[...__tank.G.beaten]") == [id10], ev(page, "[...__tank.G.beaten]"))
     if id10 == 'sari':
         s = ev(page, "[11, 15, 19].map(w => __tank.typeShares(w))")
-        check('fast_share_zero_after_sari', all(x['pf'] == 0 for x in s) and all(x['ph'] > 0 for x in s), s)
-        scan = [ev(page, ROSTER_SCAN, [w, 150, 'fast']) for w in (11, 13, 17, 19)]
-        check('no_fast_in_rosters_11_19', all(x['any'] == 0 for x in scan), scan)
+        base = ev(page, "(() => { const G = __tank.G, b = [...G.beaten]; G.beaten.clear(); const r = [11, 15, 19].map(w => __tank.typeShares(w).pf); b.forEach(x => G.beaten.add(x)); return r; })()")
+        check('fast_share_quarter_after_sari', all(abs(x['pf'] - 0.25 * b) < 1e-9 and x['pf'] > 0 for x, b in zip(s, base)) and all(x['ph'] > 0 for x in s), [s, base])
+        scan = [ev(page, ROSTER_SCAN, [w, 300, 'fast']) for w in (13, 17, 19)]
+        base_scan = ev(page, "(() => { const G = __tank.G, b = [...G.beaten]; G.beaten.clear(); const r = rosters(17, 300).flat().filter(x => x === 'fast').length; b.forEach(x => G.beaten.add(x)); return r; })()")
+        faded_n = ev(page, "rosters(17, 300).flat().filter(x => x === 'fast').length")
+        check('fast_rare_not_gone_11_19', all(x['any'] > 0 for x in scan) and faded_n < base_scan * 0.6, [scan, faded_n, base_scan])
         scan = ev(page, ROSTER_SCAN, [14, 150, 'heavy'])
         check('heavy_still_comes', scan['any'] > 0, scan)
         check('fast_banned_flag', ev(page, "__tank.typeBanned('fast') && !__tank.typeBanned('heavy') && !__tank.typeBanned('basic')"))
@@ -94,7 +97,7 @@ with sync_playwright() as p:
     # region banner at the first wave of the new region
     ev(page, "(() => { const t = __tank, G = t.G; t.toMenu(); t.startGame(); G.beaten.add('sari'); G.wave = 10; t.nextWave(); })()")
     bt, bs = ev(page, "document.getElementById('bTitle').textContent"), ev(page, "document.getElementById('bSub').textContent")
-    check('region_banner_wave11', bt == 'ORMAN BÖLGESİ' and bs == 'Keşif tankları artık gelmiyor', [bt, bs])
+    check('region_banner_wave11', bt == 'ORMAN BÖLGESİ' and bs == 'Keşif tankları artık seyrek geliyor', [bt, bs])
     ev(page, "(() => { const t = __tank, G = t.G; G.wave = 11; t.nextWave(); })()")
     check('no_region_banner_wave12', ev(page, "document.getElementById('bTitle').textContent") == 'DALGA 12')
     ev(page, "(() => { const t = __tank, G = t.G; G.beaten.clear(); G.beaten.add('komutan'); G.wave = 20; t.nextWave(); })()")
@@ -102,10 +105,10 @@ with sync_playwright() as p:
     ev(page, "(() => { const t = __tank, G = t.G; G.beaten.clear(); G.beaten.add('demirkok'); G.wave = 20; t.nextWave(); })()")
     bt, bs = ev(page, "document.getElementById('bTitle').textContent"), ev(page, "document.getElementById('bSub').textContent")
     check('wave20_is_demirkok', id20 == 'demirkok', id20)
-    check('region_banner_demirkok', bt == 'KAR BÖLGESİ' and bs == 'Ağır tanklar ve Tamirciler artık gelmiyor', [bt, bs])
+    check('region_banner_demirkok', bt == 'KAR BÖLGESİ' and bs == 'Ağır tanklar ve Tamirciler artık seyrek geliyor', [bt, bs])
     # end to end: after wave 21 spawns no heavy or tamirci ever appears
     ev(page, "(() => { const G = __tank.G; G.beaten.clear(); G.beaten.add('sari'); G.beaten.add('demirkok'); })()")
-    check('no_heavy_tamirci_w21_40', all(ev(page, ROSTER_SCAN, [w, 40, ty])['any'] == 0 for w in (21, 27, 33, 39) for ty in ('heavy', 'tamirci')))
+    check('heavy_tamirci_still_rare_w21_40', all(ev(page, ROSTER_SCAN, [w, 200, ty])['any'] > 0 for w in (27, 33, 39) for ty in ('heavy', 'tamirci')))
     ev(page, "(() => { __tank.G.beaten.clear(); })()")
 
     # ---- Tamirci arrival ----
@@ -116,7 +119,7 @@ with sync_playwright() as p:
     check('tamirci_wave13_exactly_one', r13['min'] == 1 and r13['max'] == 1, r13)
     sh = ev(page, "[14, 20, 30, 40].map(w => +__tank.typeShares(w).pt.toFixed(4))")
     check('tamirci_share_curve', sh[0] == 0.045 and sh[1] == 0.135 and sh[2] == 0.15 and sh[3] == 0.15 and abs(sh[0] - 0.045) < 1e-9, sh)
-    check('tamirci_gone_after_demirkok', ev(page, "(() => { __tank.G.beaten.add('demirkok'); const r = [__tank.typeShares(25).pt, rosters(25, 100).flat().includes('tamirci')]; __tank.G.beaten.clear(); return r; })()") == [0, False])
+    check('tamirci_quarter_after_demirkok', ev(page, "(() => { __tank.G.beaten.add('demirkok'); const r = [+__tank.typeShares(24).pt.toFixed(4), rosters(24, 300).flat().includes('tamirci')]; __tank.G.beaten.clear(); return r; })()") == [0.0375, True])
     # the one-time hint
     ev(page, "(() => { localStorage.removeItem('tankArena.seenTamirci'); const h = document.getElementById('hint'); h.classList.remove('show'); h.textContent = ''; })()")
     ev(page, CALM)

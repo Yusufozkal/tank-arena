@@ -15,24 +15,26 @@ function waveMods(w) {
     pace: Math.max(0.25, 1 - late * 0.015 - Math.max(0, w - 25) * 0.02), // spawn interval factor: reinforcements arrive faster in late waves
     hp: 1 + Math.min(0.75, Math.max(0, w - 6) * D.hpGrow) + Math.max(0, w - 20) * 0.09 };
 }
-// Region rule (docs/BOSSES.md section 9): a defeated boss takes its enemy types out of the rest of the run. G.beaten holds the ids of the bosses beaten in this run (13 waveCleared).
+// Region rule (docs/BOSSES.md section 9): a defeated boss makes its enemy types rare (FADE = 25% of the normal share) for the rest of the run; typeBanned means 'faded'. G.beaten holds the ids of the bosses beaten in this run (13 waveCleared).
 // A boss wave still played by the stand-in Komutan records 'komutan', which removes nothing.
 const REGION_BAN = { sari: ['fast'], demirkok: ['heavy', 'tamirci'], kiragi: ['hunter', 'topcu'] };
 const REGION_NAME = { fast: 'Keşif tankları', heavy: 'Ağır tanklar', tamirci: 'Tamirciler', hunter: 'Avcılar', topcu: 'Ağır Topçular' };
+const FADE = 0.25; // a beaten boss's types keep this share of their normal share (they are rare, not gone)
 const typeBanned = type => { for (const id of G.beaten) { const l = REGION_BAN[id]; if (l && l.includes(type)) return true; } return false; };
+const typeFade = type => typeBanned(type) ? FADE : 1;
 const regionGone = id => (REGION_BAN[id] || []).map(t => REGION_NAME[t]); // names removed by boss id
-// Share of Hızlı / Ağır / Avcı / Tamirci among normal-wave tanks. Each type is absent before its first wave (RULES.fastFrom / heavyFrom / hunterFrom / tamirciFrom), then grows slowly; a beaten boss's types stay at 0.
-// Thinner waves after a region change are made up with numbers and sharper fire, never with HP: +12% tanks, -7% reload time, -10% aim error per removed type
-const removedN = () => ['fast', 'heavy', 'hunter', 'tamirci', 'topcu'].filter(typeBanned).length;
+// Share of Hızlı / Ağır / Avcı / Tamirci among normal-wave tanks. Each type is absent before its first wave (RULES.fastFrom / heavyFrom / hunterFrom / tamirciFrom), then grows slowly; a beaten boss's types keep 25%.
+// Thinner waves after a region change are made up with numbers and sharper fire, never with HP: +12% tanks, -7% reload time, -10% aim error per fully removed type; a faded type counts 0.75 of one (removedN is fractional)
+const removedN = () => ['fast', 'heavy', 'hunter', 'tamirci', 'topcu'].reduce((n, t) => n + 1 - typeFade(t), 0);
 function typeShares(w) {
-  const D = G.D, ok = t => !typeBanned(t);
+  const D = G.D, ok = typeFade;
   return {
-    pf: ok('fast') && w > D.fastFrom ? Math.min(0.28, 0.04 + 0.02 * (w - D.fastFrom)) - Math.max(0, w - 20) * 0.005 : 0,
-    ph: ok('heavy') && w > D.heavyFrom ? Math.min(0.45, 0.04 + 0.02 * (w - D.heavyFrom)) : 0,
-    pu: ok('hunter') && w > D.hunterFrom ? Math.min(0.5, 0.04 + 0.03 * (w - D.hunterFrom)) : 0,
-    pt: ok('tamirci') && w > D.tamirciFrom ? Math.min(0.15, 0.03 + 0.015 * (w - D.tamirciFrom)) : 0,
-    pa: ok('topcu') && w > D.topcuFrom && themeFor(w).key === 'snow' ? Math.min(0.12, 0.03 + 0.01 * (w - D.topcuFrom)) : 0, // Ağır Topçu: the Kar roster only (waves 24-29; 23 has exactly one)
-    pm: w > D.mayinciFrom && themeFor(w).key === 'city' ? Math.min(0.1, 0.03 + 0.012 * (w - D.mayinciFrom)) : 0 }; // Mayıncı (1.5.6): the Şehir roster only (wave 34 has exactly one, 36-39 rise to 10%); in no REGION_BAN
+    pf: w > D.fastFrom ? ok('fast') * Math.max(0, Math.min(0.28, 0.04 + 0.02 * (w - D.fastFrom)) - Math.max(0, w - 20) * 0.005) : 0,
+    ph: w > D.heavyFrom ? ok('heavy') * Math.min(0.45, 0.04 + 0.02 * (w - D.heavyFrom)) : 0,
+    pu: w > D.hunterFrom ? ok('hunter') * Math.min(0.5, 0.04 + 0.03 * (w - D.hunterFrom)) : 0,
+    pt: w > D.tamirciFrom ? ok('tamirci') * Math.min(0.15, 0.03 + 0.015 * (w - D.tamirciFrom)) : 0,
+    pa: w > D.topcuFrom && themeFor(w).key === 'snow' ? ok('topcu') * Math.min(0.12, 0.03 + 0.01 * (w - D.topcuFrom)) : 0, // Ağır Topçu: the Kar roster only (waves 24-29; 23 has exactly one)
+    pm: w >= D.mayinciFrom && themeFor(w).key === 'city' ? Math.min(0.2, 0.15 + 0.00625 * (w - D.mayinciFrom)) : 0 }; // Mayıncı: the Şehir roster only (15% at wave 31 rising to 20% at 39); never fades (in no REGION_BAN)
 }
 function buildRoster(w) {
   const D = G.D, list = [];
