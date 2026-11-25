@@ -2383,7 +2383,11 @@ function buildRoster(w) {
   if (w % 5 === 0) return { list: ['boss'], maxAlive: 1 }; // boss stage: only the boss on the field, no escorts (startBossStage spawns it)
   const rk = 1 + 0.12 * removedN(), total = clamp(Math.round((3 + w + Math.floor(w / 2)) * D.count * rk), 3, Math.round((20 + Math.floor(Math.max(0, w - 20) / 3)) * rk));
   const { pf, ph, pu, pt, pa, pm } = typeShares(w); // topcu is drawn first below: Serbest Mod bans nothing, so the shares can add up past 1 there
-  for (let i = 0; i < total; i++) { const r = Math.random(); list.push(r < pa ? 'topcu' : r < pa + ph ? 'heavy' : r < pa + ph + pf ? 'fast' : r < pa + ph + pf + pu ? 'hunter' : r < pa + ph + pf + pu + pt ? 'tamirci' : r < pa + ph + pf + pu + pt + pm ? 'mayinci' : 'basic'); }
+  // Region types (topcu, tamirci, mayinci) keep their share; the common types shrink to fit so the total stays <= 0.9.
+  // Without this, Serbest Mod (no bans) summed past 1 and region types and basic tanks were never drawn.
+  const sp = pa + pt + pm, cm = ph + pf + pu, k = cm > 0 ? Math.min(1, Math.max(0, 0.9 - sp) / cm) : 1;
+  const c1 = pa, c2 = c1 + pm, c3 = c2 + pt, c4 = c3 + ph * k, c5 = c4 + pf * k, c6 = c5 + pu * k;
+  for (let i = 0; i < total; i++) { const r = Math.random(); list.push(r < c1 ? 'topcu' : r < c2 ? 'mayinci' : r < c3 ? 'tamirci' : r < c4 ? 'heavy' : r < c5 ? 'fast' : r < c6 ? 'hunter' : 'basic'); }
   shuffle(list);
   // a type's first wave: exactly one of it (the roster above has none yet), placed a little way into the wave; never for a type the region rule removed
   const first = w === D.fastFrom ? 'fast' : w === D.heavyFrom ? 'heavy' : w === D.hunterFrom ? 'hunter' : w === D.tamirciFrom ? 'tamirci' : w === D.topcuFrom && themeFor(w).key === 'snow' ? 'topcu' : w === D.mayinciFrom && themeFor(w).key === 'city' ? 'mayinci' : null;
