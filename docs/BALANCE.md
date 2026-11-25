@@ -427,3 +427,7 @@ Not: `check_ai` `blind_enemies_do_not_home_in` 1.5.5.3 hazırlığında bir kez 
 - Mayıncı (34+, en çok 2, mayın hasarı 12×`mods.dmg`, en çok 6 mayın): survive ortalama ~23 (1.5.5.2: 24,2), 40'a ulaşma 1/20 (gürültülü). 31–40. dalgada dalga başına ~106 hasar (21–30'da 216).
 - Son Hisar: bkz. `docs/BOSSES.md` bölüm 7, 1.5.6.
 - Son kontrolde bulunan hata düzeltildi: bölge yasağı yokken (Serbest Mod) tür payları 1'i aşıyor, Mayıncı/Tamirci/normal tank çekilmiyordu. Ortak türler (ağır, hızlı, Avcı) kalan paya sığacak şekilde küçülür, toplam en çok 0,9; normal oyunda değişmez.
+
+## 1.5.6.1 (bölge kuralı seyrekleştirir)
+
+Şehir karışımı (komutan, sarı, demirkök, kırağı yenilmiş; 36. dalga): normal %50, Mayıncı %18, Avcı %13, Ağır %11, Keşif %5, Tamirci %4. survive random 40 (80 oyun): eski ~20,4 / 3/80, yeni ~20,1 / 7/80; partiler arası fark 2–3 dalga (gürültülü).

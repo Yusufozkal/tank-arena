@@ -1,6 +1,6 @@
 # Yol haritası
 
-Durum (25 Kasım 2026): **1.5.6 yayında** (Şehir: Son Hisar, Mayıncı, Dikenli zırh, İkinci Tur). İmza anahtarı yeni oturuma kullanıcıdan ek olarak gelir; repo dışına konur (`docs/OPERATIONS.md`). Sıradaki büyük iş 1.6 (çevrimiçi: hesap, sıralama, para, garaj). Kullanıcı onaylamadan yeni işe başlama.
+Durum (25 Kasım 2026): **1.5.6.1 yayında** (bölge kuralı: yenilen türler kalkmaz, %25 seyrek gelir; Mayıncı 31'den, %15–20. 1.5.6: Şehir: Son Hisar, Mayıncı, Dikenli zırh, İkinci Tur). İmza anahtarı yeni oturuma kullanıcıdan ek olarak gelir; repo dışına konur (`docs/OPERATIONS.md`). Sıradaki büyük iş 1.6 (çevrimiçi: hesap, sıralama, para, garaj). Kullanıcı onaylamadan yeni işe başlama.
 
 ## Kullanıcının koyduğu ilkeler
 

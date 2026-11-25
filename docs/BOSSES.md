@@ -372,3 +372,7 @@ Kullanıcının fikri: "mermileri birkaç vuruşta etkisiz hâle getirilebilir a
 - Boss ölçümü: her boss için zayıf, orta ve güçlü kart setleriyle 20'şer savaş; ortalama süre ve ölüm oranı. İlk boss'ta az ölüm, sona doğru artar.
 - Her boss 10 tankın hepsiyle yenilebilmeli; hiçbir tankta süre hedefin iki katını geçmemeli.
 - 390×844 dikey ekranda boss ve uyarılar ekran görüntüsüyle kontrol edilir.
+
+## 9b. 1.5.6.1: bölge kuralı seyrekleştirir
+
+Denetimde bulundu: bütün bölge bossları yenildiğinde Şehir'in 31–33. dalgaları yalnız normal tanktı. Kullanıcı onayıyla: yenilen bossun türleri kalkmaz, normal paylarının %25'iyle gelir (`FADE`, `typeFade`; `typeBanned` artık "seyrek" demek). Telafi (`removedN`) kesirli: seyrek tür 0,75 sayılır. Mayıncı 31'den, %15 → %20 (39). Bölge yazısı: "… artık seyrek geliyor".

@@ -56,6 +56,7 @@ Notlar: kalıcı engelleme (persistent actions) Hobby'de yok, engel pencere bite
 | 1.4.1 | 7 | Hızlı, Ağır ve Avcı kademeli gelir (4., 7., 12. dalga; ilk gelişte "Yeni düşman" yazısı), sahada aynı anda en fazla 8 düşman, harita 25×25, yeni denge |
 | 1.5 | 8 | Boss etabı (sahada yalnızca boss, kendi arenası, evreler, uyarılar, hasar görünümü), yeni Komutan, Sarı Fırtına, 10 dalgalık bölgeler, parça hasarı, bütün haritayı vuran nükleer bomba |
 | 1.5.1 | 9 | Demirkök (20. dalga, Orman Kalesi), Tamirci, bölge kuralı (yenilen boss'un türü bir daha gelmez) |
+| 1.5.6.1 | 19 | Bölge kuralı seyrekleştirir (%25), Mayıncı 31'den; Şehir artık yalnız normal tank değil |
 | 1.5.6 | 18 | Şehir: Son Hisar (40), Mayıncı, Dikenli zırh, İkinci Tur |
 | 1.5.5.4 | 17 | Dar telefonlarda küçük mini harita (üst gösterge sınır içinde), check_ai kararlı |
 | 1.5.5.3 | 16 | Kapatıcı daha zeki (kaçış okuma, yanıltma, Refleks tuzağı, iz sürme, kapanış), can 2100, açık an 1,4 sn |
