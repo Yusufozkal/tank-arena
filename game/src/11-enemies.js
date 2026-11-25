@@ -31,18 +31,19 @@ function typeShares(w) {
     ph: ok('heavy') && w > D.heavyFrom ? Math.min(0.45, 0.04 + 0.02 * (w - D.heavyFrom)) : 0,
     pu: ok('hunter') && w > D.hunterFrom ? Math.min(0.5, 0.04 + 0.03 * (w - D.hunterFrom)) : 0,
     pt: ok('tamirci') && w > D.tamirciFrom ? Math.min(0.15, 0.03 + 0.015 * (w - D.tamirciFrom)) : 0,
-    pa: ok('topcu') && w > D.topcuFrom && themeFor(w).key === 'snow' ? Math.min(0.12, 0.03 + 0.01 * (w - D.topcuFrom)) : 0 }; // Ağır Topçu: the Kar roster only (waves 24-29; 23 has exactly one)
+    pa: ok('topcu') && w > D.topcuFrom && themeFor(w).key === 'snow' ? Math.min(0.12, 0.03 + 0.01 * (w - D.topcuFrom)) : 0, // Ağır Topçu: the Kar roster only (waves 24-29; 23 has exactly one)
+    pm: w > D.mayinciFrom && themeFor(w).key === 'city' ? Math.min(0.1, 0.03 + 0.012 * (w - D.mayinciFrom)) : 0 }; // Mayıncı (1.5.6): the Şehir roster only (wave 34 has exactly one, 36-39 rise to 10%); in no REGION_BAN
 }
 function buildRoster(w) {
   const D = G.D, list = [];
   if (w % 5 === 0) return { list: ['boss'], maxAlive: 1 }; // boss stage: only the boss on the field, no escorts (startBossStage spawns it)
   const rk = 1 + 0.12 * removedN(), total = clamp(Math.round((3 + w + Math.floor(w / 2)) * D.count * rk), 3, Math.round((20 + Math.floor(Math.max(0, w - 20) / 3)) * rk));
-  const { pf, ph, pu, pt, pa } = typeShares(w); // topcu is drawn first below: Serbest Mod bans nothing, so the shares can add up past 1 there
-  for (let i = 0; i < total; i++) { const r = Math.random(); list.push(r < pa ? 'topcu' : r < pa + ph ? 'heavy' : r < pa + ph + pf ? 'fast' : r < pa + ph + pf + pu ? 'hunter' : r < pa + ph + pf + pu + pt ? 'tamirci' : 'basic'); }
+  const { pf, ph, pu, pt, pa, pm } = typeShares(w); // topcu is drawn first below: Serbest Mod bans nothing, so the shares can add up past 1 there
+  for (let i = 0; i < total; i++) { const r = Math.random(); list.push(r < pa ? 'topcu' : r < pa + ph ? 'heavy' : r < pa + ph + pf ? 'fast' : r < pa + ph + pf + pu ? 'hunter' : r < pa + ph + pf + pu + pt ? 'tamirci' : r < pa + ph + pf + pu + pt + pm ? 'mayinci' : 'basic'); }
   shuffle(list);
   // a type's first wave: exactly one of it (the roster above has none yet), placed a little way into the wave; never for a type the region rule removed
-  const first = w === D.fastFrom ? 'fast' : w === D.heavyFrom ? 'heavy' : w === D.hunterFrom ? 'hunter' : w === D.tamirciFrom ? 'tamirci' : w === D.topcuFrom && themeFor(w).key === 'snow' ? 'topcu' : null;
-  if (first && !typeBanned(first)) list[Math.min(list.length - 1, first === 'tamirci' || first === 'topcu' ? 3 : 1 + Math.floor(Math.random() * 2))] = first;
+  const first = w === D.fastFrom ? 'fast' : w === D.heavyFrom ? 'heavy' : w === D.hunterFrom ? 'hunter' : w === D.tamirciFrom ? 'tamirci' : w === D.topcuFrom && themeFor(w).key === 'snow' ? 'topcu' : w === D.mayinciFrom && themeFor(w).key === 'city' ? 'mayinci' : null;
+  if (first && !typeBanned(first)) list[Math.min(list.length - 1, first === 'tamirci' || first === 'topcu' || first === 'mayinci' ? 3 : 1 + Math.floor(Math.random() * 2))] = first;
   const alive = Math.min(6, 3 + Math.ceil(w / 2)) + (w > 12 ? Math.min(6, 1 + Math.floor((w - 13) / 5)) : 0) + D.alive;
   return { list, maxAlive: Math.min(D.maxAlive, alive) };
 }
@@ -153,7 +154,8 @@ const NEW_FOE = {
   heavy: ['tankArena.seenHeavy', 'Yeni düşman: Ağır. Yavaş ama çok sağlam, çift namlu ateş eder.'],
   hunter: ['tankArena.seenHunter', 'Yeni düşman: Avcı. Yakından gelen mermiden kaçar, uzaktan vurulunca siper alır; ateş etmeden önce yeşil hedef ışığı yakar.'],
   tamirci: ['tankArena.seenTamirci', 'Yeni düşman: Tamirci. Silahı yok; yanındaki tankları onarır. Önce onu vur.'],
-  topcu: ['tankArena.seenTopcu', 'Yeni düşman: Ağır Topçu. Namlusu parlayınca dev bir mermi atar; mermiye 3 isabet ettirirsen havada patlar. İkinci mermisi geç gelir.'] };
+  topcu: ['tankArena.seenTopcu', 'Yeni düşman: Ağır Topçu. Namlusu parlayınca dev bir mermi atar; mermiye 3 isabet ettirirsen havada patlar. İkinci mermisi geç gelir.'],
+  mayinci: ['tankArena.seenMayinci', 'Yeni düşman: Mayıncı. Geçtiği yere mayın bırakır; mayınları vurarak patlatabilirsin.'] };
 function spawnEnemy(type, x, y) {
   if (type === 'boss') { // debug / old paths: a boss in an ordinary wave (no phases, no stage)
     const a = Math.atan2(G.player.y - y, G.player.x - x), e = spawnBoss(bossDefAt(G.wave) || BOSS_DEFS.komutan, x, y, a);
@@ -162,7 +164,7 @@ function spawnEnemy(type, x, y) {
   const e = makeTank(type, x, y), p = G.player;
   const a = Math.atan2(G.map.n * T / 2 - y, G.map.n * T / 2 - x); // a new tank faces the map centre (it knows nothing of the player)
   e.angle = Math.round(a / (Math.PI / 2)) * (Math.PI / 2); e.turret = e.angle;
-  e.cool = type === 'topcu' ? rand(2.5, 4) : rand(0.9, 1.7) * G.mods.cool; e.speedMul = G.mods.speed; e.coolMul = G.mods.cool; e.aimErr = rand(-G.mods.err, G.mods.err);
+  e.cool = type === 'topcu' ? rand(2.5, 4) : type === 'mayinci' ? 99 : rand(0.9, 1.7) * G.mods.cool; e.speedMul = G.mods.speed; e.coolMul = G.mods.cool; e.aimErr = rand(-G.mods.err, G.mods.err);
   if (G.mods.hp > 1) e.hp = e.maxHp = Math.max(1, Math.round(e.spec.hp * G.mods.hp)); // later waves bring tougher tanks
   if (!(G.contactT <= G.time)) G.contactT = G.time; // no hint: a new tank patrols until it sees or hears something
   G.enemies.push(e);
@@ -179,6 +181,7 @@ function updateSpawns(dt) {
       let ty = G.queue.shift();
       if (ty === 'tamirci' && G.enemies.filter(o => o.type === 'tamirci').length + G.portals.filter(q => q.type === 'tamirci').length >= 2) ty = 'basic'; // at most two Tamirci on the field
       if (ty === 'topcu' && G.enemies.filter(o => o.type === 'topcu').length + G.portals.filter(q => q.type === 'topcu').length >= RULES.maxTopcu) ty = 'basic'; // at most two Ağır Topçu on the field
+      if (ty === 'mayinci' && G.enemies.filter(o => o.type === 'mayinci').length + G.portals.filter(q => q.type === 'mayinci').length >= RULES.maxMayinci) ty = 'basic'; // at most two Mayıncı (six mines) on the field
       if (ty === 'hunter' && G.enemies.filter(o => o.type === 'hunter').length + G.portals.filter(q => q.type === 'hunter').length >= RULES.maxHunters) ty = 'basic'; // and a few Avcı at once
       G.portals.push({ x: sp.x, y: sp.y, t: 0, dur: 1.15, type: ty, done: false }); G.spawnTimer = rand(0.7, 1.5) * G.mods.pace; Sound.spawn(volAt(sp.x, sp.y));
     } else G.spawnTimer = 0.25;
@@ -200,6 +203,7 @@ function updateEnemy(e, dt) {
   if (s.smart) { updateHunter(e, dt); return; }
   if (s.medic) { updateTamirci(e, dt); return; }
   if (s.artillery) { updateTopcu(e, dt); return; }
+  if (s.miner) { updateMayinci(e, dt); return; }
   e.cool -= dt; e.flash = Math.max(0, e.flash - dt); e.recoil = Math.max(0, e.recoil - dt * 6);
   e.hidden = m.at(e.x, e.y) === BUSH;
   e.senseT -= dt;
@@ -603,7 +607,7 @@ function topcuBoom(b, x, y) { // impact: a small blast; bricks inside are destro
     const c = c0 + dc, r = r0 + dr; if (c < 0 || r < 0 || c >= m.n || r >= m.n || m.t[r * m.n + c] !== BRICK) continue;
     const cx = c * T + T / 2, cy = r * T + T / 2; if (dist2(cx, cy, x, y) < (R + T * 0.4) * (R + T * 0.4)) destroyBrick(m, c, r, volAt(cx, cy));
   }
-  if (p.alive && !b.hitP && dist2(x, y, p.x, p.y) < (R + p.r * 0.5) * (R + p.r * 0.5)) damagePlayer({ x: p.x, y: p.y, dmg: Math.max(1, Math.round(b.dmg * TOPCU.splash)), owner: 1, vx: 0, vy: 0 });
+  if (p.alive && !b.hitP && dist2(x, y, p.x, p.y) < (R + p.r * 0.5) * (R + p.r * 0.5)) damagePlayer({ x: p.x, y: p.y, dmg: Math.max(1, Math.round(b.dmg * TOPCU.splash)), owner: 1, vx: 0, vy: 0, ram: false });
 }
 function shellHit(c, a) { // a player shell touched an Ağır Topçu shell: one "hit point" whatever the damage; the third pops it
   c.sh--; c.shT = 0.18;

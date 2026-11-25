@@ -42,6 +42,7 @@ function updatePlay(rdt) {
   G.hurt = Math.max(0, G.hurt - rdt);
   updatePhase(rdt);
   if (G.state !== 'play') return;
+  if (G.mines && G.mines.length && G.phase !== 'fight') updateMines(0); // 11m: the mines of a finished wave go
   if (G.phase === 'upgrade') { // world waits behind the workshop
     TT.frozenTick(rdt);
     if (G.evoWait > 0 && (G.evoWait -= rdt) <= 0) { G.evoWait = 0; hideBanner(); showUpgrades(); }
@@ -63,6 +64,7 @@ function updatePlay(rdt) {
   nukeUpdate(dt); // hook (C)
   separateTanks();
   updateBullets(dt);
+  updateMines(dt); // 11m: Mayıncı mines arm, blow under the player, are shot off
   updateStrikes(dt);
   updatePieces(dt);
   updatePickups(dt);

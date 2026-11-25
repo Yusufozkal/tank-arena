@@ -71,6 +71,9 @@ function autopilot(dt) {
   for (const e of G.enemies) { const dd = dist2(e.x, e.y, p.x, p.y); if (dd < best) { best = dd; target = e; } }
   let tamB = 1e18; // a visible Tamirci comes first
   for (const e of G.enemies) if (e.type === 'tamirci' && !e.dead && !e.hidden && !G.boss) { const dd = dist2(e.x, e.y, p.x, p.y); if (dd < tamB && dd < (T * 13) * (T * 13) && los(p.x, p.y, e.x, e.y)) { tamB = dd; target = e; best = dd; } }
+  let mineB = (T * 5) * (T * 5), mineT = null; // 1.5.6: a Mayıncı mine 1.5-5 tiles away in plain sight is shot first (a careful player does the same)
+  for (const q of G.mines || []) { const dd = dist2(q.x, q.y, p.x, p.y); if (!q.dead && dd < mineB && dd > (T * 1.5) * (T * 1.5) && los(p.x, p.y, q.x, q.y)) { mineB = dd; mineT = q; } }
+  if (mineT) { target = mineT; best = mineB; }
   bot.t -= dt;
   if (target) {
     bot.aim = Math.atan2(target.y - p.y, target.x - p.x); bot.fire = !bot.hold;

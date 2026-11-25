@@ -120,7 +120,7 @@ function damagePlayer(b) {
     for (let k = 0; k < 6; k++) { const a = rand(0, TAU); addPart('glow', b.x, b.y, Math.cos(a) * 90, Math.sin(a) * 90, 0.3, 12, 0, 4, 'blue'); }
     Sound.shield(); return;
   }
-  p.hp -= b.dmg * synTaken(b); p.flash = 0.12; p.hurtT = G.time; G.hurt = 0.45; shake(7); Sound.hurt(); vibrate(35);
+  p.hp -= b.dmg * synTaken(b) * contactK(b); p.flash = 0.12; p.hurtT = G.time; G.hurt = 0.45; shake(7); Sound.hurt(); vibrate(35);
   sparks(b.x, b.y, 6, '#ffb08a', 200);
   if (p.hp <= 0) { p.hp = 0; killPlayer(); }
 }

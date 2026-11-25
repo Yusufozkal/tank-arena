@@ -17,6 +17,7 @@ function render() {
   if (m.frame) { ctx.strokeStyle = m.theme.steelDk; ctx.lineWidth = 12; ctx.strokeRect(-6, -6, m.w + 12, m.h + 12); ctx.strokeStyle = m.theme.steel; ctx.lineWidth = 3; ctx.strokeRect(-1.5, -1.5, m.w + 3, m.h + 3); }
   drawTreads();
   drawPieces();
+  drawMines(); // 11m
   drawTele();
   drawPortals();
   const p = G.player, pAlive = !!(p && p.alive), cloak = G.buffs.stealth > 0;
@@ -265,6 +266,17 @@ function drawTank(t, alpha, g) {
     for (let k = -2; k < 5; k++) { g.beginPath(); g.moveTo(-L / 2 + 3 + k * 5, hy + hh); g.lineTo(-L / 2 + 6 + k * 5, hy + hh); g.lineTo(-L / 2 + 6 + k * 5 + hh, hy); g.lineTo(-L / 2 + 3 + k * 5 + hh, hy); g.closePath(); g.globalAlpha = alpha * 0.75; g.fill(); }
     g.restore(); g.globalAlpha = alpha;
   }
+  if (s.miner) { // Mayıncı: a rear rack holding three mines (hazard rim, one amber light each) and a dark dropper chute at the very back
+    g.fillStyle = '#26271a'; rrect(g, -L / 2 - 1.5, -W / 2 + tw - 1, 11, W - 2 * tw + 2, 2); g.fill();
+    for (let k = 0; k < 3; k++) {
+      const yy = -(W - 2 * tw) / 2 + (W - 2 * tw) * (k + 0.5) / 3, cx = -L / 2 + 4.2;
+      g.fillStyle = '#17171a'; g.beginPath(); g.arc(cx, yy, 3.5, 0, TAU); g.fill();
+      g.strokeStyle = c.acc; g.lineWidth = 1; g.beginPath(); g.arc(cx, yy, 3.5, 0, TAU); g.stroke();
+      g.fillStyle = Math.sin(G.time * 5 + (t.id | 0) + k * 2.1) > 0 ? '#ff5a3a' : '#7a2a1c'; g.beginPath(); g.arc(cx, yy, 1.1, 0, TAU); g.fill();
+    }
+    g.fillStyle = c.acc; for (let k = 0; k < 3; k++) { g.beginPath(); g.moveTo(-L / 2 + 11 + k * 4.2, hy + 1); g.lineTo(-L / 2 + 13.6 + k * 4.2, hy + 1); g.lineTo(-L / 2 + 11 + k * 4.2 + hh * 0.5 + 2.6, hy + hh - 1); g.lineTo(-L / 2 + 8.4 + k * 4.2 + hh * 0.5 + 2.6, hy + hh - 1); g.closePath(); g.fill(); } // hazard chevrons
+    g.globalAlpha = alpha;
+  }
   if (U.armor) { // Zırh plakası: one skirt plate per level along each track, front first
     const sw = (L - 6) / 5, ph = tw * 0.8;
     for (let k = 0; k < U.armor; k++) {
@@ -275,6 +287,12 @@ function drawTank(t, alpha, g) {
         g.fillStyle = 'rgba(0,0,0,.4)'; g.fillRect((x0 + x1) / 2 - 0.75, y0 + ph / 2 - 0.4, 1.5, 1.5);
       }
     }
+  }
+  if (U.thorns) { // Dikenli zırh: steel spikes on the front bumper and along the track skirts, two more per level
+    const nF = 2 + U.thorns, step = (W - 4) / (nF + 1);
+    g.fillStyle = '#d7dadd'; g.strokeStyle = 'rgba(0,0,0,.55)'; g.lineWidth = 0.8;
+    for (let k = 1; k <= nF; k++) { const yy = -W / 2 + 2 + k * step; g.beginPath(); g.moveTo(L / 2 - 1.5, yy - 2.4); g.lineTo(L / 2 + 4.6, yy); g.lineTo(L / 2 - 1.5, yy + 2.4); g.closePath(); g.fill(); g.stroke(); }
+    for (let k = 0; k < U.thorns; k++) for (const sgn of [-1, 1]) { const xx = L / 2 - 9 - k * 7; g.beginPath(); g.moveTo(xx - 2, sgn * (W / 2 + 0.2)); g.lineTo(xx, sgn * (W / 2 + 4.2)); g.lineTo(xx + 2, sgn * (W / 2 + 0.2)); g.closePath(); g.fill(); g.stroke(); }
   }
   if (U.repair) { // Onarım robotu: drone dock on the front deck
     const bx = L / 2 - 8.8, by = W / 2 - tw - 3.6;
@@ -307,6 +325,14 @@ function drawTank(t, alpha, g) {
     g.fillStyle = '#c7ccd1'; g.beginPath(); g.arc(ln - 2, 0, 4.2, 0, TAU); g.fill(); // wrench head: open jaw at the tip
     g.fillStyle = '#2b2823'; g.fillRect(ln - 1.6, -1.6, 4.4, 3.2); g.lineWidth = 0.9; g.strokeStyle = '#2b2823'; g.beginPath(); g.arc(ln - 2, 0, 4.2, 0, TAU); g.stroke();
     if (on) { g.fillStyle = '#9dff90'; g.globalAlpha = alpha * (0.6 + 0.4 * Math.sin(G.time * 16)); g.beginPath(); g.arc(ln + 1, 0, 2.2, 0, TAU); g.fill(); g.globalAlpha = alpha; }
+  }
+  else if (s.miner) { // Mayıncı: no gun; a short sensor stub with a round mine-detector dish
+    g.strokeStyle = '#17171a'; g.lineWidth = 5; g.lineCap = 'round'; g.beginPath(); g.moveTo(2, 0); g.lineTo(s.barrel - 6, 0); g.stroke();
+    g.strokeStyle = c.dk; g.lineWidth = 3; g.beginPath(); g.moveTo(2, 0); g.lineTo(s.barrel - 6, 0); g.stroke();
+    g.fillStyle = '#17171a'; g.beginPath(); g.arc(s.barrel - 3, 0, 7, 0, TAU); g.fill();
+    g.fillStyle = c.hi; g.beginPath(); g.arc(s.barrel - 3, 0, 5.4, 0, TAU); g.fill();
+    g.strokeStyle = c.dk; g.lineWidth = 1; g.beginPath(); g.arc(s.barrel - 3, 0, 3.2, 0, TAU); g.moveTo(s.barrel - 8.4, 0); g.lineTo(s.barrel + 2.4, 0); g.moveTo(s.barrel - 3, -5.4); g.lineTo(s.barrel - 3, 5.4); g.stroke();
+    g.fillStyle = c.acc; g.beginPath(); g.arc(s.barrel - 3, 0, 1.6, 0, TAU); g.fill();
   }
   else if (t.pt && t.pt.barrel > 0) { // jammed barrel: bent upward with a scorched tip
     g.save(); g.rotate(-0.2); barrel(s, rec, c, g); g.fillStyle = '#17110f'; g.fillRect(s.barrel - 7, -s.bW * 0.7, 7, s.bW * 1.4); g.restore();
