@@ -1,3 +1,4 @@
+import os
 """Son Hisar and İkinci Tur (docs/BOSSES.md section 7): wave 40 stage and arena, spec, modules (hull takes 30% while both live, hull floor), phases (modules / 60 / 30), charge (barricades, steel stun + 3 brick heaps,
 shock ring afterwards), open core (double damage), death scene, İkinci Tur (wave 41 Çöl, region rule reset, round multipliers), Serbest Mod entry.
 Usage: TANK_TEST_PORT=8800 python3 tests/check_sonhisar.py     (phone screenshots: .tmp/sonhisar_p390.png)"""
@@ -99,9 +100,10 @@ with sync_playwright() as p:
 
     # ---- last phase: it walks to the middle of the square and stays; spin and shock + mortar run ----
     ev(page, START); ev(page, "(() => { const e = __tank.G.boss; for (const q of e.parts) { q.alive = false; q.hp = 0; } e.hp = e.maxHp * 0.25; __tank.step(5); e.cool = 1e9; })()")
-    ev(page, "(() => { const t = __tank, G = t.G, e = G.boss; e.cool = 1e9; e.x = 10 * 48 + 24; e.y = 5 * 48 + 24; G.player.x = 10 * 48 + 24; G.player.y = 16 * 48 + 24; })()")
+    ev(page, "(() => { const t = __tank, G = t.G, e = G.boss; G.god = true; e.cool = 1e9; e.x = 10 * 48 + 24; e.y = 5 * 48 + 24; G.player.x = 10 * 48 + 24; G.player.y = 16 * 48 + 24; })()")
     ev(page, "__tank.step(25)")
     pos = ev(page, "(() => { const e = __tank.G.boss; return [Math.round(e.x / 48 - 0.5), Math.round(e.y / 48 - 0.5), e.phase]; })()")
+    print('phase4 pos', pos) if os.environ.get('TANK_VERBOSE') else None
     check('phase4_stops_in_square_centre', abs(pos[0] - 10) <= 1 and abs(pos[1] - 8) <= 1 and pos[2] == 3, pos)  # within a tile: the boss settles near the centre, rounding flips at tile edges
     ev(page, "(() => { const t = __tank, e = t.G.boss; e.tune = Object.assign({}, e.tune); e.log.length = 0; })()")
     ev(page, RUN, 'doner'); t1 = ev(page, DONE, 8)
