@@ -195,7 +195,7 @@ with sync_playwright() as p:
     got = ev(page, "[[...__tank.G.beaten], __tank.typeBanned('hunter'), __tank.typeBanned('topcu'), __tank.typeBanned('basic')]")
     ev(page, "(() => { const t = __tank, G = t.G; G.wave = 30; G.phase = 'fight'; G.state = 'play'; t.nextWave(); })()")
     bt, bs = ev(page, "document.getElementById('bTitle').textContent"), ev(page, "document.getElementById('bSub').textContent")
-    check('region_rule_kiragi_bans_hunter_topcu', got[0] == ['kiragi'] and got[1] and got[2] and not got[3] and bt == 'ŞEHİR BÖLGESİ' and bs == 'Avcılar ve Ağır Topçular artık gelmiyor', [got, bt, bs])
+    check('region_rule_kiragi_bans_hunter_topcu', got[0] == ['kiragi'] and got[1] and got[2] and not got[3] and bt == 'ŞEHİR BÖLGESİ' and bs == 'Avcılar ve Ağır Topçular artık seyrek geliyor', [got, bt, bs])
 
     # ---- the bot can fight it: 70 s with strong cards, the boss loses a good share of its HP ----
     ev(page, "(() => { const t = __tank; t.toMenu(); t.startGame(); })()"); page.wait_for_timeout(200)
