@@ -37,7 +37,7 @@ function* komCharge(e) { // ezme hücumu: red line (last 0.3 s locked), then a 6
     trackUpdate(e, moved, 0); trav += moved;
     if (fxScale === 1 && Math.random() < 0.6) addPart('dust', e.x - ca * e.r, e.y - sa * e.r + rand(-14, 14), rand(-30, 30), rand(-30, 30), rand(0.4, 0.8), rand(14, 24), 26, 2);
     if (!hurt && p.alive && dist2(e.x, e.y, p.x, p.y) < (e.r + p.r + 2) * (e.r + p.r + 2)) {
-      hurt = true; damagePlayer({ x: p.x, y: p.y, dmg: bossDmg(RAM_DMG), owner: 1, vx: 0, vy: 0 });
+      hurt = true; damagePlayer({ x: p.x, y: p.y, dmg: bossDmg(RAM_DMG), owner: 1, vx: 0, vy: 0, ram: true });
       moveTank(p, -sa * 36, ca * 36 * (Math.random() < 0.5 ? 1 : -1)); shake(8);
     }
     if (moved < step * 0.35) break; // jammed against something

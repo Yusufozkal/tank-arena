@@ -170,7 +170,7 @@ function* shCharge(e) { // sokak hücumu: red line 1.2 s (last 0.3 s locked), th
     const moved = Math.hypot(e.x - ox, e.y - oy); trackUpdate(e, moved, 0); trav += moved;
     if (fxScale === 1 && Math.random() < 0.7) addPart('dust', e.x - ca * e.r, e.y - sa * e.r + rand(-20, 20), rand(-30, 30), rand(-30, 30), rand(0.4, 0.9), rand(16, 26), 28, 2);
     if (!hurt && p.alive && dist2(e.x, e.y, p.x, p.y) < (e.r + p.r + 2) * (e.r + p.r + 2)) {
-      hurt = true; damagePlayer({ x: p.x, y: p.y, dmg: bossDmg(SH.ramDmg), owner: 1, vx: 0, vy: 0 });
+      hurt = true; damagePlayer({ x: p.x, y: p.y, dmg: bossDmg(SH.ramDmg), owner: 1, vx: 0, vy: 0, ram: true });
       moveTank(p, -sa * 40, ca * 40 * (Math.random() < 0.5 ? 1 : -1)); shake(9);
     }
     if (moved < step * 0.35) break; // jammed against something

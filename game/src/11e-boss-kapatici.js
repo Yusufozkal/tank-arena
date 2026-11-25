@@ -331,7 +331,7 @@ function* kapCut(e) { // Kesme Hamlesi: a line into the escape path (where he is
     moveTank(e, ca * step, sa * step); const moved = Math.hypot(e.x - ox, e.y - oy); trackUpdate(e, moved, 0); trav += moved;
     if (fxScale === 1 && Math.random() < 0.8) addPart('dust', e.x - ca * e.r, e.y - sa * e.r + rand(-10, 10), rand(-30, 30), rand(-30, 30), rand(0.3, 0.6), rand(10, 18), 24, 2);
     if (!hurt && p.alive && dist2(e.x, e.y, p.x, p.y) < (e.r + p.r + 2) * (e.r + p.r + 2)) {
-      hurt = true; damagePlayer({ x: p.x, y: p.y, dmg: bossDmg(kapDmg(KAP.dmgRam)), owner: 1, vx: 0, vy: 0 });
+      hurt = true; damagePlayer({ x: p.x, y: p.y, dmg: bossDmg(kapDmg(KAP.dmgRam)), owner: 1, vx: 0, vy: 0, ram: true });
       const side = (p.x - e.x) * -sa + (p.y - e.y) * ca < 0 ? -1 : 1; moveTank(p, -sa * 56 * side + ca * 24, ca * 56 * side + sa * 24); shake(8); vibrate(30);
     }
     if (moved < step * 0.35) break;

@@ -268,7 +268,7 @@ function damageSmoke(t, dt) {
 }
 /* ===== 1.5.6 Dikenli zırh (thorns): a tank that touches the player is hurt, and the player takes less contact damage ===== */
 // Ordinary tanks never ram: the touch just hurts them (L hits per touch, 0.7 s per enemy). Boss rams (damagePlayer without a bullet, next to a boss) are cut by RED[L-1], by half against a boss, and the boss takes a small fixed
-// hit per touch (BOSS[L-1], 2.2 s cooldown) so its charges stay dangerous. damagePlayer reads contactK(b); a caller can force b.ram = true / false (mines and Topçu shells say false).
+// hit per touch (BOSS[L-1], 2.2 s cooldown) so its charges stay dangerous. damagePlayer reads contactK(b); boss rams and charges pass ram:true; everything else is not contact.
 const THORN = { red: [0.2, 0.35, 0.5], bossK: 0.5, cd: 0.7, bossCd: 2.2, boss: [2, 4, 6], touch: 3 };
 function thornHit(e) {
   const L = upL('thorns'), p = G.player; if (!L || e.dead || G.time < (e.thT || 0)) return;
@@ -282,7 +282,7 @@ function contactK(b) { // damage multiplier for a contact hit on the player (1 =
   let near = null;
   for (const e of G.enemies) if (!e.dead && dist2(e.x, e.y, p.x, p.y) < (e.r + p.r + THORN.touch + 1) * (e.r + p.r + THORN.touch + 1)) { near = e; if (e.isBoss || e.type === 'boss') break; }
   if (!near) return 1;
-  if (b.ram !== true && (b.life !== undefined || b.vx !== 0 || b.vy !== 0)) return 1; // a bullet, not a bump
+  if (b.ram !== true) return 1; // only hits flagged ram:true (boss rams / charges) count as contact; blasts, shocks, mines and bullets never do
   return 1 - THORN.red[L - 1] * (near.isBoss || near.type === 'boss' ? THORN.bossK : 1);
 }
 function separateTanks() {

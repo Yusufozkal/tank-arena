@@ -1849,7 +1849,7 @@ function damageSmoke(t, dt) {
 }
 /* ===== 1.5.6 Dikenli zırh (thorns): a tank that touches the player is hurt, and the player takes less contact damage ===== */
 // Ordinary tanks never ram: the touch just hurts them (L hits per touch, 0.7 s per enemy). Boss rams (damagePlayer without a bullet, next to a boss) are cut by RED[L-1], by half against a boss, and the boss takes a small fixed
-// hit per touch (BOSS[L-1], 2.2 s cooldown) so its charges stay dangerous. damagePlayer reads contactK(b); a caller can force b.ram = true / false (mines and Topçu shells say false).
+// hit per touch (BOSS[L-1], 2.2 s cooldown) so its charges stay dangerous. damagePlayer reads contactK(b); boss rams and charges pass ram:true; everything else is not contact.
 const THORN = { red: [0.2, 0.35, 0.5], bossK: 0.5, cd: 0.7, bossCd: 2.2, boss: [2, 4, 6], touch: 3 };
 function thornHit(e) {
   const L = upL('thorns'), p = G.player; if (!L || e.dead || G.time < (e.thT || 0)) return;
@@ -1863,7 +1863,7 @@ function contactK(b) { // damage multiplier for a contact hit on the player (1 =
   let near = null;
   for (const e of G.enemies) if (!e.dead && dist2(e.x, e.y, p.x, p.y) < (e.r + p.r + THORN.touch + 1) * (e.r + p.r + THORN.touch + 1)) { near = e; if (e.isBoss || e.type === 'boss') break; }
   if (!near) return 1;
-  if (b.ram !== true && (b.life !== undefined || b.vx !== 0 || b.vy !== 0)) return 1; // a bullet, not a bump
+  if (b.ram !== true) return 1; // only hits flagged ram:true (boss rams / charges) count as contact; blasts, shocks, mines and bullets never do
   return 1 - THORN.red[L - 1] * (near.isBoss || near.type === 'boss' ? THORN.bossK : 1);
 }
 function separateTanks() {
@@ -3641,7 +3641,7 @@ function* komCharge(e) { // ezme hücumu: red line (last 0.3 s locked), then a 6
     trackUpdate(e, moved, 0); trav += moved;
     if (fxScale === 1 && Math.random() < 0.6) addPart('dust', e.x - ca * e.r, e.y - sa * e.r + rand(-14, 14), rand(-30, 30), rand(-30, 30), rand(0.4, 0.8), rand(14, 24), 26, 2);
     if (!hurt && p.alive && dist2(e.x, e.y, p.x, p.y) < (e.r + p.r + 2) * (e.r + p.r + 2)) {
-      hurt = true; damagePlayer({ x: p.x, y: p.y, dmg: bossDmg(RAM_DMG), owner: 1, vx: 0, vy: 0 });
+      hurt = true; damagePlayer({ x: p.x, y: p.y, dmg: bossDmg(RAM_DMG), owner: 1, vx: 0, vy: 0, ram: true });
       moveTank(p, -sa * 36, ca * 36 * (Math.random() < 0.5 ? 1 : -1)); shake(8);
     }
     if (moved < step * 0.35) break; // jammed against something
@@ -3818,7 +3818,7 @@ function* sariRush(e) {
     if (strip) { strip.x2 = e.x - ca * e.r * 0.6; strip.y2 = e.y - sa * e.r * 0.6; }
     if (fxScale === 1) for (let k = 0; k < 2; k++) addPart('dust', e.x - ca * e.r + rand(-6, 6), e.y - sa * e.r + rand(-18, 18), -ca * rand(40, 120) + rand(-30, 30), -sa * rand(40, 120) + rand(-30, 30), rand(0.4, 0.8), rand(14, 24), 26, 2);
     if (!hurt && p.alive && dist2(e.x, e.y, p.x, p.y) < (e.r + p.r + 2) * (e.r + p.r + 2)) { // ağır hasar + geri itme
-      hurt = true; damagePlayer({ x: p.x, y: p.y, dmg: bossDmg(SARI_RAM_DMG), owner: 1, vx: 0, vy: 0 });
+      hurt = true; damagePlayer({ x: p.x, y: p.y, dmg: bossDmg(SARI_RAM_DMG), owner: 1, vx: 0, vy: 0, ram: true });
       const side = (p.x - e.x) * -sa + (p.y - e.y) * ca < 0 ? -1 : 1;
       moveTank(p, -sa * 64 * side + ca * 30, ca * 64 * side + sa * 30); shake(9); vibrate(40);
     }
@@ -4670,7 +4670,7 @@ function* kapCut(e) { // Kesme Hamlesi: a line into the escape path (where he is
     moveTank(e, ca * step, sa * step); const moved = Math.hypot(e.x - ox, e.y - oy); trackUpdate(e, moved, 0); trav += moved;
     if (fxScale === 1 && Math.random() < 0.8) addPart('dust', e.x - ca * e.r, e.y - sa * e.r + rand(-10, 10), rand(-30, 30), rand(-30, 30), rand(0.3, 0.6), rand(10, 18), 24, 2);
     if (!hurt && p.alive && dist2(e.x, e.y, p.x, p.y) < (e.r + p.r + 2) * (e.r + p.r + 2)) {
-      hurt = true; damagePlayer({ x: p.x, y: p.y, dmg: bossDmg(kapDmg(KAP.dmgRam)), owner: 1, vx: 0, vy: 0 });
+      hurt = true; damagePlayer({ x: p.x, y: p.y, dmg: bossDmg(kapDmg(KAP.dmgRam)), owner: 1, vx: 0, vy: 0, ram: true });
       const side = (p.x - e.x) * -sa + (p.y - e.y) * ca < 0 ? -1 : 1; moveTank(p, -sa * 56 * side + ca * 24, ca * 56 * side + sa * 24); shake(8); vibrate(30);
     }
     if (moved < step * 0.35) break;
@@ -5314,7 +5314,7 @@ function* shCharge(e) { // sokak hücumu: red line 1.2 s (last 0.3 s locked), th
     const moved = Math.hypot(e.x - ox, e.y - oy); trackUpdate(e, moved, 0); trav += moved;
     if (fxScale === 1 && Math.random() < 0.7) addPart('dust', e.x - ca * e.r, e.y - sa * e.r + rand(-20, 20), rand(-30, 30), rand(-30, 30), rand(0.4, 0.9), rand(16, 26), 28, 2);
     if (!hurt && p.alive && dist2(e.x, e.y, p.x, p.y) < (e.r + p.r + 2) * (e.r + p.r + 2)) {
-      hurt = true; damagePlayer({ x: p.x, y: p.y, dmg: bossDmg(SH.ramDmg), owner: 1, vx: 0, vy: 0 });
+      hurt = true; damagePlayer({ x: p.x, y: p.y, dmg: bossDmg(SH.ramDmg), owner: 1, vx: 0, vy: 0, ram: true });
       moveTank(p, -sa * 40, ca * 40 * (Math.random() < 0.5 ? 1 : -1)); shake(9);
     }
     if (moved < step * 0.35) break; // jammed against something

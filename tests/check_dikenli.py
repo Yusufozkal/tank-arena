@@ -28,7 +28,7 @@ SETUP = """() => { const t = __tank, G = t.G; window.t = t; window.G = G;
     for (let i = 0; i < Math.round(sec * 60); i++) { e.x = p.x + e.r + p.r - 2; e.y = p.y; e.stunT = 99; t.step(1 / 60); if ((e.thT || 0) !== last) { hits++; last = e.thT; } }
     return { lost: +(h0 - e.hp).toFixed(2), hits, thT: +(e.thT - G.time).toFixed(2), type: e.type }; };
 }"""
-RAM = "([L, near, extra]) => { const p = window.arena(L); if (near) { const e = t.spawn(near, p.x + 30, p.y); e.hp = e.maxHp = 9999; } const hp0 = p.hp; t.damagePlayer(Object.assign({ x: p.x, y: p.y, dmg: 20, owner: 1, vx: 0, vy: 0 }, extra || {})); return +(hp0 - p.hp).toFixed(2); }"
+RAM = "([L, near, extra]) => { const p = window.arena(L); if (near) { const e = t.spawn(near, p.x + 30, p.y); e.hp = e.maxHp = 9999; } const hp0 = p.hp; t.damagePlayer(Object.assign({ x: p.x, y: p.y, dmg: 20, owner: 1, vx: 0, vy: 0, ram: true }, extra || {})); return +(hp0 - p.hp).toFixed(2); }"
 
 with sync_playwright() as p:
     b = p.chromium.launch()
@@ -54,8 +54,9 @@ with sync_playwright() as p:
     red = [ev(page, RAM, [L, 'basic']) for L in (1, 2, 3)]
     check('contact_reduction_20_35_50', red == [16, 13, 10], red)
     check('no_reduction_without_touch', ev(page, RAM, [3, None]) == 20)
-    check('bullets_not_contact', ev(page, RAM, [3, 'basic', {'life': 1.0, 'vx': 300}]) == 20)
+    check('bullets_not_contact', ev(page, RAM, [3, 'basic', {'life': 1.0, 'vx': 300, 'ram': None}]) == 20)
     check('mines_and_explicit_false_not_contact', ev(page, RAM, [3, 'basic', {'ram': False}]) == 20 and ev(page, RAM, [3, 'basic', {'mine': True}]) == 20)
+    check('boss_blast_without_ram_flag_not_reduced', ev(page, RAM, [3, 'boss', {'ram': None}]) == 20)
     bred = [ev(page, RAM, [L, 'boss']) for L in (1, 2, 3)]
     check('boss_reduction_half_value', bred == [18, 16.5, 15], bred)
 
