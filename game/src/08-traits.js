@@ -266,11 +266,31 @@ function damageSmoke(t, dt) {
   t.smokeT -= dt;
   if (t.smokeT <= 0) { t.smokeT = 0.12; addPart('smoke', t.x + rand(-6, 6), t.y + rand(-6, 6), rand(-10, 10), rand(-10, 10), rand(0.8, 1.3), rand(10, 16), 22, 1.5); }
 }
+/* ===== 1.5.6 Dikenli zırh (thorns): a tank that touches the player is hurt, and the player takes less contact damage ===== */
+// Ordinary tanks never ram: the touch just hurts them (L hits per touch, 0.7 s per enemy). Boss rams (damagePlayer without a bullet, next to a boss) are cut by RED[L-1], by half against a boss, and the boss takes a small fixed
+// hit per touch (BOSS[L-1], 2.2 s cooldown) so its charges stay dangerous. damagePlayer reads contactK(b); a caller can force b.ram = true / false (mines and Topçu shells say false).
+const THORN = { red: [0.2, 0.35, 0.5], bossK: 0.5, cd: 0.7, bossCd: 2.2, boss: [2, 4, 6], touch: 3 };
+function thornHit(e) {
+  const L = upL('thorns'), p = G.player; if (!L || e.dead || G.time < (e.thT || 0)) return;
+  const boss = e.isBoss || e.type === 'boss'; e.thT = G.time + (boss ? THORN.bossCd : THORN.cd);
+  const x = p.x + (e.x - p.x) * p.r / (p.r + e.r), y = p.y + (e.y - p.y) * p.r / (p.r + e.r);
+  sparks(x, y, 6, '#ffe9a8', 200); Sound.metal(volAt(x, y));
+  hurtEnemy(e, boss ? THORN.boss[L - 1] : L, x, y, Math.atan2(e.y - p.y, e.x - p.x));
+}
+function contactK(b) { // damage multiplier for a contact hit on the player (1 = none)
+  const L = upL('thorns'), p = G.player; if (!L || !p || b.owner !== 1 || b.ram === false || b.mine) return 1;
+  let near = null;
+  for (const e of G.enemies) if (!e.dead && dist2(e.x, e.y, p.x, p.y) < (e.r + p.r + THORN.touch + 1) * (e.r + p.r + THORN.touch + 1)) { near = e; if (e.isBoss || e.type === 'boss') break; }
+  if (!near) return 1;
+  if (b.ram !== true && (b.life !== undefined || b.vx !== 0 || b.vy !== 0)) return 1; // a bullet, not a bump
+  return 1 - THORN.red[L - 1] * (near.isBoss || near.type === 'boss' ? THORN.bossK : 1);
+}
 function separateTanks() {
   const list = G.player && G.player.alive ? [G.player, ...G.enemies] : G.enemies;
   for (let i = 0; i < list.length; i++) for (let j = i + 1; j < list.length; j++) {
     const a = list[i], b = list[j]; if (a.dead || b.dead) continue;
     const dx = b.x - a.x, dy = b.y - a.y, rr = a.r + b.r, dd = dx * dx + dy * dy;
+    if ((a === G.player || b === G.player) && dd < (rr + THORN.touch) * (rr + THORN.touch) && G.state === 'play' && upL('thorns')) thornHit(a === G.player ? b : a);
     if (dd >= rr * rr) continue;
     const d = Math.sqrt(dd), push = rr - d, ma = a.spec.mass, mb = b.spec.mass, tot = ma + mb;
     const nx = d > 1e-4 ? dx / d : 1, ny = d > 1e-4 ? dy / d : 0;

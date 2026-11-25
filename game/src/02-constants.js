@@ -56,7 +56,10 @@ const SPECS = {
     col: { body: '#6f8a3a', dk: '#46591f', hi: '#9fbf5a', acc: '#f2c14e' } },
   // Ağır Topçu (Kar): short wide hull, one very thick barrel, a huge slow shell that can be shot down (11-enemies updateTopcu, 10 shell bullets)
   topcu: { hp: 5, speed: 40, turn: 1.7, tTurn: 1.6, r: 22, mass: 2.5, len: 38, wid: 48, tread: 11, tR: 17, barrel: 40, bW: 15, cool: 6, bSpeed: 150, dmg: 28, bR: 11, score: 350, hold: 5, drop: 0.4, artillery: true, shape: 'howitzer',
-    col: { body: '#4a3a33', dk: '#241a16', hi: '#86695a', acc: '#ffa52e' } }
+    col: { body: '#4a3a33', dk: '#241a16', hi: '#86695a', acc: '#ffa52e' } },
+  // Mayıncı (Şehir): unarmed mine layer; drops mines where it passes, avoids the player (11m-mayinci updateMayinci)
+  mayinci: { hp: 3, speed: 98, turn: 3.4, tTurn: 3, r: 16, mass: 1, len: 38, wid: 34, tread: 8, tR: 10, barrel: 20, bW: 5, cool: 99, bSpeed: 0, dmg: 0, bR: 0, score: 220, hold: 0, drop: 0.3, miner: true,
+    col: { body: '#8a8a3e', dk: '#4f4f22', hi: '#bdbd6c', acc: '#ffd23f' } }
 };
 
 // Komutan HP per boss wave, tuned with tests/boss_probe.py so that a medium card set (and the bot) takes about 3-4 minutes from wave 15 on; the wave-5 Komutan is the easy one
@@ -145,6 +148,9 @@ const UPS = {
   slope: { name: 'Eğimli zırh', max: 3, brief: 'Bazı mermiler zırhtan seker',
     svg: '<path d="M4 20L20 6M4 20h16M9 15l3 4M14.5 10.5l3 4"/>',
     desc: L => `Mermiler seker: önden %${30 + 10 * L}, yandan %${15 + 5 * L}, arkadan %0. Ağır mermi, lazer ve patlamada, bosslarda işlemez` },
+  thorns: { name: 'Dikenli zırh', max: 3, brief: 'Sana çarpan tank hasar alır, çarpma hasarın azalır',
+    svg: '<path d="M12 6l2 3 3-2 1 4 4 1-3 3 2 3-4 0-1 4-4-2-4 2-1-4-4 0 2-3-3-3 4-1 1-4 3 2z"/><circle cx="12" cy="12" r="2.4"/>',
+    desc: L => `Sana çarpan tank her dokunuşta ${L} isabet hasar alır; çarpma hasarın %${[20, 35, 50][L - 1]} azalır. Bosslarda: boss küçük sabit hasar alır, azalma yarı değerde işler` },
   reflex: { name: 'Refleks', max: 2, rare: true, brief: 'Gelen mermiden yana kayar',
     svg: '<path d="M3 12h9M8 8l-4 4 4 4M15 5l6 7-6 7M17 12h4"/>',
     desc: L => `Mermi gelirken tank yana kayar, bekleme ${L === 1 ? 6 : 4} sn (bosslarda iki kat). Lazer, patlama ve boss ağır mermisinde işlemez. Hazırken tankta ışık yanar` },

@@ -22,7 +22,7 @@ const G = {
   wave: 0, score: 0, kills: 0, shots: 0, hits: 0, hurt: 0, fade: 0, god: false,
   buffs: freshBuffs(), buffMax: freshBuffs(), bushHint: false, beaten: new Set(), resume: null, overFree: null,
   D: RULES, dodges: 0, covers: 0,
-  up: {}, strikes: [], jet: null, airQ: 0, stage: null, tele: [], pieces: [], introGate: false, introSeen: false,
+  up: {}, strikes: [], jet: null, airQ: 0, stage: null, tele: [], pieces: [], mines: [], introGate: false, introSeen: false,
   tank: 'std', upMode: 'cards', evoWait: 0, noEvo: false, sandbox: false, sbx: null, sbxWin: false
 };
 const upL = k => G.up[k] | 0;
