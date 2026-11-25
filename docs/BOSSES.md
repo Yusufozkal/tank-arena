@@ -259,6 +259,14 @@ SSS...SSS...SSS...SSS
 - Evre 4 "Son direniş" (%30–0): meydanda durur, çekirdek açılır (2 kat hasar); döner ateş + her 8 sn şok dalgası ve havan; saldırılar %25 hızlı.
 - Ölüm: uzun zincirleme patlama, ağır çekim, "SON HİSAR DÜŞTÜ", ardından "İKİNCİ TUR" ve Çöl'e dönüş.
 
+### 7, 1.5.6'da uygulanan
+
+- Can 1700 + 30·(dalga − 40); r 52; modüller canın %8'i (her biri), ikisi yaşarken gövde %30 hasar alır ve %62'nin altına inmez; evreler: modüller / %60 / %30; çekirdek açıkken ×2. `BOSS_TUNE.sonhisar` gap .95, hız 1.15, hasar 1.3, öne .2; son evre gap ×0.75. Çarpma 30, şok 14, havan 7, lazer 5,5.
+- Arena sapması: ortadaki tek çelik `BBB` barikat oldu, yan barikatlar kalktı (cep vardı); son evrede boss (10,8)'de durur.
+- Alan hasarı (alev, sıçrama, obüs) canlı modüllere de işler (`areaHit`); nükleer hariç. Yeni çekirdek kancaları: `phaseAt`, `areaHit`, `deathLen`, `onDeath`.
+- İkinci Tur: `ROUND_K` 1.3, `bossRound(w)`; 41, 81… dalgada `G.beaten` sıfırlanır; tur başına boss canı ve hasarı ×1,3, saldırı arası ×0,93.
+- Bot ölçümü (40. dalga, 16 savaş): orta 14/16 (~332 sn), tam 12/16 (çoğu kayıp Alev/Çift zaman aşımı), zayıf 0/16.
+
 ## 7b. Kapatıcı (ek boss, şimdilik yalnızca Serbest Mod)
 
 Kullanıcının isteği: diep.io'daki Arena Closer benzeri, ana oyunda olmayan, "çok zeki ve çok güçlü" bir boss. Görünüşü Arena Closer'ın kopyası değil, kendi tasarımımız. Ad önerisi Kapatıcı (kullanıcı itiraz etmedi).

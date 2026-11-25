@@ -421,3 +421,9 @@ Kapatıcı tam 3/16 (~%19). Kırağı orta ~%75, savaş ~245 sn. Üçlü bot bos
 Bot gürültülü; beklenen tam set ~%30–45.
 
 Not: `check_ai` `blind_enemies_do_not_home_in` 1.5.5.3 hazırlığında bir kez kaldı (meanCos 0,431), tekrarında geçti; rastgele haritaya bağlı; 1.5.5.4'te ölçü 6 dalgaya çıkarıldı, 4 koşuda kararlı geçti.
+
+## 1.5.6 sonuçları
+
+- Mayıncı (34+, en çok 2, mayın hasarı 12×`mods.dmg`, en çok 6 mayın): survive ortalama ~23 (1.5.5.2: 24,2), 40'a ulaşma 1/20 (gürültülü). 31–40. dalgada dalga başına ~106 hasar (21–30'da 216).
+- Son Hisar: bkz. `docs/BOSSES.md` bölüm 7, 1.5.6.
+- Son kontrolde bulunan hata düzeltildi: bölge yasağı yokken (Serbest Mod) tür payları 1'i aşıyor, Mayıncı/Tamirci/normal tank çekilmiyordu. Ortak türler (ağır, hızlı, Avcı) kalan paya sığacak şekilde küçülür, toplam en çok 0,9; normal oyunda değişmez.

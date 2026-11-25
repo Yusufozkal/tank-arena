@@ -1,6 +1,6 @@
 # Yol haritası
 
-Durum (21 Kasım 2026): **1.5.5.4 yayında** (dar telefonda üst gösterge sınır içinde; 1.5.5.3: Kapatıcı daha zeki; 1.5.5.2: Refleks seyrek, boss dengesi geri ayarlandı, Kırağı sertleşti, Android'de köşe düğmeleri yuvarlak ekranda içeri alındı). İmza anahtarı yeni oturuma kullanıcıdan ek olarak gelir; repoya değil repo dışına konur (`docs/OPERATIONS.md`, İmza anahtarı). Sıra: 1.5.6 Şehir (Son Hisar) + Dikenli zırh kartı; sonra 1.6 (çevrimiçi). Kullanıcı onaylamadan yeni işe başlama.
+Durum (25 Kasım 2026): **1.5.6 yayında** (Şehir: Son Hisar, Mayıncı, Dikenli zırh, İkinci Tur). İmza anahtarı yeni oturuma kullanıcıdan ek olarak gelir; repo dışına konur (`docs/OPERATIONS.md`). Sıradaki büyük iş 1.6 (çevrimiçi: hesap, sıralama, para, garaj). Kullanıcı onaylamadan yeni işe başlama.
 
 ## Kullanıcının koyduğu ilkeler
 
@@ -152,7 +152,11 @@ Kullanıcının kararları (21 Kasım 2026):
   - Lazer kartı yok: lazer Raylı Top'un özelliği (kullanıcı onayladı).
 - Mermi kartları birlikte çalışır (Sekme, Patlayıcı, Antitank); ayrı mermi seçimi ekranı yok (seçenek az).
 
-## Sonraki içerik sürümü: 1.5.6 Şehir (planlandı)
+## 1.5.6 – Şehir: Son Hisar, Mayıncı, Dikenli zırh, İkinci Tur (yayında, 25 Kasım 2026)
+
+Kullanıcının kararları: Şehir'in yeni düşmanı Mayıncı; İkinci Tur'un basit hâli bu sürümde. Yapılan: Son Hisar (40), Mayıncı (Şehir, 34+), Dikenli zırh (3 seviye; yalnız `ram:true` işaretli çarpmalarda), İkinci Tur (41'den bölgeler baştan, bölge kuralı sıfırlanır, boss canı ve hasarı tur başına ×1,3).
+
+### Önceki plan
 
 - Son Hisar (40. dalga, son boss; dört evre, yenilince İkinci Tur), şartname `docs/BOSSES.md` bölüm 7.
 - **Dikenli zırh** kartı (kullanıcının fikri, onaylı): çarpan tank hasar alır, oyuncu çarpmadan daha az hasar alır. Eğimli zırhla aynı sürüme konmadı.
