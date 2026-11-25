@@ -35,6 +35,7 @@ function startGame(resume, sbx) { // sbx: Serbest Mod setup {tank, ups, boss, wa
 const prevBoss = w => { const bd = bossDefAt(w - 1); return bd && G.beaten.has(bd.id) ? bd.id : ''; }; // the boss of the wave before w, if it was a boss wave and is beaten
 function nextWave(forceBd) { // forceBd: Serbest Mod starts a chosen boss stage
   G.wave++;
+  if (!G.sandbox && G.wave > 1 && (G.wave - 1) % 40 === 0) G.beaten.clear(); // İkinci Tur (and later rounds): the regions start again and every enemy type returns (region rule reset)
   const w = G.wave, bd = forceBd || bossDefAt(w), theme = G.sandbox && G.sbx && !bd ? THEMES[G.sbx.theme] || themeFor(w) : themeFor(w); // theme: 10-wave regions; boss waves get a fixed arena (11a)
   G.map = bd ? loadArena(bd.arena, theme) : makeArena(generate(), theme);
   G.stage = null; G.tele = []; G.pieces = [];
@@ -46,6 +47,7 @@ function nextWave(forceBd) { // forceBd: Serbest Mod starts a chosen boss stage
   G.phase = 'intro'; G.phaseT = 0; G.fade = 1;
   cam.x = p.x; cam.y = p.y; cam.shake = 0; clampCam(); computeView();
   if (bd) { startBossStage(bd); return; } // fade-in, siren, name title, boss breaks out of the gate
+  if (!G.sandbox && w > 1 && (w - 1) % 40 === 0) { const rd = bossRound(w); Sound.wave(false); showBanner(rd === 1 ? 'İKİNCİ TUR' : (rd + 1) + '. TUR', theme.name + ' · bosslar daha güçlü', 3.2); return; } // a new round: the regions start again
   if (!G.sandbox && w > 1 && w % 10 === 1 && regionGone(prevBoss(w)).length) showBanner(theme.name.toLocaleUpperCase('tr-TR'), regionGone(prevBoss(w)).join(' ve ') + ' artık gelmiyor', 3); // first wave of a new region: who no longer comes
   else showBanner('DALGA ' + w, theme.name, 2.2);
   Sound.wave(false);
@@ -315,6 +317,11 @@ function renderGuideSprites() {
     cv.width = cv.height = px;
     const g = cv.getContext('2d');
     g.setTransform(k, 0, 0, k, px / 2, px / 2 + 3 * k); // one scale for every tank, so the Komutan really looks bigger
+    if (type === 'sonhisar') { // the last boss: its own drawing (15f), scaled down to fit
+      const mod = oy => ({ ox: -8, oy, hp: 1, maxHp: 1, alive: true, flash: 0 });
+      g.scale(0.4, 0.4); drawSonhisar({ x: 0, y: 8, angle: -Math.PI / 2, turret: -Math.PI / 2, treadL: 0, treadR: 0, recoil: 0, glow: 0, flash: 0, scorch: [], lost: {}, sh: { fan: 0.6, core: 0 }, spec: Object.assign({}, SPECS.boss, SH_SPEC), parts: [mod(-36), mod(36)] }, g, 1);
+      return;
+    }
     drawTank({ id: 0, type, spec: SPECS[type], x: 0, y: 0, angle: -Math.PI / 2, turret: -Math.PI / 2, treadL: 0, treadR: 0, recoil: 0, flash: 0 }, 1, g);
   });
 }

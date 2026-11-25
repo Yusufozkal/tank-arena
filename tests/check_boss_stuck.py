@@ -6,7 +6,7 @@ from common import *  # noqa: F401,F403
 report_on_exit('check_boss_stuck', R)
 runs = int(sys.argv[1]) if len(sys.argv) > 1 else 3
 LIMIT = 3.0
-CASES = [(5, 'komutan'), (15, 'komutan'), (35, 'komutan'), (10, 'sari'), (20, 'demirkok'), (40, 'komutan'), (25, 'kapatici')]
+CASES = [(5, 'komutan'), (15, 'komutan'), (35, 'komutan'), (10, 'sari'), (20, 'demirkok'), (40, 'sonhisar'), (25, 'kapatici')]
 CARDS = {'armor': 3, 'caliber': 1, 'engine': 1}
 rows, bad = [], []
 with sync_playwright() as p:

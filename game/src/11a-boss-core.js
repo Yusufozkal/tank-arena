@@ -72,22 +72,27 @@ const BOSS_TUNE = {
   sari: { gap: 0.78, speed: 1.2, dmg: 1.2, lead: 0.25 },
   demirkok: { gap: 0.65, speed: 1.2, dmg: 2.5, lead: 0.35 }, // its shells were tiny (6 base): the biggest dmg factor
   kiragi: { gap: 0.68, speed: 1.2, dmg: 1.3, lead: 0.3 }, // speed only matters for its plain shells; the lasers hit by gap and dmg
+  sonhisar: { gap: 0.95, speed: 1.15, dmg: 1.3, lead: 0.2 }, // the last boss (wave 40): slow hull, so the attacks come a little faster than Kırağı's; direct shells hit hard
   kapatici: { gap: 0.6, speed: 1.4, dmg: 1.3, lead: 0 } // Serbest Mod: meant to be very hard (full cards win about 1 in 4-5)
 };
 const bossTuneFor = (def, w) => def.id === 'komutan' ? (w <= 5 ? BOSS_TUNE.light : w <= 15 ? BOSS_TUNE.early : BOSS_TUNE.komutan) : (BOSS_TUNE[def.id] || BOSS_TUNE.komutan);
+const ROUND_K = 1.3, bossRound = w => Math.max(0, Math.floor((w - 1) / 40)); // 0 = first round (waves 1-40), 1 = İkinci Tur (41-80) ...
 const bossDmg = base => Math.max(1, Math.round(base * G.mods.dmg * (G.boss && G.boss.tune ? G.boss.tune.dmg : 1)));
 
 function spawnBoss(def, x, y, angle) {
   const w = G.wave, e = makeTank('boss', x, y);
   e.isBoss = true; e.def = def; e.name = def.name; e.stage = !!G.stage; e.phased = e.stage;
-  e.maxHp = e.hp = def.hp(w); e.r = def.r || e.spec.r;
+  e.round = bossRound(w); // İkinci Tur (1.5.6): after Son Hisar the 40 waves repeat; every boss of round n has ROUND_K^n times the HP and damage
+  e.maxHp = e.hp = Math.round(def.hp(def.id === 'komutan' ? w : w - 40 * e.round) * Math.pow(ROUND_K, e.round)); e.r = def.r || e.spec.r; // the region bosses' HP formulas count from their own wave (30 -> 70), the Komutan's keep growing
   e.angle = e.turret = angle; e.visit = Math.max(1, Math.floor(w / 5));
   e.phase = 0; e.trans = 0; e.invuln = false; e.dying = false; e.parts = []; e.gen = null; e.wait = 0; e.atkId = ''; e.lastAtk = ''; e.acd = {};
   e.cool = 1.5; e.pace = 1 + 0.6 / e.visit; e.scorch = []; e.lost = {}; e.broke = [false, false, false, false]; e.hitSide = [0, 0, 0, 0];
   e.glow = 0; e.fxT = 0; e.flowT = 0; e.flow = null; e.dt = 0; e.log = []; e.unlock = def.unlocks ? def.unlocks(w) : {};
   initBossParts(e);
   def.setup(e, w);
-  e.tune = bossTuneFor(def, w); e.lead = def.lead ? Math.min(1, def.lead + e.tune.lead) : def.lead; // lead 0 (Kırağı) stays 0
+  e.tune = bossTuneFor(def, w);
+  if (e.round) e.tune = Object.assign({}, e.tune, { dmg: e.tune.dmg * Math.pow(ROUND_K, e.round), gap: e.tune.gap * Math.pow(0.93, e.round) }); // a copy: BOSS_TUNE itself stays untouched
+  e.lead = def.lead ? Math.min(1, def.lead + e.tune.lead) : def.lead; // lead 0 (Kırağı) stays 0
   e.spec = Object.assign({}, e.spec, { bSpeed: e.spec.bSpeed * e.tune.speed }); // faster shells (the aim lead reads e.spec.bSpeed too)
   G.enemies.push(e); G.boss = e;
   return e;
@@ -331,7 +336,7 @@ function endAttack(e) {
 /* ---- phases ---- */
 function bossPhaseCheck(e) {
   const th = e.def.phases;
-  if (e.phase < th.length && e.hp / e.maxHp * 100 <= th[e.phase]) startTransition(e);
+  if (e.phase < th.length && (e.def.phaseAt ? e.def.phaseAt(e, e.phase) : e.hp / e.maxHp * 100 <= th[e.phase])) startTransition(e); // def.phaseAt: a phase that ends on something else than HP (Son Hisar: both modules down)
 }
 function startTransition(e) {
   e.phase++; e.trans = 1.5; e.invuln = true;
@@ -454,6 +459,7 @@ function bossHurt(e, dmg, x, y, dir, quiet) {
     return;
   }
   if (direct && dir !== undefined && !quiet) bossPartHit(e, dmg * k * (G.partK || 1), x, y, dir); // treads and barrels: own HP / accumulated hits (the hull takes the damage too)
+  if (!direct && e.def.areaHit && !(G.nuke && G.nuke.firing)) e.def.areaHit(e, dmg * k, quiet); // hook: flame, blasts and lobbed shells have no impact point, so a part would never be hurt (Son Hisar's modules take them whole)
   if (e.def.hullMul) dmg *= e.def.hullMul(e, x, y, dir, direct, quiet); // hook: damage multiplier of the hull itself (Demirkök: turret shield, rear weak point)
   const applied = Math.min(dmg * k, e.hp);
   e.hp -= dmg * k; e.flash = 0.1;
@@ -505,22 +511,25 @@ function bossFx(e, dt) {
 function bossBeginDeath(e) {
   e.dying = true; e.invuln = true; e.deathT = 0; e.chainT = 0; e.hp = 0.001; e.gen = null; e.glow = 0;
   bossClearHazards();
-  showBanner(e.def.deathText || 'BOSS DÜŞTÜ', '', 2.4);
+  showBanner(e.def.deathText || 'BOSS DÜŞTÜ', '', e.def.deathLen ? e.def.deathLen + 1 : 2.4);
+  if (e.def.onDeath) e.def.onDeath(e);
   spawnPiece(e, 'flag', true); // the standard topples
   Sound.metal(1); shake(10); vibrate([40, 30, 80]);
 }
 function bossDeathTick(e, dt) {
   e.deathT += dt; e.chainT -= dt; e.flash = 0.04;
-  if (e.chainT <= 0 && e.deathT < 2.2) {
+  const D = e.def.deathLen || 2.4; // def.deathLen: a longer death scene (Son Hisar)
+  if (e.chainT <= 0 && e.deathT < D - 0.2) {
     e.chainT = 0.17;
     const a = e.angle, lx = rand(-e.spec.len * 0.45, e.spec.len * 0.45), ly = rand(-e.spec.wid * 0.4, e.spec.wid * 0.4);
     const x = e.x + Math.cos(a) * lx - Math.sin(a) * ly, y = e.y + Math.sin(a) * lx + Math.cos(a) * ly;
     explode(x, y, rand(0.45, 0.85)); sparks(x, y, 8, '#ffd27a', 280);
   }
-  if (e.deathT >= 2.4) killEnemy(e);
+  if (e.deathT >= D) killEnemy(e);
 }
 // called from killEnemy for a boss: armour back to full
 function bossDefeated(e) {
+  if (G.phase !== 'dying') G.timeScale = 1; // the slow-motion of a long death scene ends with the boss
   const p = G.player; if (p && p.alive) { p.hp = p.maxHp; addText(p.x, p.y - 30, 'Zırh tam', '#6fd46b', 18); addPart('ring', p.x, p.y, 0, 0, 0.6, 12, 200, 0, '111,212,107'); }
   bossClearHazards();
 }
